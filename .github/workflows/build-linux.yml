@@ -66,10 +66,24 @@ jobs:
       #   with:
       #     cuda: '12.1.0'
 
-
+      - name: Add CUDA compilation flags
+        run: |
+          nvcc --version
+          echo 'set(WITH_CYCLES_CUDA_BINARIES   ON  CACHE BOOL "" FORCE)' >> ./blender/build_files/cmake/config/bpy_module.cmake
+      
       - name: Build Blender
         run: |
-          nvcc --version     
           cd ./blender
           make update
           make bpy
+
+      - name: Make Wheel
+        run: |
+          python3 ./blender/build_files/utils/make_bpy_wheel.py ./build_linux_bpy/bin/
+
+      - name: Upload Wheel as Artifact
+        uses: actions/upload-artifact@v2
+        with:
+          name: bpy-linux
+          path: |
+            ./build_linux_bpy/bin/*.whl
