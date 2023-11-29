@@ -23,7 +23,7 @@ jobs:
       - name: Extract Major and Minor Versions
         run: |
           import os
-          version_tag = os.environ['INPUT_TAG'].lstrip('v')
+          version_tag = sys.argv[1].lstrip('v')
           parts = version_tag.split('.')
           major_version = '.'.join(parts[:2])
           minor_version = '.'.join(parts[:3])
@@ -31,6 +31,8 @@ jobs:
           print(f"::set-output name=minor_version::{minor_version}")
         shell: python
         id: version_extraction
+        env:
+          INPUT_TAG: ${{ github.event.inputs.version_tag }}
 
       - name: Download Blender
         run: |
