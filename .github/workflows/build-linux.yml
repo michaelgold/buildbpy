@@ -23,7 +23,7 @@ jobs:
         with:
           auto-update-conda: true
           python-version: 3.10  # Specify the Python version you need
-          environment-file: environment.yml
+          # environment-file: environment.yml
           activate-environment: bpy-env
 
       # - name: Install dependencies
