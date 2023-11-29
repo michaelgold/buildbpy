@@ -60,3 +60,6 @@ jobs:
           name: blender-python-api-stubs-${{ MINOR_VERSION }}
           path: |
             python_api/output/**
+        env:
+          MAJOR_VERSION: ${{ steps.version_extraction.outputs.major_version }}
+          MINOR_VERSION: ${{ steps.version_extraction.outputs.minor_version }}
