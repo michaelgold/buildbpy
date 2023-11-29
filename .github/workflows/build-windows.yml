@@ -34,31 +34,31 @@ jobs:
           # find / -name nvcc
 
           
-      - name: Setup terminal session
-        uses: fawazahmed0/action-debug@main
-        with:
-            credentials: "user:p@ss!"
+      # - name: Setup terminal session
+      #   uses: fawazahmed0/action-debug@main
+      #   with:
+      #       credentials: "user:p@ss!"
 
 
-      - name: Add conda subdirectories to PATH
-        run: |
-          $condaSubDirs = Get-ChildItem "$env:CONDA\\pkgs" -Directory -Recurse | ForEach-Object { $_.FullName }
-          foreach ($dir in $condaSubDirs) {
-            echo "$dir" | Out-File -Append -FilePath $env:GITHUB_PATH
-          }
+      # - name: Add conda subdirectories to PATH
+      #   run: |
+      #     $condaSubDirs = Get-ChildItem "$env:CONDA\\pkgs" -Directory -Recurse | ForEach-Object { $_.FullName }
+      #     foreach ($dir in $condaSubDirs) {
+      #       echo "$dir" | Out-File -Append -FilePath $env:GITHUB_PATH
+      #     }
 
       - name: Add CUDA compilation flags
         run: |
           nvcc --version
           "set(WITH_CYCLES_CUDA_BINARIES   ON  CACHE BOOL "" FORCE)" | Out-File -Append -FilePath ./blender/build_files/cmake/config/bpy_module.cmake
       
-      - name: Set CUDA environment variables
-        run: |
-          $NVCC_PATH = Get-Command nvcc | Select-Object -ExpandProperty Source
-          $CUDA_HOME = Split-Path (Split-Path $NVCC_PATH -Parent) -Parent
-          echo "CUDA_HOME=$CUDA_HOME" | Out-File -Append -FilePath $env:GITHUB_ENV
-          echo "CPLUS_INCLUDE_PATH=$CUDA_HOME\include;$env:CPLUS_INCLUDE_PATH" | Out-File -Append -FilePath $env:GITHUB_ENV
-          echo "C_INCLUDE_PATH=$CUDA_HOME\include;$env:C_INCLUDE_PATH" | Out-File -Append -FilePath $env:GITHUB_ENV
+      # - name: Set CUDA environment variables
+      #   run: |
+      #     $NVCC_PATH = Get-Command nvcc | Select-Object -ExpandProperty Source
+      #     $CUDA_HOME = Split-Path (Split-Path $NVCC_PATH -Parent) -Parent
+      #     echo "CUDA_HOME=$CUDA_HOME" | Out-File -Append -FilePath $env:GITHUB_ENV
+      #     echo "CPLUS_INCLUDE_PATH=$CUDA_HOME\include;$env:CPLUS_INCLUDE_PATH" | Out-File -Append -FilePath $env:GITHUB_ENV
+      #     echo "C_INCLUDE_PATH=$CUDA_HOME\include;$env:C_INCLUDE_PATH" | Out-File -Append -FilePath $env:GITHUB_ENV
 
 
 
