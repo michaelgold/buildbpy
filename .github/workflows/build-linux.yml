@@ -53,7 +53,12 @@ jobs:
             svn checkout https://svn.blender.org/svnroot/bf-blender/trunk/lib/linux_x86_64_glibc_228
           fi
           
-          
+      - name: Install Cuda Toolkit
+        uses: Jimver/cuda-toolkit@v0.2.11
+        id: cuda-toolkit
+        with:
+          cuda: '12.1.0'
+
 
       - name: Build Blender
         run: |
