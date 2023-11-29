@@ -105,6 +105,7 @@ jobs:
       - name: Download Blender Python API Stubs
         uses: actions/download-artifact@v2
         with:
+          workflow: generate_stubs.yml
           name: blender-python-api-stubs-${{ github.event.inputs.tag }}
           path: ./build_linux_bpy/bin/
 
