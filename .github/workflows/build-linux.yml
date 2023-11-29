@@ -113,7 +113,7 @@ jobs:
       - name: Install Blender
         run: |
           cd ./blender
-          echo "SITE_PACKAGES=`python -c 'import site; print(site.getsitepackages())'`" >> $GITHUB_ENV
+          echo "SITE_PACKAGES=`python -c 'import site; print(site.getsitepackages()[0])'`" >> $GITHUB_ENV
           cp -r ./build_linux_bpy/bin/bpy $SITE_PACKAGES
 
       - name: Install docs prereqs
