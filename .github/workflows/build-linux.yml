@@ -30,7 +30,7 @@ jobs:
 
       - name: Install Conda Dependencies
         run: |
-          conda install -y -c "nvidia/label/cuda-12.3.1" cuda-toolkit
+          conda install -y cuda-toolkit setuptools -c "nvidia/label/cuda-12.3.1" -c conda-forge
           # find / -name nvcc
 
       - name: Add conda subdirectories to PATH
