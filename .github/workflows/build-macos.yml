@@ -43,6 +43,33 @@ jobs:
         run: |
           brew install cmake subversion
 
+      - name: Cache Blender dependencies
+        uses: actions/cache@v2
+        with:
+          path: |
+            ./lib
+          key: ${{ runner.os }}-blender-deps-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-blender-deps-
+
+          
+      # - name: Install Cuda Toolkit
+      #   uses: Jimver/cuda-toolkit@v0.2.11
+      #   id: cuda-toolkit
+      #   with:
+      #     cuda: '12.1.0'
+
+
+      - name: Cache build files (for testing only)
+        uses: actions/cache@v2
+        with:
+          path: |
+            ./build_linux_bpy
+          key: ${{ runner.os }}-blender-build-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-blender-build-
+
+
       - name: Build Blender
         run: |
           cd ./blender
@@ -58,31 +85,31 @@ jobs:
           limit-access-to-users: michaelgold 
 
 
-      - name: Install Blender
-        run: |
-          cd ./blender
-          echo "SITE_PACKAGES=`python -c 'import site; print(site.getsitepackages()[0])'`" >> $GITHUB_ENV
-          cp -r ./build_macos_bpy/bin/bpy $SITE_PACKAGES
+      # - name: Install Blender
+      #   run: |
+      #     cd ./blender
+      #     echo "SITE_PACKAGES=`python -c 'import site; print(site.getsitepackages()[0])'`" >> $GITHUB_ENV
+      #     cp -r ./build_macos_bpy/bin/bpy $SITE_PACKAGES
 
-      - name: Install docs prereqs and generate API Docs
-        run: |
-          pip install bpystubgen
-          cd ./blender
-          python ./doc/python_api/sphinx_doc_gen.py -- --output=../python_api
-          python -m bpystubgen ../python_api/sphinx-in ../python_api/output
+      # - name: Install docs prereqs and generate API Docs
+      #   run: |
+      #     pip install bpystubgen
+      #     cd ./blender
+      #     python ./doc/python_api/sphinx_doc_gen.py -- --output=../python_api
+      #     python -m bpystubgen ../python_api/sphinx-in ../python_api/output
 
-      - name: Copy BPY Stubs to bin folder
-        run: |
-          cp -R ./python_api/output/*  ./build_macos_bpy/bin/
+      # - name: Copy BPY Stubs to bin folder
+      #   run: |
+      #     cp -R ./python_api/output/*  ./build_macos_bpy/bin/
 
 
-      - name: Make Wheel
-        run: |
-          python ./blender/build_files/utils/make_bpy_wheel.py ./build_macos_bpy/bin/
+      # - name: Make Wheel
+      #   run: |
+      #     python ./blender/build_files/utils/make_bpy_wheel.py ./build_macos_bpy/bin/
 
-      - name: Upload Wheel as Artifact
-        uses: actions/upload-artifact@v2
-        with:
-          name: bpy-macos
-          path: |
-            ./build_macos_bpy/bin/*.whl
+      # - name: Upload Wheel as Artifact
+      #   uses: actions/upload-artifact@v2
+      #   with:
+      #     name: bpy-macos
+      #     path: |
+      #       ./build_macos_bpy/bin/*.whl
