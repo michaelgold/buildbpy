@@ -1,0 +1,87 @@
+name: Build bpy for macOS
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Blender Tag to build'
+        required: true
+
+jobs:
+  build:
+    runs-on: macos-13
+    steps:
+      - name: Checkout Blender repository recursively
+        uses: actions/checkout@v2
+        with:
+          repository: blender/blender
+          ref: ${{ github.event.inputs.tag }}
+          submodules: 'recursive'
+          path: blender 
+
+      - name: Set up Conda
+        uses: conda-incubator/setup-miniconda@v2
+        with:
+          auto-update-conda: true
+          python-version: 3.10.13
+          activate-environment: bpy-env
+          channels: conda-forge
+
+      - name: Install Conda Dependencies
+        run: |
+          conda install -y setuptools -c conda-forge
+
+      - name: Add conda subdirectories to PATH
+        run: |
+          for dir in $(find /Users/runner/conda_pkgs_dir/ -mindepth 1 -type d); do
+            echo "$dir" >> $GITHUB_PATH
+          done
+
+
+      - name: Install macOS dependencies
+        run: |
+          brew install cmake subversion
+
+      - name: Build Blender
+        run: |
+          cd ./blender
+          make update
+          make bpy
+
+      - name: Setup upterm session
+        uses: lhotari/action-upterm@v1
+        with:
+          ## limits ssh access and adds the ssh public key for the user which triggered the workflow
+          limit-access-to-actor: true
+          ## limits ssh access and adds the ssh public keys of the listed GitHub users
+          limit-access-to-users: michaelgold 
+
+
+      - name: Install Blender
+        run: |
+          cd ./blender
+          SITE_PACKAGES=$(python -c "import site; print(site.getsitepackages()[0])")
+          cp -r ./build_macos_bpy/bin/bpy $SITE_PACKAGES
+
+      - name: Install docs prereqs and generate API Docs
+        run: |
+          pip install bpystubgen
+          cd ./blender
+          python ./doc/python_api/sphinx_doc_gen.py -- --output=../python_api
+          python -m bpystubgen ../python_api/sphinx-in ../python_api/output
+
+      - name: Copy BPY Stubs to bin folder
+        run: |
+          cp -R ./python_api/output/*  ./build_macos_bpy/bin/
+
+
+      - name: Make Wheel
+        run: |
+          python ./blender/build_files/utils/make_bpy_wheel.py ./build_macos_bpy/bin/
+
+      - name: Upload Wheel as Artifact
+        uses: actions/upload-artifact@v2
+        with:
+          name: bpy-macos
+          path: |
+            ./build_macos_bpy/bin/*.whl
