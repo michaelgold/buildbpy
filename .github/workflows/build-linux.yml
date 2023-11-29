@@ -39,6 +39,23 @@ jobs:
             echo "$dir" >> $GITHUB_PATH
           done
 
+      - name: Add CUDA compilation flags
+        run: |
+          nvcc --version
+          echo 'set(WITH_CYCLES_CUDA_BINARIES   ON  CACHE BOOL "" FORCE)' >> ./blender/build_files/cmake/config/bpy_module.cmake
+
+
+      - name: Set CUDA environment variables
+        run: |
+          NVCC_PATH=$(which nvcc)
+          CUDA_HOME=$(dirname $(dirname $NVCC_PATH))
+          echo "CUDA_HOME=$CUDA_HOME" >> $GITHUB_ENV
+          echo "LD_LIBRARY_PATH=$CUDA_HOME/lib:$LD_LIBRARY_PATH" >> $GITHUB_ENV
+          echo $CUDA_HOME
+          echo $LD_LIBRARY_PATH
+
+    
+
       - name: Cache Blender dependencies
         uses: actions/cache@v2
         with:
@@ -66,22 +83,7 @@ jobs:
       #   with:
       #     cuda: '12.1.0'
 
-      - name: Add CUDA compilation flags
-        run: |
-          nvcc --version
-          echo 'set(WITH_CYCLES_CUDA_BINARIES   ON  CACHE BOOL "" FORCE)' >> ./blender/build_files/cmake/config/bpy_module.cmake
 
-
-      - name: Set CUDA environment variables
-        run: |
-          NVCC_PATH=$(which nvcc)
-          CUDA_HOME=$(dirname $(dirname $NVCC_PATH))
-          echo "CUDA_HOME=$CUDA_HOME" >> $GITHUB_ENV
-          echo "LD_LIBRARY_PATH=$CUDA_HOME/lib:$LD_LIBRARY_PATH" >> $GITHUB_ENV
-          ls $CUDA_HOME
-          ls $LD_LIBRARY_PATH
-
-    
       - name: Build Blender
         run: |
           cd ./blender
