@@ -24,7 +24,7 @@ jobs:
         run: |
           version_tag="${{ github.event.inputs.tag }}"
           echo "INPUT_TAG=$version_tag" >> $GITHUB_ENV
-          python -c "import os; version_tag = os.getenv('version_tag).lstrip('v'); parts = version_tag.split('.'); major_version = '.'.join(parts[:2]); minor_version = '.'.join(parts[:3]); print(f'MAJOR_VERSION={major_version}\nMINOR_VERSION={minor_version}')" >> $GITHUB_ENV
+          python -c "import os; version_tag = os.getenv('version_tag').lstrip('v'); parts = version_tag.split('.'); major_version = '.'.join(parts[:2]); minor_version = '.'.join(parts[:3]); print(f'MAJOR_VERSION={major_version}\nMINOR_VERSION={minor_version}')" >> $GITHUB_ENV
         id: version_extraction
 
       - name: Download Blender
