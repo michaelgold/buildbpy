@@ -31,6 +31,14 @@ jobs:
           mv "blender-${{ steps.version_extraction.outputs.minor_version }}-linux-x64" blender
 
 
+      - name: Checkout Blender repository 
+        uses: actions/checkout@v2
+        with:
+          repository: blender/blender
+          ref: ${{ github.event.inputs.tag }} # Checkout the tag specified in the workflow dispatch
+          # submodules: 'recursive' # Recursively checkout submodules
+          path: blender-git
+
       - name: Install Documentation Prerequisites
         run: |
           pip install bpystubgen
@@ -38,7 +46,7 @@ jobs:
       - name: Generate API Docs and Stubs
         run: |
           cd blender
-          ./blender --background --factory-startup -noaudio --python doc/python_api/sphinx_doc_gen.py -- --output=../python_api
+          ./blender --background --factory-startup -noaudio --python ../blender-git/doc/python_api/sphinx_doc_gen.py -- --output=../python_api
           python -m bpystubgen ../python_api/sphinx-in ../python_api/output
 
       - name: Upload Stubs as Artifact
