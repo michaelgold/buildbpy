@@ -139,6 +139,8 @@ jobs:
 
       - name: Make Wheel
         run: |
+          pip install setuptools
+          pip3 install setuptools
           python ./blender/build_files/utils/make_bpy_wheel.py ./build_linux_bpy/bin/
 
       - name: Upload Wheel as Artifact
