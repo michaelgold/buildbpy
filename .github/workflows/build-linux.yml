@@ -97,7 +97,8 @@ jobs:
         run: |
           cd ./blender
           make update
-          make bpy VERBOSE=1
+          make bpy
+          # make bpy VERBOSE=1
 
       - name: Make Wheel
         run: |
