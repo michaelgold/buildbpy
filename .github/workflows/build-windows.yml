@@ -64,7 +64,7 @@ jobs:
         uses: actions/cache@v2
         with:
           path: |
-            ./build_linux_bpy
+            ./build_windows_bpy
           key: ${{ runner.os }}-blender-build-${{ github.sha }}
           restore-keys: |
             ${{ runner.os }}-blender-build-
