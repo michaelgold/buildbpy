@@ -20,11 +20,24 @@ jobs:
         with:
           python-version: '3.10.x'
 
+      - name: Extract Major and Minor Versions
+        run: |
+          import os
+          version_tag = os.environ['INPUT_VERSION_TAG'].lstrip('v')
+          parts = version_tag.split('.')
+          major_version = '.'.join(parts[:2])
+          minor_version = '.'.join(parts[:3])
+          print(f"::set-output name=major_version::{major_version}")
+          print(f"::set-output name=minor_version::{minor_version}")
+        shell: python
+        id: version_extraction
+
       - name: Download Blender
         run: |
-          wget https://download.blender.org/release/${{ github.event.inputs.tag }}/blender-${{ github.event.inputs.tag:1 }}-linux-x64.tar.xz
-          tar -xf blender-${{ github.event.inputs.tag:1 }}-linux-x64.tar.xz
-          mv blender-${{ github.event.inputs.tag:1 }}-linux-x64 blender
+          wget "https://mirrors.ocf.berkeley.edu/blender/release/Blender${{ steps.version_extraction.outputs.major_version }}/blender-${{ steps.version_extraction.outputs.minor_version }}-linux-x64.tar.xz"
+          tar -xf "blender-${{ steps.version_extraction.outputs.minor_version }}-linux-x64.tar.xz"
+          mv "blender-${{ steps.version_extraction.outputs.minor_version }}-linux-x64" blender
+
 
       - name: Install Documentation Prerequisites
         run: |
@@ -39,6 +52,6 @@ jobs:
       - name: Upload Stubs as Artifact
         uses: actions/upload-artifact@v2
         with:
-          name: blender-python-api-stubs-${{ github.event.inputs.tag}}
+          name: blender-python-api-stubs-${{ steps.version_extraction.outputs.minor_version }}
           path: |
             python_api/output/**
