@@ -17,6 +17,7 @@ jobs:
           repository: blender/blender
           ref: ${{ github.event.inputs.tag }} # Checkout the tag specified in the workflow dispatch
           submodules: 'recursive' # Recursively checkout submodules
+          path: blender 
 
       - name: Set up Conda
         uses: conda-incubator/setup-miniconda@v2
