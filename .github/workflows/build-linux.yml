@@ -110,33 +110,33 @@ jobs:
           make bpy
           # make bpy VERBOSE=1
 
-      - name: Install Blender
-        run: |
-          cd ./blender
-          echo "SITE_PACKAGES=`python -c 'import site; print(site.getsitepackages()[0])'`" >> $GITHUB_ENV
-          cp -r ./build_linux_bpy/bin/bpy $SITE_PACKAGES
+      # - name: Install Blender
+      #   run: |
+      #     cd ./blender
+      #     echo "SITE_PACKAGES=`python -c 'import site; print(site.getsitepackages()[0])'`" >> $GITHUB_ENV
+      #     cp -r ./build_linux_bpy/bin/bpy $SITE_PACKAGES
 
-      - name: Install docs prereqs
-        run: |
-          pip install bpystubgen
+      # - name: Install docs prereqs
+      #   run: |
+      #     pip install bpystubgen
 
-      - name: Generate Api Docs and stubs
-        run: |
-          cd ./blender
-          python ./doc/python_api/sphinx_doc_gen.py -- --output=../python_api
-          python -m bpystubgen ../python_api/sphinx-in ../python_api/output
+      # - name: Generate Api Docs and stubs
+      #   run: |
+      #     cd ./blender
+      #     python ./doc/python_api/sphinx_doc_gen.py -- --output=../python_api
+      #     python -m bpystubgen ../python_api/sphinx-in ../python_api/output
 
-      - name: Copy BPY Stubs to bin folder
-        run: |
-          cp -R ./python_api/output/*  ./build_linux_bpy/bin/
+      # - name: Copy BPY Stubs to bin folder
+      #   run: |
+      #     cp -R ./python_api/output/*  ./build_linux_bpy/bin/
 
-      - name: Make Wheel
-        run: |
-          python ./blender/build_files/utils/make_bpy_wheel.py ./build_linux_bpy/bin/
+      # - name: Make Wheel
+      #   run: |
+      #     python ./blender/build_files/utils/make_bpy_wheel.py ./build_linux_bpy/bin/
 
-      - name: Upload Wheel as Artifact
-        uses: actions/upload-artifact@v2
-        with:
-          name: bpy-linux
-          path: |
-            ./build_linux_bpy/bin/*.whl
+      # - name: Upload Wheel as Artifact
+      #   uses: actions/upload-artifact@v2
+      #   with:
+      #     name: bpy-linux
+      #     path: |
+      #       ./build_linux_bpy/bin/*.whl
