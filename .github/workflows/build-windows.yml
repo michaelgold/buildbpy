@@ -107,9 +107,11 @@ jobs:
 
       - name: Build Blender
         run: |
+          conda activate bpy-env
           cd blender
           echo y| ./make.bat update
           # ./make.bat bpy
+        shell: pwsh
 
       # - name: Install Blender
       #   run: |
