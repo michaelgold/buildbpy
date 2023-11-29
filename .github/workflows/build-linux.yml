@@ -116,8 +116,8 @@ jobs:
       #     make bpy
       #     # make bpy VERBOSE=1
 
-      - name: Install Blender
-        run: python -c "import shutil, site; shutil.copytree('./build_linux_bpy/bin/bpy', site.getsitepackages()[0] + '/bpy')"
+      # - name: Install Blender
+      #   run: python -c "import shutil, site; shutil.copytree('./build_linux_bpy/bin/bpy', site.getsitepackages()[0] + '/bpy')"
 
 
       # - name: Install docs prereqs
