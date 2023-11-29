@@ -19,6 +19,15 @@ jobs:
           submodules: 'recursive'
           path: blender 
 
+      - name: Setup upterm session
+        uses: lhotari/action-upterm@v1
+        with:
+          ## limits ssh access and adds the ssh public key for the user which triggered the workflow
+          limit-access-to-actor: true
+          ## limits ssh access and adds the ssh public keys of the listed GitHub users
+          # limit-access-to-users: michaelgold 
+
+
       - name: Set up Conda
         uses: conda-incubator/setup-miniconda@v2
         with:
@@ -76,13 +85,6 @@ jobs:
           make update
           make bpy
 
-      - name: Setup upterm session
-        uses: lhotari/action-upterm@v1
-        with:
-          ## limits ssh access and adds the ssh public key for the user which triggered the workflow
-          limit-access-to-actor: true
-          ## limits ssh access and adds the ssh public keys of the listed GitHub users
-          limit-access-to-users: michaelgold 
 
 
       # - name: Install Blender
