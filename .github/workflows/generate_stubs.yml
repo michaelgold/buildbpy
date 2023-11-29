@@ -39,6 +39,6 @@ jobs:
       - name: Upload Stubs as Artifact
         uses: actions/upload-artifact@v2
         with:
-          name: blender-python-api-stubs-{{ github.event.inputs.tag}}
+          name: blender-python-api-stubs-${{ github.event.inputs.tag}}
           path: |
             python_api/output/**
