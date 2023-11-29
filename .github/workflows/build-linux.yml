@@ -1,0 +1,44 @@
+name: Build bpy for Linux
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Blender Tag to build'
+        required: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Blender repository recursively
+        uses: actions/checkout@v2
+        with:
+          repository: blender/blender
+          ref: ${{ github.event.inputs.tag }} # Checkout the tag specified in the workflow dispatch
+          submodules: 'recursive' # Recursively checkout submodules
+
+      - name: Set up Conda
+        uses: conda-incubator/setup-miniconda@v2
+        with:
+          auto-update-conda: true
+          python-version: 3.10  # Specify the Python version you need
+          environment-file: environment.yml
+          activate-environment: bpy-env
+
+      # - name: Install dependencies
+      #   run: |
+      #     conda install [your dependencies]
+
+      - name: Build bpy for Linux
+        run: |
+          echo "Building bpy for Linux with tag ${{ github.event.inputs.tag }}"
+          apt update
+          apt install build-essential git subversion cmake libx11-dev libxxf86vm-dev libxcursor-dev libxi-dev libxrandr-dev libxinerama-dev libegl-dev
+          apt install libwayland-dev wayland-protocols libxkbcommon-dev libdbus-1-dev linux-libc-dev
+          mkdir ./lib
+          cd ./lib
+          svn checkout https://svn.blender.org/svnroot/bf-blender/trunk/lib/linux_x86_64_glibc_228
+          cd ../blender
+          make update
+          make bpy
