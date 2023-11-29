@@ -74,7 +74,7 @@ jobs:
 
       - name: Add CUDA compilation flags
         run: |
-          nvcc --version
+          # nvcc --version
           "set(WITH_CYCLES_CUDA_BINARIES   ON  CACHE BOOL '' FORCE)" | Out-File -Append -FilePath ./blender/build_files/cmake/config/bpy_module.cmake
       
       # - name: Set CUDA environment variables
