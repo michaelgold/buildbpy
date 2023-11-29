@@ -53,6 +53,7 @@ jobs:
           echo "LD_LIBRARY_PATH=$CUDA_HOME/lib" >> $GITHUB_ENV
           echo $CUDA_HOME
           echo $LD_LIBRARY_PATH
+          find / -name cuda_runtime.h
 
       - name: Setup upterm session
         uses: lhotari/action-upterm@v1
