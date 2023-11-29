@@ -23,7 +23,7 @@ jobs:
       - name: Extract Major and Minor Versions
         run: |
           import os
-          version_tag = os.environ['INPUT_VERSION_TAG'].lstrip('v')
+          version_tag = os.environ['INPUT_TAG'].lstrip('v')
           parts = version_tag.split('.')
           major_version = '.'.join(parts[:2])
           minor_version = '.'.join(parts[:3])
