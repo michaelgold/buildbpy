@@ -21,19 +21,8 @@ jobs:
           python-version: '3.10.x'
 
       - name: Extract Major and Minor Versions
-        run: |
-          import os
-          import sys
-          version_tag = sys.argv[1].lstrip('v')
-          parts = version_tag.split('.')
-          major_version = '.'.join(parts[:2])
-          minor_version = '.'.join(parts[:3])
-          print(f"::set-output name=major_version::{major_version}")
-          print(f"::set-output name=minor_version::{minor_version}")
-        shell: python
+        run: python -c "import sys; version_tag = sys.argv[1].lstrip('v'); parts = version_tag.split('.'); major_version = '.'.join(parts[:2]); minor_version = '.'.join(parts[:3]); print(f'::set-output name=major_version::{major_version}'); print(f'::set-output name=minor_version::{minor_version}')" ${{ github.event.inputs.tag }}
         id: version_extraction
-        env:
-          INPUT_TAG: ${{ github.event.inputs.version_tag }}
 
       - name: Download Blender
         run: |
