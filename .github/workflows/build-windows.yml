@@ -27,6 +27,12 @@ jobs:
           activate-environment: bpy-env
           channels: conda-forge
           miniconda-version: "latest" 
+
+      - name: Install Conda Dependencies
+        run: |
+          conda install -y cuda-toolkit setuptools -c "nvidia/label/cuda-12.3.1" -c conda-forge
+          # find / -name nvcc
+
           
       - name: Setup terminal session
         uses: fawazahmed0/action-debug@main
