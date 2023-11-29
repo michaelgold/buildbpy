@@ -21,14 +21,21 @@ jobs:
           python-version: '3.10.x'
 
       - name: Extract Major and Minor Versions
-        run: python -c "import sys; version_tag = sys.argv[1].lstrip('v'); parts = version_tag.split('.'); major_version = '.'.join(parts[:2]); minor_version = '.'.join(parts[:3]); print(f'MAJOR_VERSION={major_version}\nMINOR_VERSION={minor_version}')" "${{ github.event.inputs.tag }}" >> $GITHUB_ENV
-        id: version_extraction
+        run: |
+          python -c "import sys; version_tag = sys.argv[1].lstrip('v'); parts = version_tag.split('.'); major_version = '.'.join(parts[:2]); minor_version = '.'.join(parts[:3]); print(f'MAJOR_VERSION={major_version}\nMINOR_VERSION={minor_version}')" "${{ github.event.inputs.tag }}" >> $GITHUB_ENV
+        shell: bash
+
+      - name: Download Blender
+        run: |
+          wget "https://mirrors.ocf.berkeley.edu/blender/release/Blender${MAJOR_VERSION}/blender-${MINOR_VERSION}-linux-x64.tar.xz"
+          tar -xf "blender-${{ MAJOR_VERSION }}-linux-x64.tar.xz"
+          mv "blender-${{ MINOR_VERSION }}-linux-x64" blender
+        shell: bash
 
       - name: Download Blender
         run: |
           wget "https://mirrors.ocf.berkeley.edu/blender/release/Blender${{ steps.version_extraction.outputs.major_version }}/blender-${{ steps.version_extraction.outputs.minor_version }}-linux-x64.tar.xz"
-          tar -xf "blender-${{ steps.version_extraction.outputs.minor_version }}-linux-x64.tar.xz"
-          mv "blender-${{ steps.version_extraction.outputs.minor_version }}-linux-x64" blender
+          
 
 
       - name: Checkout Blender repository 
@@ -52,6 +59,6 @@ jobs:
       - name: Upload Stubs as Artifact
         uses: actions/upload-artifact@v2
         with:
-          name: blender-python-api-stubs-${{ steps.version_extraction.outputs.minor_version }}
+          name: blender-python-api-stubs-${{ MINOR_VERSION }}
           path: |
             python_api/output/**
