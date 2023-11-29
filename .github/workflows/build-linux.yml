@@ -144,7 +144,7 @@ jobs:
           
           sudo rm $PYTHON3 
           ln -s $PYTHON $PYTHON3
-          python ./blender/build_files/utils/make_bpy_wheel.py ./build_linux_bpy/bin/
+          python3 ./blender/build_files/utils/make_bpy_wheel.py ./build_linux_bpy/bin/
 
       - name: Upload Wheel as Artifact
         uses: actions/upload-artifact@v2
