@@ -32,17 +32,18 @@ jobs:
       #   run: |
       #     conda install [your dependencies]
 
-      - name: Build bpy for Linux
+      - name: Get dependencies
         run: |
-          pwd
-          ls -lah 
-          # echo "Building bpy for Linux with tag ${{ github.event.inputs.tag }}"
-          # sudo apt update
-          # sudo apt-get install -y build-essential git subversion cmake libx11-dev libxxf86vm-dev libxcursor-dev libxi-dev libxrandr-dev libxinerama-dev libegl-dev
-          # sudo apt-get install -y libwayland-dev wayland-protocols libxkbcommon-dev libdbus-1-dev linux-libc-dev
-          # mkdir ./lib
-          # cd ./lib
-          # svn checkout https://svn.blender.org/svnroot/bf-blender/trunk/lib/linux_x86_64_glibc_228
-          # cd ../blender
-          # make update
-          # make bpy
+          echo "Building bpy for Linux with tag ${{ github.event.inputs.tag }}"
+          sudo apt update
+          sudo apt-get install -y build-essential git subversion cmake libx11-dev libxxf86vm-dev libxcursor-dev libxi-dev libxrandr-dev libxinerama-dev libegl-dev
+          sudo apt-get install -y libwayland-dev wayland-protocols libxkbcommon-dev libdbus-1-dev linux-libc-dev
+          mkdir ./lib
+          cd ./lib
+          svn checkout https://svn.blender.org/svnroot/bf-blender/trunk/lib/linux_x86_64_glibc_228
+
+      - name: Build Blender
+        run: |
+          cd ../blender
+          make update
+          make bpy
