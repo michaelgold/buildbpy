@@ -61,7 +61,7 @@ jobs:
       - name: Install Blender
         run: |
           cd ./blender
-          SITE_PACKAGES=$(python -c "import site; print(site.getsitepackages()[0])")
+          echo "SITE_PACKAGES=`python -c 'import site; print(site.getsitepackages()[0])'`" >> $GITHUB_ENV
           cp -r ./build_macos_bpy/bin/bpy $SITE_PACKAGES
 
       - name: Install docs prereqs and generate API Docs
