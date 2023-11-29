@@ -30,10 +30,9 @@ jobs:
       - name: Download Blender
         run: |
           wget "https://mirrors.ocf.berkeley.edu/blender/release/Blender${MAJOR_VERSION}/blender-${MINOR_VERSION}-linux-x64.tar.xz"
+          tar -xf "blender-${{ MINOR_VERSION}}-linux-x64.tar.xz"
+          mv "blender-${{ MINOR_VERSION }}-linux-x64" blender
         shell: bash
-        # env:
-        #   MAJOR_VERSION: ${{ steps.version_extraction.outputs.major_version }}
-        #   MINOR_VERSION: ${{ steps.version_extraction.outputs.minor_version }}
 
 
       - name: Checkout Blender repository 
