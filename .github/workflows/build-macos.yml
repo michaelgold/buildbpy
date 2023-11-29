@@ -85,9 +85,8 @@ jobs:
 
 
       - name: Install Blender
-        run: |
-          echo "SITE_PACKAGES=`python -c 'import site; print(site.getsitepackages()[0])'`" >> $GITHUB_ENV
-          cp -r ./build_darwin_bpy/bin/bpy $SITE_PACKAGES
+        run: python -c "import shutil, site; shutil.copytree('./build_darwin_bpy/bin/bpy', site.getsitepackages()[0] + '/bpy')"
+
 
       - name: Install docs prereqs and generate API Docs
         run: |
