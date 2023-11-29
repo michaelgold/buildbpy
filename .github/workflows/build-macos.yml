@@ -71,11 +71,11 @@ jobs:
             ${{ runner.os }}-blender-build-
 
 
-      - name: Build Blender
-        run: |
-          cd ./blender
-          make update
-          make bpy
+      # - name: Build Blender
+      #   run: |
+      #     cd ./blender
+      #     make update
+      #     make bpy
 
 
       # - name: Setup terminal session
