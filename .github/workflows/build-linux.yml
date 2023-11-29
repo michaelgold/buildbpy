@@ -100,6 +100,25 @@ jobs:
           make bpy
           # make bpy VERBOSE=1
 
+      - name: Install Blender
+        run: |
+          cd ./blender
+          make install
+
+      - name: Install docs prereqs
+        run: |
+          pip install bpystubgen
+
+      - name: Generate Api Docs and stubs
+        run: |
+          cd ./blender
+          python ./doc/python_api/sphinx_doc_gen.py -- --output=../python_api
+          python -m bpystubgen ../python_api/sphinx-in ../python_api/output
+
+      - name: Copy BPY Stubs to bin folder
+        run: |
+          cp -R ./python_api/output/*  ./build_linux_bpy/bin/
+
       - name: Make Wheel
         run: |
           python3 ./blender/build_files/utils/make_bpy_wheel.py ./build_linux_bpy/bin/
