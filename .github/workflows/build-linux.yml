@@ -102,6 +102,12 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-blender-build-
 
+      - name: Download Blender Python API Stubs
+        uses: actions/download-artifact@v2
+        with:
+          name: blender-python-api-stubs-${{ github.event.inputs.tag }}
+          path: ./build_linux_bpy/bin/
+
 
       # - name: Build Blender
       #   run: |
@@ -114,19 +120,19 @@ jobs:
         run: python -c "import shutil, site; shutil.copytree('./build_linux_bpy/bin/bpy', site.getsitepackages()[0] + '/bpy')"
 
 
-      - name: Install docs prereqs
-        run: |
-          pip install bpystubgen
+      # - name: Install docs prereqs
+      #   run: |
+      #     pip install bpystubgen
 
-      - name: Generate Api Docs and stubs
-        run: |
-          cd ./blender
-          python ./doc/python_api/sphinx_doc_gen.py -- --output=../python_api
-          python -m bpystubgen ../python_api/sphinx-in ../python_api/output
+      # - name: Generate Api Docs and stubs
+      #   run: |
+      #     cd ./blender
+      #     python ./doc/python_api/sphinx_doc_gen.py -- --output=../python_api
+      #     python -m bpystubgen ../python_api/sphinx-in ../python_api/output
 
-      - name: Copy BPY Stubs to bin folder
-        run: |
-          cp -R ./python_api/output/*  ./build_linux_bpy/bin/
+      # - name: Copy BPY Stubs to bin folder
+      #   run: |
+      #     cp -R ./python_api/output/*  ./build_linux_bpy/bin/
 
       - name: Make Wheel
         run: |
