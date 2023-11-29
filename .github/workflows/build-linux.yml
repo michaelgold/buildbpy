@@ -28,9 +28,9 @@ jobs:
           activate-environment: bpy-env
           channels: conda-forge
 
-      # - name: Install dependencies
-      #   run: |
-      #     conda install [your dependencies]
+      - name: Install conda dependencies
+        run: |
+          conda install -c "nvidia/label/cuda-12.3.1" cuda-toolkit
 
       - name: Cache Blender dependencies
         uses: actions/cache@v2
@@ -53,11 +53,11 @@ jobs:
             svn checkout https://svn.blender.org/svnroot/bf-blender/trunk/lib/linux_x86_64_glibc_228
           fi
           
-      - name: Install Cuda Toolkit
-        uses: Jimver/cuda-toolkit@v0.2.11
-        id: cuda-toolkit
-        with:
-          cuda: '12.1.0'
+      # - name: Install Cuda Toolkit
+      #   uses: Jimver/cuda-toolkit@v0.2.11
+      #   id: cuda-toolkit
+      #   with:
+      #     cuda: '12.1.0'
 
 
       - name: Build Blender
