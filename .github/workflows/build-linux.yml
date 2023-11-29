@@ -55,6 +55,7 @@ jobs:
 
       - name: Build Blender
         run: |
+          nvcc --version     
           cd ./blender
           make update
           make bpy
