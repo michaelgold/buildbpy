@@ -55,6 +55,6 @@ jobs:
 
       - name: Build Blender
         run: |
-          cd ../blender
+          cd ./blender
           make update
           make bpy
