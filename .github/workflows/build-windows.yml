@@ -151,6 +151,7 @@ jobs:
 
       - name: Set Python Path and Run make.bat
         run: |
+          cd blender
           set "Python=C:\hostedtoolcache\windows\Python\3.10.11\x64\python.exe"
           echo y | .\make.bat update
           # set "Python=C:\hostedtoolcache\windows\Python\3.10.11\x64\python.exe" && echo y | .\make.bat bpy
