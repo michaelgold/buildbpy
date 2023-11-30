@@ -131,18 +131,29 @@ jobs:
       # Windows-specific dependency installation steps go here
       # Install required software and libraries for building Blender on Windows
 
-      - name: Set python path and verify
-        run: |
-          $env:Python = "C:\hostedtoolcache\windows\Python\3.10.11\x64\python.exe"
-          echo "Python path is set to $env:Python"
-        shell: pwsh
+      # - name: Set python path and verify
+      #   run: |
+      #     $env:Python = "C:\hostedtoolcache\windows\Python\3.10.11\x64\python.exe"
+      #     echo "Python path is set to $env:Python"
+      #   shell: pwsh
+
+      # - name: Set python path for Windows
+      #   run: |
+      #     [System.Environment]::SetEnvironmentVariable('Python', 'C:\hostedtoolcache\windows\Python\3.10.11\x64\python.exe', [System.EnvironmentVariableTarget]::Machine)
+      #   shell: pwsh
         
-      - name: Build Blender
+      # - name: Build Blender
+      #   run: |
+      #     cd blender
+      #     echo y| ./make.bat update
+      #     # ./make.bat bpy
+      #   shell: pwsh
+
+      - name: Set Python Path and Run make.bat
         run: |
-          cd blender
-          echo y| ./make.bat update
-          # ./make.bat bpy
-        shell: pwsh
+          set "Python=C:\hostedtoolcache\windows\Python\3.10.11\x64\python.exe" && echo y | .\make.bat update
+          # set "Python=C:\hostedtoolcache\windows\Python\3.10.11\x64\python.exe" && echo y | .\make.bat bpy
+        shell: cmd
 
       # - name: Install Blender
       #   run: |
