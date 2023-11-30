@@ -17,7 +17,7 @@ jobs:
           (echo %PYTHON%) >test.bat
           # type file.txt >>file.txt.new
           # move /y file.txt.new file.txt
-          test.bat
+          ./test.bat
                     
       # - name: Checkout Blender repository recursively
       #   uses: actions/checkout@v2
