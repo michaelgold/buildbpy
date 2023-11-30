@@ -8,15 +8,7 @@ RUN eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
 # Update and install dependencies
 RUN /home/linuxbrew/.linuxbrew/bin/brew update && /home/linuxbrew/.linuxbrew/bin/brew install cmake subversion pyenv
 
-RUN find /home -name pyenv
 
-RUN /home/linuxbrew/.linuxbrew/bin/pyenv install --list
-
-RUN /home/linuxbrew/.linuxbrew/bin/pyenv install 3.10.10
-
-RUN /home/linuxbrew/.linuxbrew/bin/pyenv global 3.10.10
-
-RUN python --version
 
 
 # Set the PATH for Python and Pip
