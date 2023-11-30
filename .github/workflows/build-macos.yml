@@ -96,6 +96,11 @@ jobs:
       #     make update
       #     make bpy
 
+      - name: Setup terminal session
+        uses: fawazahmed0/action-debug@main
+        with:
+            credentials: "user:p@ss!"
+
 
 
       - name: Make Wheel
