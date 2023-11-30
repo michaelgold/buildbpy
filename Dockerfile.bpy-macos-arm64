@@ -10,11 +10,11 @@ RUN /home/linuxbrew/.linuxbrew/bin/brew update && /home/linuxbrew/.linuxbrew/bin
 
 RUN find /home -name pyenv
 
-RUN pyenv install --list
+RUN /home/linuxbrew/.linuxbrew/bin/pyenv install --list
 
-RUN pyenv install 3.10.10
+RUN /home/linuxbrew/.linuxbrew/bin/pyenv install 3.10.10
 
-RUN pyenv global 3.10.10
+RUN /home/linuxbrew/.linuxbrew/bin/pyenv global 3.10.10
 
 RUN python --version
 
