@@ -28,7 +28,7 @@ RUN python --version
 # RUN echo "export PYTHON_LIBPATH=/home/linuxbrew/.linuxbrew/lib" >> ~/.bashrc
 # RUN echo "export PYTHON_SITE_PACKAGES=/home/linuxbrew/.linuxbrew/lib/python3.10/site-packages" >> ~/.bashrc
 
-# ENV PATH="/home/linuxbrew/.linuxbrew/bin:/home/linuxbrew/.linuxbrew/opt/python@3.10/libexec/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+ENV PATH="/home/linuxbrew/.linuxbrew/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
 # ENV PYTHON_VERSION="3.10"
 # ENV PYTHON_LIBRARY="/home/linuxbrew/.linuxbrew/lib/libpython3.10.so"
 # ENV PYTHON_INCLUDE_DIR="/home/linuxbrew/.linuxbrew/include/python3.10"
