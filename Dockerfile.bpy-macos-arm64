@@ -8,6 +8,8 @@ RUN eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
 # Update and install dependencies
 RUN /home/linuxbrew/.linuxbrew/bin/brew update && /home/linuxbrew/.linuxbrew/bin/brew install cmake subversion pyenv
 
+RUN find /home pyenv
+
 RUN pyenv install --list
 
 RUN pyenv install 3.10.10
