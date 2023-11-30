@@ -18,13 +18,13 @@ jobs:
       - name: show Dockerfile
         run: cat Dockerfile.bpy-macos-arm64
         
-      - name: Checkout Blender repository recursively
-        uses: actions/checkout@v2
-        with:
-          repository: blender/blender
-          ref: ${{ github.event.inputs.tag }}
-          submodules: 'recursive'
-          path: blender 
+      # - name: Checkout Blender repository recursively
+      #   uses: actions/checkout@v2
+      #   with:
+      #     repository: blender/blender
+      #     ref: ${{ github.event.inputs.tag }}
+      #     submodules: 'recursive'
+      #     path: blender 
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v1
@@ -58,9 +58,9 @@ jobs:
 
       - name: Make Wheel
         run: |
-          docker run --rm -v "${PWD}/blender:/build/blender" -v "${PWD}/wheel-output:/wheel-output" -v "${PWD}/workspace:/workspace" michaelgold/bpy-macos-arm64:latest /bin/sh -c "\
+          docker run --rm -v "${PWD}/build:/build" -v "${PWD}/wheel-output:/wheel-output" -v "${PWD}/workspace:/workspace" michaelgold/bpy-macos-arm64:latest /bin/sh -c "\
             source ~/.bashrc && \
-            git config --global --add safe.directory /build/blender && \
+            git clone --recursive --branch ${{ github.event.inputs.tag }} https://github.com/blender/blender && \
             python -m pip install -U pip setuptools wheel && \
             python /workspace/blender/build_blender.py"
 
