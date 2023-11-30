@@ -41,6 +41,7 @@ jobs:
 
       - name: list env vars
         run: |
+          Set "Python=C:\hostedtoolcache\windows\Python\3.10.11\x64\python.exe"
           Get-ChildItem Env:
       
       - name: Install Visual Studio Community Edition
