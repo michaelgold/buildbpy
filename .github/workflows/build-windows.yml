@@ -130,7 +130,7 @@ jobs:
 
       - name: Build Blender
         run: |
-          set Python=C:\hostedtoolcache\windows\Python\3.10.11\x64\python.exe
+          echo "Python=C:\hostedtoolcache\windows\Python\3.10.11\x64\python.exe" | Out-File -Append -FilePath $env:GITHUB_ENV
           cd blender
           echo y| ./make.bat update
           # ./make.bat bpy
