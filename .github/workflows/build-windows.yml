@@ -132,6 +132,7 @@ jobs:
           cd blender
 
           yes| make update
+          make bpy
         shell: cmd
 
       # - name: Install Blender
@@ -142,11 +143,11 @@ jobs:
 
       - name: Make Wheel
         run: |
-          python blender\build_files\utils\make_bpy_wheel.py .\build_windows_bpy\bin\
+          python blender\build_files\utils\make_bpy_wheel.py .\build_win64_bpy\bin\
 
       - name: Upload Wheel as Artifact
         uses: actions/upload-artifact@v2
         with:
           name: bpy-windows
           path: |
-            ./build_windows_bpy/bin/*.whl
+            ./build_win64_bpy/bin/*.whl
