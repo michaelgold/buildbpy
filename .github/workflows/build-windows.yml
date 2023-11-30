@@ -11,6 +11,16 @@ jobs:
   build:
     runs-on: windows-latest
     steps:
+
+      - name: Set python path and verify
+        run: |
+          echo "Python=C:\hostedtoolcache\windows\Python\3.10.11\x64\python.exe" >> $env:GITHUB_ENV
+          $env:Python = "C:\hostedtoolcache\windows\Python\3.10.11\x64\python.exe"
+          echo "Python path is set to $env:Python"
+          echo %Python%
+          echo $Python
+        shell: pwsh
+          
       - name: Checkout Blender repository recursively
         uses: actions/checkout@v2
         with:
@@ -19,12 +29,7 @@ jobs:
           submodules: 'recursive' 
           path: blender 
 
-      - name: Set python path
-        run: |
-          # echo "Python=C:\hostedtoolcache\windows\Python\3.10.11\x64\python.exe" >> $env:GITHUB_ENV
-          $env:Python = "C:\hostedtoolcache\windows\Python\3.10.11\x64\python.exe"
-          echo "Python path is set to $env:Python"
-        shell: bash
+
 
       # - name: Set up Conda
       #   uses: conda-incubator/setup-miniconda@v2
