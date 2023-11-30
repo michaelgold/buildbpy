@@ -67,7 +67,9 @@ jobs:
         run: |
           docker run --rm -v "${PWD}/wheel-output:/wheel-output" -v "${PWD}/workspace:/workspace" michaelgold/bpy-macos-arm64:latest /bin/sh -c "\
             source ~/.bashrc && \
-            /home/linuxbrew/.linuxbrew/bin/pyenv global 3.10.10 && \
+            pyenv install --list && \
+            pyenv install 3.10.10 && \
+            pyenv global 3.10.10 && \
             python --version && \
             env && \
             git clone --recursive --branch ${{ github.event.inputs.tag }} https://github.com/blender/blender && \
