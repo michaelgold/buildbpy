@@ -122,8 +122,8 @@ jobs:
 
           cd blender
 
-          echo y | make update 
-        shell: cmd
+          cmd /c "echo y | make update" 
+        shell: pwsh
 
       # - name: Install Blender
       #   run: |
