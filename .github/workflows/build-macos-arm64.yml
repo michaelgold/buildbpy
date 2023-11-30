@@ -58,7 +58,7 @@ jobs:
 
       - name: Make Wheel
         run: |
-          docker run --rm -v "${PWD}/blender:/blender" -v "${PWD}/wheel-output:/wheel-output" -v "${PWD}/workspace:/workspace" michaelgold/bpy-macos-arm64:latest /bin/sh -c "\
+          docker run --rm -v "${PWD}/blender:/build/blender" -v "${PWD}/wheel-output:/wheel-output" -v "${PWD}/workspace:/workspace" michaelgold/bpy-macos-arm64:latest /bin/sh -c "\
             source ~/.bashrc && \
             git config --global --add safe.directory /blender && \
             python -m pip install -U pip setuptools wheel && \
