@@ -2,7 +2,7 @@ FROM sickcodes/docker-osx:naked
 
 # Install Homebrew
 RUN /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
-RUN (echo; echo 'eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"') >> /home/arch/.bashrc
+RUN (echo; echo 'eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"') >> ~/.bashrc
 RUN eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
 
 # Update and install dependencies
