@@ -135,12 +135,15 @@ jobs:
           make bpy
         shell: cmd
 
-      # - name: Install Blender
-      #   run: |
-      #     $sitePackages = python -c "import site; print(site.getsitepackages()[0])"
-      #     echo "SITE_PACKAGES=$sitePackages" | Out-File -Append -FilePath $env:GITHUB_ENV
-      #     Copy-Item -Recurse .\build_windows_bpy\bin\bpy $env:SITE_PACKAGES
-
+      - name: Download Blender Python API Stubs
+        id: download-artifact
+        uses: dawidd6/action-download-artifact@v2
+        with:
+          workflow: generate_stubs.yml
+          # github_token: ${{secrets.GITHUB_TOKEN}}
+          name: blender-python-api-stubs-${{ github.event.inputs.tag }}
+          path: ./build_win64_bpy/bin/
+          
       - name: Make Wheel
         run: |
           python blender\build_files\utils\make_bpy_wheel.py .\build_win64_bpy\bin\
