@@ -123,7 +123,9 @@ jobs:
 
           cd blender
 
-          cmd /c "echo y | .\make.bat update"
+          echo y > temp_input.txt
+          .\make.bat update < temp_input.txt
+          del temp_input.txt
         shell: cmd
 
       # - name: Install Blender
