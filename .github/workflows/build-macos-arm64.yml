@@ -1,0 +1,62 @@
+name: Build Blender for macOS ARM64
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Blender Tag to build'
+        required: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Blender repository recursively
+        uses: actions/checkout@v2
+        with:
+          repository: blender/blender
+          ref: ${{ github.event.inputs.tag }}
+          submodules: 'recursive'
+          path: blender 
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v1
+        with:
+          platforms: all
+
+      # - name: Set up Docker Buildx
+      #   uses: docker/setup-buildx-action@v1
+
+      # - name: Login to DockerHub
+      #   uses: docker/login-action@v1
+      #   with:
+      #     username: ${{ secrets.DOCKER_HUB_USERNAME }}
+      #     password: ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}
+
+      # - name: Build Blender for macOS ARM64
+      #   uses: docker/build-push-action@v2
+      #   with:
+      #     context: .
+      #     file: ./blender/Dockerfile
+      #     push: false
+      #     tags: your-user/blender:latest
+      #     build-args: |
+      #       TAG=${{ github.event.inputs.tag }}
+      #     platforms: linux/arm64
+
+      - name: Build Docker Image
+        run: |
+          docker build -t michaelgold/bpy-macos-arm64:latest Dockerfile.bpy-macos-arm64
+          # docker push michaelgold/bpy-macos-arm64:latest
+
+      - name: Make Wheel
+        run: |
+          docker run --rm -v "${PWD}:/workspace" your-user/blender:latest /bin/sh -c "\
+            pip install -U pip setuptools wheel && \
+            python ./blender/build_files/utils/make_bpy_wheel.py ./build_darwin_bpy/bin/"
+      
+      - name: Upload Wheel as Artifact
+        uses: actions/upload-artifact@v2
+        with:
+          name: bpy-macos-arm64
+          path: ./wheel-output/*.whl
