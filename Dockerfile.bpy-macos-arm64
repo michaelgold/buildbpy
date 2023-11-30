@@ -12,7 +12,7 @@ RUN /home/linuxbrew/.linuxbrew/bin/brew update && /home/linuxbrew/.linuxbrew/bin
 RUN echo "export PATH=/home/linuxbrew/.linuxbrew/bin:/home/linuxbrew/.linuxbrew/opt/python@3.10/libexec/bin:$PATH" >> ~/.bashrc
 
 # Set a working directory for Blender (the repository will be mounted here)
-WORKDIR /blender
+WORKDIR /build/blender
 
 # Expose any necessary ports (if needed)
 EXPOSE 8080
