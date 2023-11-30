@@ -59,7 +59,7 @@ jobs:
       - name: Make Wheel
         run: |
           docker run --rm -v "${PWD}:/workspace" michaelgold/bpy-macos-arm64:latest /bin/sh -c "\
-            pip install -U pip setuptools wheel && \
+            python -m pip install -U pip setuptools wheel && \
             python ./blender/build_files/utils/make_bpy_wheel.py ./build_darwin_bpy/bin/"
       
       - name: Upload Wheel as Artifact
