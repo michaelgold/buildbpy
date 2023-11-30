@@ -1,5 +1,8 @@
 FROM sickcodes/docker-osx:naked
 
+# Install Homebrew
+RUN /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+
 # Update and install dependencies
 RUN brew update && brew install cmake subversion && brew install --overwrite python@3.10 python@3.11
 
