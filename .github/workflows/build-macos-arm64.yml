@@ -46,7 +46,7 @@ jobs:
 
       - name: Build Docker Image
         run: |
-          docker build -t michaelgold/bpy-macos-arm64:latest Dockerfile.bpy-macos-arm64
+          docker build -t michaelgold/bpy-macos-arm64:latest -f Dockerfile.bpy-macos-arm64 .
           # docker push michaelgold/bpy-macos-arm64:latest
 
       - name: Make Wheel
