@@ -1,0 +1,13 @@
+FROM sickcodes/docker-osx:naked
+
+# Update and install dependencies
+RUN brew update && brew install cmake subversion && brew install --overwrite python@3.10 python@3.11
+
+# Set a working directory for Blender (the repository will be mounted here)
+WORKDIR /blender
+
+# Expose any necessary ports (if needed)
+EXPOSE 8080
+
+# Command to keep the container running (adjust as necessary)
+CMD ["tail", "-f", "/dev/null"]
