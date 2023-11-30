@@ -11,88 +11,88 @@ jobs:
   build:
     runs-on: windows-latest
     steps:
-      - name: test batch file
-        run: |
-          # echo "PYTHON=C:\hostedtoolcache\windows\Python\3.10.11\x64\python.exe" | Out-File -Append -FilePath $env:GITHUB_ENV
-          echo "echo %PYTHON%" >test.bat
-          echo "set PYTHON=C:\hostedtoolcache\windows\Python\3.10.11\x64\python.exe)" >test.new.bat
-          type test.bat >>test.new.bat
-          # move /y ./file.txt.new ./test.bat
-          ./test.new.bat
-          cat ./test.new.bat
+      # - name: test batch file
+      #   run: |
+      #     # echo "PYTHON=C:\hostedtoolcache\windows\Python\3.10.11\x64\python.exe" | Out-File -Append -FilePath $env:GITHUB_ENV
+      #     echo "echo %PYTHON%" >test.bat
+      #     echo "set PYTHON=C:\hostedtoolcache\windows\Python\3.10.11\x64\python.exe" >test.new.bat
+      #     type test.bat >>test.new.bat
+      #     # move /y ./file.txt.new ./test.bat
+      #     ./test.new.bat
+      #     cat ./test.new.bat
                     
-      # - name: Checkout Blender repository recursively
-      #   uses: actions/checkout@v2
-      #   with:
-      #     repository: blender/blender
-      #     ref: ${{ github.event.inputs.tag }} 
-      #     submodules: 'recursive' 
-      #     path: blender 
+      - name: Checkout Blender repository recursively
+        uses: actions/checkout@v2
+        with:
+          repository: blender/blender
+          ref: ${{ github.event.inputs.tag }} 
+          submodules: 'recursive' 
+          path: blender 
 
-      # - name: Install Chocolatey
-      #   run: |
-      #     Set-ExecutionPolicy Bypass -Scope Process -Force
-      #     Invoke-Expression ((New-Object System.Net.WebClient).DownloadString('https://chocolatey.org/install.ps1'))
+      - name: Install Chocolatey
+        run: |
+          Set-ExecutionPolicy Bypass -Scope Process -Force
+          Invoke-Expression ((New-Object System.Net.WebClient).DownloadString('https://chocolatey.org/install.ps1'))
 
-      # - name: Set up Python
-      #   uses: actions/setup-python@v4
-      #   with:
-      #     python-version: '3.10.11' 
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10.11' 
       
-      # - name: Install Visual Studio Community Edition
-      #   run: |
-      #     choco install visualstudio2022-workload-nativedesktop
+      - name: Install Visual Studio Community Edition
+        run: |
+          choco install visualstudio2022-workload-nativedesktop
 
-      # - name: Install CUDA
-      #   run: |
-      #     choco install cuda
-      #     Add-Content $env:GITHUB_PATH "C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v12.2\bin"
+      - name: Install CUDA
+        run: |
+          choco install cuda
+          Add-Content $env:GITHUB_PATH "C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v12.2\bin"
 
-      # - name: Install TortoiseSVN and Command Line Client Tools
-      #   run: |
-      #     choco install tortoisesvn
+      - name: Install TortoiseSVN and Command Line Client Tools
+        run: |
+          choco install tortoisesvn
 
-      # - name: Install CMake
-      #   run: |
-      #     choco install cmake --installargs 'ADD_CMAKE_TO_PATH=System'
+      - name: Install CMake
+        run: |
+          choco install cmake --installargs 'ADD_CMAKE_TO_PATH=System'
 
 
-      # - name: Add CUDA compilation flags
-      #   run: |
-      #     nvcc --version
-      #     "set(WITH_CYCLES_CUDA_BINARIES   ON  CACHE BOOL '' FORCE)" | Out-File -Append -FilePath ./blender/build_files/cmake/config/bpy_module.cmake
+      - name: Add CUDA compilation flags
+        run: |
+          nvcc --version
+          "set(WITH_CYCLES_CUDA_BINARIES   ON  CACHE BOOL '' FORCE)" | Out-File -Append -FilePath ./blender/build_files/cmake/config/bpy_module.cmake
       
-      # # - name: Set CUDA environment variables
-      # #   run: |
-      # #     $NVCC_PATH = Get-Command nvcc | Select-Object -ExpandProperty Source
-      # #     $CUDA_HOME = Split-Path (Split-Path $NVCC_PATH -Parent) -Parent
-      # #     echo "CUDA_HOME=$CUDA_HOME" | Out-File -Append -FilePath $env:GITHUB_ENV
-      # #     echo "CPLUS_INCLUDE_PATH=$CUDA_HOME\include;$env:CPLUS_INCLUDE_PATH" | Out-File -Append -FilePath $env:GITHUB_ENV
-      # #     echo "C_INCLUDE_PATH=$CUDA_HOME\include;$env:C_INCLUDE_PATH" | Out-File -Append -FilePath $env:GITHUB_ENV
+      # - name: Set CUDA environment variables
+      #   run: |
+      #     $NVCC_PATH = Get-Command nvcc | Select-Object -ExpandProperty Source
+      #     $CUDA_HOME = Split-Path (Split-Path $NVCC_PATH -Parent) -Parent
+      #     echo "CUDA_HOME=$CUDA_HOME" | Out-File -Append -FilePath $env:GITHUB_ENV
+      #     echo "CPLUS_INCLUDE_PATH=$CUDA_HOME\include;$env:CPLUS_INCLUDE_PATH" | Out-File -Append -FilePath $env:GITHUB_ENV
+      #     echo "C_INCLUDE_PATH=$CUDA_HOME\include;$env:C_INCLUDE_PATH" | Out-File -Append -FilePath $env:GITHUB_ENV
 
-      # # - name: Refresh env
-      # #   run: |
-      # #     refreshenv
-
-
-      # - name: Cache Blender dependencies
-      #   uses: actions/cache@v2
-      #   with:
-      #     path: |
-      #       ./lib
-      #     key: ${{ runner.os }}-blender-deps-${{ github.sha }}
-      #     restore-keys: |
-      #       ${{ runner.os }}-blender-deps-
+      # - name: Refresh env
+      #   run: |
+      #     refreshenv
 
 
-      # - name: Cache build files (for testing only)
-      #   uses: actions/cache@v2
-      #   with:
-      #     path: |
-      #       ./build_windows_bpy
-      #     key: ${{ runner.os }}-blender-build-${{ github.sha }}
-      #     restore-keys: |
-      #       ${{ runner.os }}-blender-build-
+      - name: Cache Blender dependencies
+        uses: actions/cache@v2
+        with:
+          path: |
+            ./lib
+          key: ${{ runner.os }}-blender-deps-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-blender-deps-
+
+
+      - name: Cache build files (for testing only)
+        uses: actions/cache@v2
+        with:
+          path: |
+            ./build_windows_bpy
+          key: ${{ runner.os }}-blender-build-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-blender-build-
 
 
       # - name: Set Python Path
@@ -100,25 +100,28 @@ jobs:
       #      chcp 65001 #set code page to utf-8
       #      echo "PYTHON=C:\hostedtoolcache\windows\Python\3.10.11\x64\python.exe" >> $env:GITHUB_ENV
 
-      # - name: Run make.bat
+      - name: Run make.bat
+        run: |
+          cd blender
+
+          echo "set PYTHON=C:\hostedtoolcache\windows\Python\3.10.11\x64\python.exe" >make.new.bat
+          type make.bat >>make.new.bat
+          echo y | .\make.new.bat update
+          # .\make.new.bat bpy
+
+      # - name: Install Blender
       #   run: |
-      #     cd blender
-      #     echo y | .\make.bat update
-      #     # set "Python=C:\hostedtoolcache\windows\Python\3.10.11\x64\python.exe" && echo y | .\make.bat bpy
+      #     $sitePackages = python -c "import site; print(site.getsitepackages()[0])"
+      #     echo "SITE_PACKAGES=$sitePackages" | Out-File -Append -FilePath $env:GITHUB_ENV
+      #     Copy-Item -Recurse .\build_windows_bpy\bin\bpy $env:SITE_PACKAGES
 
-      # # - name: Install Blender
-      # #   run: |
-      # #     $sitePackages = python -c "import site; print(site.getsitepackages()[0])"
-      # #     echo "SITE_PACKAGES=$sitePackages" | Out-File -Append -FilePath $env:GITHUB_ENV
-      # #     Copy-Item -Recurse .\build_windows_bpy\bin\bpy $env:SITE_PACKAGES
+      # - name: Make Wheel
+      #   run: |
+      #     python blender\build_files\utils\make_bpy_wheel.py .\build_windows_bpy\bin\
 
-      # # - name: Make Wheel
-      # #   run: |
-      # #     python blender\build_files\utils\make_bpy_wheel.py .\build_windows_bpy\bin\
-
-      # # - name: Upload Wheel as Artifact
-      # #   uses: actions/upload-artifact@v2
-      # #   with:
-      # #     name: bpy-windows
-      # #     path: |
-      # #       ./build_windows_bpy/bin/*.whl
+      # - name: Upload Wheel as Artifact
+      #   uses: actions/upload-artifact@v2
+      #   with:
+      #     name: bpy-windows
+      #     path: |
+      #       ./build_windows_bpy/bin/*.whl
