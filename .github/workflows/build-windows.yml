@@ -19,6 +19,12 @@ jobs:
           submodules: 'recursive' 
           path: blender 
 
+      - name: Set python path
+        run: |
+          echo "Python=C:\hostedtoolcache\windows\Python\3.10.11\x64\python.exe" >> $env:GITHUB_ENV
+          echo "Python path is set to $env:Python"
+        shell: pwsh
+
       # - name: Set up Conda
       #   uses: conda-incubator/setup-miniconda@v2
       #   with:
@@ -130,7 +136,7 @@ jobs:
 
       - name: Build Blender
         run: |
-          echo "Python=C:\hostedtoolcache\windows\Python\3.10.11\x64\python.exe" | Out-File -Append -FilePath $env:GITHUB_ENV
+          # echo "Python=C:\hostedtoolcache\windows\Python\3.10.11\x64\python.exe" | Out-File -Append -FilePath $env:GITHUB_ENV
           cd blender
           echo y| ./make.bat update
           # ./make.bat bpy
