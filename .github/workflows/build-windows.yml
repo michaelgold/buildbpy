@@ -149,13 +149,17 @@ jobs:
       #     # ./make.bat bpy
       #   shell: pwsh
 
-      - name: Set Python Path and Run make.bat
+
+      - name: Set Python Path
+        run: |
+           chcp 65001 #set code page to utf-8
+           echo "PYTHON=C:\hostedtoolcache\windows\Python\3.10.11\x64\python.exe" >> $env:GITHUB_ENV
+
+      - name: Run make.bat
         run: |
           cd blender
-          set "Python=C:\hostedtoolcache\windows\Python\3.10.11\x64\python.exe"
           echo y | .\make.bat update
           # set "Python=C:\hostedtoolcache\windows\Python\3.10.11\x64\python.exe" && echo y | .\make.bat bpy
-        shell: cmd
 
       # - name: Install Blender
       #   run: |
