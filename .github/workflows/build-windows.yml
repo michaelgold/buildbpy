@@ -43,10 +43,10 @@ jobs:
         run: |
           choco install visualstudio2022-workload-nativedesktop
 
-      - name: Install CUDA
-        run: |
-          choco install cuda
-          Add-Content $env:GITHUB_PATH "C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v12.2\bin"
+      # - name: Install CUDA
+      #   run: |
+      #     choco install cuda
+      #     Add-Content $env:GITHUB_PATH "C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v12.2\bin"
 
       - name: Install TortoiseSVN and Command Line Client Tools
         run: |
@@ -57,10 +57,10 @@ jobs:
           choco install cmake --installargs 'ADD_CMAKE_TO_PATH=System'
 
 
-      - name: Add CUDA compilation flags
-        run: |
-          nvcc --version
-          "set(WITH_CYCLES_CUDA_BINARIES   ON  CACHE BOOL '' FORCE)" | Out-File -Append -FilePath ./blender/build_files/cmake/config/bpy_module.cmake
+      # - name: Add CUDA compilation flags
+      #   run: |
+      #     nvcc --version
+      #     "set(WITH_CYCLES_CUDA_BINARIES   ON  CACHE BOOL '' FORCE)" | Out-File -Append -FilePath ./blender/build_files/cmake/config/bpy_module.cmake
       
       # - name: Set CUDA environment variables
       #   run: |
@@ -100,6 +100,10 @@ jobs:
       #      chcp 65001 #set code page to utf-8
       #      echo "PYTHON=C:\hostedtoolcache\windows\Python\3.10.11\x64\python.exe" >> $env:GITHUB_ENV
 
+      - name: list env vars
+        run: |
+          set
+      
       - name: Run make.bat
         run: |
           cd blender
