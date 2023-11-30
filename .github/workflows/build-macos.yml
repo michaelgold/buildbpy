@@ -97,36 +97,14 @@ jobs:
           make bpy
 
 
-      # - name: Setup terminal session
-      #   uses: fawazahmed0/action-debug@main
+
+      # - name: Make Wheel
+      #   run: |
+      #     python ./blender/build_files/utils/make_bpy_wheel.py ./build_darwin_bpy/bin/
+
+      # - name: Upload Wheel as Artifact
+      #   uses: actions/upload-artifact@v2
       #   with:
-      #       credentials: "user:p@ss!"
-
-
-      # - name: Install Blender
-      #   run: python -c "import shutil, site; shutil.copytree('./build_darwin_bpy/bin/bpy', site.getsitepackages()[0] + '/bpy')"
-
-
-      # - name: Install docs prereqs and generate API Docs
-      #   run: |
-      #     pip install bpystubgen
-      #     cd ./blender
-      #     python ./doc/python_api/sphinx_doc_gen.py -- --output=../python_api
-      #     python -m bpystubgen ../python_api/sphinx-in ../python_api/output
-
-      # - name: Copy BPY Stubs to bin folder
-      #   run: |
-      #     cp -R ./python_api/output/*  ./build_darwin_bpy/bin/
-
-
-
-      - name: Make Wheel
-        run: |
-          python ./blender/build_files/utils/make_bpy_wheel.py ./build_darwin_bpy/bin/
-
-      - name: Upload Wheel as Artifact
-        uses: actions/upload-artifact@v2
-        with:
-          name: bpy-macos
-          path: |
-            ./build_darwin_bpy/bin/*.whl
+      #     name: bpy-macos
+      #     path: |
+      #       ./build_darwin_bpy/bin/*.whl
