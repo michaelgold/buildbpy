@@ -56,10 +56,10 @@ jobs:
         run: |
           choco install visualstudio2022-workload-nativedesktop
 
-      # - name: Install CUDA
-      #   run: |
-      #     choco install cuda
-      #     Add-Content $env:GITHUB_PATH "C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v12.2\bin"
+      - name: Install CUDA
+        run: |
+          choco install cuda
+          Add-Content $env:GITHUB_PATH "C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v12.2\bin"
 
       - name: Install TortoiseSVN and Command Line Client Tools
         run: |
@@ -70,10 +70,10 @@ jobs:
           choco install cmake --installargs 'ADD_CMAKE_TO_PATH=System'
 
 
-      # - name: Add CUDA compilation flags
-      #   run: |
-      #     nvcc --version
-      #     "set(WITH_CYCLES_CUDA_BINARIES   ON  CACHE BOOL '' FORCE)" | Out-File -Append -FilePath ./blender/build_files/cmake/config/bpy_module.cmake
+      - name: Add CUDA compilation flags
+        run: |
+          nvcc --version
+          "set(WITH_CYCLES_CUDA_BINARIES   ON  CACHE BOOL '' FORCE)" | Out-File -Append -FilePath ./blender/build_files/cmake/config/bpy_module.cmake
       
       # - name: Set CUDA environment variables
       #   run: |
@@ -140,13 +140,13 @@ jobs:
       #     echo "SITE_PACKAGES=$sitePackages" | Out-File -Append -FilePath $env:GITHUB_ENV
       #     Copy-Item -Recurse .\build_windows_bpy\bin\bpy $env:SITE_PACKAGES
 
-      # - name: Make Wheel
-      #   run: |
-      #     python blender\build_files\utils\make_bpy_wheel.py .\build_windows_bpy\bin\
+      - name: Make Wheel
+        run: |
+          python blender\build_files\utils\make_bpy_wheel.py .\build_windows_bpy\bin\
 
-      # - name: Upload Wheel as Artifact
-      #   uses: actions/upload-artifact@v2
-      #   with:
-      #     name: bpy-windows
-      #     path: |
-      #       ./build_windows_bpy/bin/*.whl
+      - name: Upload Wheel as Artifact
+        uses: actions/upload-artifact@v2
+        with:
+          name: bpy-windows
+          path: |
+            ./build_windows_bpy/bin/*.whl
