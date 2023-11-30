@@ -17,7 +17,7 @@ jobs:
           (echo %PYTHON%) >test.bat
           (echo set "PYTHON=C:\hostedtoolcache\windows\Python\3.10.11\x64\python.exe") >file.txt.new
           type test.bat >>file.txt.new
-          move /y file.txt.new test.bat
+          move /y ./file.txt.new ./test.bat
           ./test.bat
           cat ./test.bat
                     
