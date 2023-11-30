@@ -3,6 +3,7 @@ import os
 
 def build_blender():
     # Run Blender's build commands
+    os.chdir('blender')
     subprocess.check_call(['make', 'update'])
     subprocess.check_call(['make', 'bpy'])
 
