@@ -107,6 +107,15 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-blender-build-
 
+      - name: download svn librares
+        run: |
+          if [ ! -d "./lib" ]; then
+            mkdir ./lib
+            cd ./lib
+            svn checkout https://svn.blender.org/svnroot/bf-blender/trunk/lib/win64_vc15
+          fi
+        shell: bash
+
 
       # - name: Set Python Path
       #   run: |
