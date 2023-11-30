@@ -67,6 +67,7 @@ jobs:
         run: |
           docker run --rm -v "${PWD}/build:/build" -v "${PWD}/wheel-output:/wheel-output" -v "${PWD}/workspace:/workspace" michaelgold/bpy-macos-arm64:latest /bin/sh -c "\
             source ~/.bashrc && \
+            python --version && \
             git clone --recursive --branch ${{ github.event.inputs.tag }} https://github.com/blender/blender && \
             python -m pip install -U pip setuptools wheel && \
             python /workspace/blender/build_blender.py"
