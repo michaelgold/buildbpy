@@ -56,6 +56,13 @@ jobs:
           docker build -t michaelgold/bpy-macos-arm64:latest -f Dockerfile.bpy-macos-arm64 .
           # docker push michaelgold/bpy-macos-arm64:latest
 
+      
+      - name: Adjust Permissions
+        run: |
+          chmod -R 777 ./build
+          chmod -R 777 ./wheel-output
+          chmod -R 777 ./workspace
+
       - name: Make Wheel
         run: |
           docker run --rm -v "${PWD}/build:/build" -v "${PWD}/wheel-output:/wheel-output" -v "${PWD}/workspace:/workspace" michaelgold/bpy-macos-arm64:latest /bin/sh -c "\
