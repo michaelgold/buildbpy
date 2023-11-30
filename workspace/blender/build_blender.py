@@ -8,7 +8,7 @@ def build_blender():
 
     # Create wheel
     os.chdir('build_files/utils')
-    subprocess.check_call(['python3', 'make_bpy_wheel.py', '../../build_darwin_bpy/bin/', '/wheel-output'])
+    subprocess.check_call(['python3', 'make_bpy_wheel.py', '/build/build_darwin_bpy/bin/', '/wheel-output'])
 
 if __name__ == "__main__":
     build_blender()
