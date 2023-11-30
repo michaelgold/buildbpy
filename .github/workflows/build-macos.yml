@@ -90,21 +90,22 @@ jobs:
 
 
       
-      - name: Build Blender
-        run: |
-          cd ./blender
-          make update
-          make bpy
-
-
-
-      # - name: Make Wheel
+      # - name: Build Blender
       #   run: |
-      #     python ./blender/build_files/utils/make_bpy_wheel.py ./build_darwin_bpy/bin/
+      #     cd ./blender
+      #     make update
+      #     make bpy
 
-      # - name: Upload Wheel as Artifact
-      #   uses: actions/upload-artifact@v2
-      #   with:
-      #     name: bpy-macos
-      #     path: |
-      #       ./build_darwin_bpy/bin/*.whl
+
+
+      - name: Make Wheel
+        run: |
+          pip install -U pip setuptools wheel
+          python ./blender/build_files/utils/make_bpy_wheel.py ./build_darwin_bpy/bin/
+
+      - name: Upload Wheel as Artifact
+        uses: actions/upload-artifact@v2
+        with:
+          name: bpy-macos
+          path: |
+            ./build_darwin_bpy/bin/*.whl
