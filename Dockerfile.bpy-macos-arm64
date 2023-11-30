@@ -11,6 +11,12 @@ RUN /home/linuxbrew/.linuxbrew/bin/brew update && /home/linuxbrew/.linuxbrew/bin
 # Set the PATH for Python and Pip
 RUN echo "export PATH=/home/linuxbrew/.linuxbrew/bin:/home/linuxbrew/.linuxbrew/opt/python@3.10/libexec/bin:$PATH" >> ~/.bashrc
 
+RUN echo "export PYTHON_VERSION=3.10" >> ~/.bashrc
+RUN echo "export PYTHON_LIBRARY=/home/linuxbrew/.linuxbrew/lib/libpython3.10.so" >> ~/.bashrc
+RUN echo "export PYTHON_INCLUDE_DIR=/home/linuxbrew/.linuxbrew/include/python3.10" >> ~/.bashrc
+RUN echo "export PYTHON_LIBPATH=/home/linuxbrew/.linuxbrew/lib" >> ~/.bashrc
+RUN echo "export PYTHON_SITE_PACKAGES=/home/linuxbrew/.linuxbrew/lib/python3.10/site-packages" >> ~/.bashrc
+
 # Set a working directory for Blender (the repository will be mounted here)
 WORKDIR /build
 
