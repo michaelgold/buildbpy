@@ -21,7 +21,8 @@ jobs:
 
       - name: Set python path
         run: |
-          echo "Python=C:\hostedtoolcache\windows\Python\3.10.11\x64\python.exe" >> $env:GITHUB_ENV
+          # echo "Python=C:\hostedtoolcache\windows\Python\3.10.11\x64\python.exe" >> $env:GITHUB_ENV
+          $env:Python = "C:\hostedtoolcache\windows\Python\3.10.11\x64\python.exe"
           echo "Python path is set to $env:Python"
         shell: bash
 
