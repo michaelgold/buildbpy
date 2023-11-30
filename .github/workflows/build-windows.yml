@@ -23,7 +23,7 @@ jobs:
         run: |
           echo "Python=C:\hostedtoolcache\windows\Python\3.10.11\x64\python.exe" >> $env:GITHUB_ENV
           echo "Python path is set to $env:Python"
-        shell: pwsh
+        shell: bash
 
       # - name: Set up Conda
       #   uses: conda-incubator/setup-miniconda@v2
