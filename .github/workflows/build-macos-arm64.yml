@@ -61,7 +61,7 @@ jobs:
           docker run --rm -v "${PWD}/blender:/blender" -v "${PWD}/wheel-output:/wheel-output" michaelgold/bpy-macos-arm64:latest /bin/sh -c "\
             source ~/.bashrc && \
             python -m pip install -U pip setuptools wheel && \
-            python ./blender/build_files/utils/make_bpy_wheel.py ./build_darwin_bpy/bin/"
+            python /blender/build_files/utils/make_bpy_wheel.py /blender/build_darwin_bpy/bin/"
 
       - name: Upload Wheel as Artifact
         uses: actions/upload-artifact@v2
