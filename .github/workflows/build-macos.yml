@@ -29,9 +29,9 @@ jobs:
           channels: conda-forge
           miniconda-version: "latest" 
 
-      - name: Install Conda Dependencies
-        run: |
-          conda install -y setuptools -c conda-forge
+      # - name: Install Conda Dependencies
+      #   run: |
+      #     conda install -y setuptools -c conda-forge
 
       - name: Add conda subdirectories to PATH
         run: |
