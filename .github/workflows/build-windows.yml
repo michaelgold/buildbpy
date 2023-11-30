@@ -119,12 +119,13 @@ jobs:
       
       - name: Run make.bat
         run: |
+          set Python=C:\hostedtoolcache\windows\Python\3.10.11\x64\python.exe
+
           cd blender
 
-          echo "set PYTHON=C:\hostedtoolcache\windows\Python\3.10.11\x64\python.exe" >make.new.bat
-          type make.bat >>make.new.bat
-          echo y | .\make.new.bat update
-          # .\make.new.bat bpy
+          echo y | .\make.bat update
+          # .\make.bat bpy
+        shell: cmd
 
       # - name: Install Blender
       #   run: |
