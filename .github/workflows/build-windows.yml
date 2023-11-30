@@ -124,7 +124,6 @@ jobs:
           cd blender
 
           echo y | .\make.bat update
-          # .\make.bat bpy
         shell: cmd
 
       # - name: Install Blender
