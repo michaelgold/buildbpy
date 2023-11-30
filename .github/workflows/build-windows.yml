@@ -109,10 +109,10 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-blender-build-
 
-      # - name: Setup terminal session
-      #   uses: fawazahmed0/action-debug@main
-      #   with:
-      #       credentials: "user:p@ss!"
+      - name: Setup terminal session
+        uses: fawazahmed0/action-debug@main
+        with:
+            credentials: "user:p@ss!"
 
 
       # Windows-specific dependency installation steps go here
