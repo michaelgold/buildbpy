@@ -11,6 +11,13 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
+
+      - name: checkout repo
+        uses: actions/checkout@v2
+        
+      - name: show Dockerfile
+        run: cat Dockerfile.bpy-macos-arm64
+        
       - name: Checkout Blender repository recursively
         uses: actions/checkout@v2
         with:
