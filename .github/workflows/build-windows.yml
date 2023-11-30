@@ -47,6 +47,7 @@ jobs:
       - name: Install Python
         run: |
           choco install python --version=3.10.11
+          Add-Content $env:GITHUB_PATH "C:\hostedtoolcache\windows\Python\3.10.11\x64"
       
       - name: Install Visual Studio Community Edition
         run: |
@@ -55,6 +56,7 @@ jobs:
       - name: Install CUDA
         run: |
           choco install cuda
+           Add-Content $env:GITHUB_PATH "C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v12.2\bin"
 
       - name: Install TortoiseSVN and Command Line Client Tools
         run: |
@@ -77,7 +79,7 @@ jobs:
 
       - name: Add CUDA compilation flags
         run: |
-          # nvcc --version
+          nvcc --version
           "set(WITH_CYCLES_CUDA_BINARIES   ON  CACHE BOOL '' FORCE)" | Out-File -Append -FilePath ./blender/build_files/cmake/config/bpy_module.cmake
       
       # - name: Set CUDA environment variables
@@ -88,6 +90,9 @@ jobs:
       #     echo "CPLUS_INCLUDE_PATH=$CUDA_HOME\include;$env:CPLUS_INCLUDE_PATH" | Out-File -Append -FilePath $env:GITHUB_ENV
       #     echo "C_INCLUDE_PATH=$CUDA_HOME\include;$env:C_INCLUDE_PATH" | Out-File -Append -FilePath $env:GITHUB_ENV
 
+      - name: Refresh env
+        run: |
+          refreshenv
 
 
       - name: Cache Blender dependencies
