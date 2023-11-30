@@ -6,7 +6,7 @@ RUN (echo; echo 'eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"') >> /ho
 RUN eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
 
 # Update and install dependencies
-RUN /home/linuxbrew/.linuxbrew/bin/brew update && /home/linuxbrew/.linuxbrew/bin/brew install cmake subversion && /home/linuxbrew/.linuxbrew/bin/brew install --overwrite python@3.10 python@3.11
+RUN /home/linuxbrew/.linuxbrew/bin/brew update && /home/linuxbrew/.linuxbrew/bin/brew install cmake subversion python@3.10 
 
 # Set a working directory for Blender (the repository will be mounted here)
 WORKDIR /blender
