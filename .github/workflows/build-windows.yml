@@ -39,10 +39,17 @@ jobs:
         with:
           python-version: '3.10.11' 
 
+      
+      - name: Set Python Path and Run make.bat
+        run: |
+          set Python=C:\hostedtoolcache\windows\Python\3.10.11\x64\python.exe
+          echo %Python%
+        shell: cmd
+
       - name: list env vars
         run: |
           # Set "Python=C:\hostedtoolcache\windows\Python\3.10.11\x64\python.exe"
-          echo "Python=C:\hostedtoolcache\windows\Python\3.10.11\x64\python.exe" | Out-File -Append -FilePath $env:GITHUB_ENV
+          # echo "Python=C:\hostedtoolcache\windows\Python\3.10.11\x64\python.exe" | Out-File -Append -FilePath $env:GITHUB_ENV
           Get-ChildItem Env:
       
       - name: Install Visual Studio Community Edition
