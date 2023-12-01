@@ -61,19 +61,26 @@ def check_new_tag(tag: str = None):
         subprocess.run(["make", "update"], cwd=blender_repo_dir)
         # subprocess.run(["make", "bpy"], cwd=blender_repo_dir)
 
-        
+        # tag_parts = selected_tag.split('.')
+        # major_version = '.'.join(tag_parts[:2])
+        # minor_version = '.'.join(tag_parts[:3])
 
+        #./blender --background --factory-startup -noaudio --python ../blender-git/doc/python_api/sphinx_doc_gen.py -- --output=../python_api
+        python_api_dir = Path.cwd() / "../python_api"
 
-        headers = {
-        "Authorization": f"Bearer {github_token}",
-        "Accept": "application/vnd.github.v3+json"
-        }
-  
+        blender_binary = "/Applications/Blender.app/Contents/MacOS/Blender"
+        # build the python api docs
+        subprocess.run([blender_binary, "--background", "--factory-startup", "-noaudio", "--python", blender_repo_dir / "doc/python_api/sphinx_doc_gen.py", "--", f"--output={python_api_dir}"])
+        build_dir = Path.cwd() / "../build_darwin_bpy"
+
+        # build the python api stubs in the build directory (for the wheel)
+        subprocess.run(["python", "-m", "bpystubgen", python_api_dir / "sphinx-in", build_dir / "bin"])
+
 
 
         # Make the wheel
 
-        build_dir = Path.cwd() / "../build_darwin_bpy"
+       
 
         subprocess.run(["pip", "install", "-U", "pip", "setuptools", "wheel"])
         subprocess.run(["python", blender_repo_dir / "build_files/utils/make_bpy_wheel.py", build_dir / "bin/"])
@@ -88,6 +95,10 @@ def check_new_tag(tag: str = None):
 
         # publish the wheel to github releases
         # https://docs.github.com/en/rest/reference/repos#create-a-release
+        headers = {
+        "Authorization": f"Bearer {github_token}",
+        "Accept": "application/vnd.github.v3+json"
+        }
 
         # check if the release already exists
         release_url = f"https://api.github.com/repos/michaelgold/bpy/releases/tags/{selected_tag}"
