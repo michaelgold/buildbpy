@@ -70,7 +70,9 @@ jobs:
               # Load pyenv-virtualenv automatically by adding
               # the following to your profile:
               eval "$(pyenv virtualenv-init -)"
-              pyenv install -v 3.10.10
+              # pyenv install -v 3.10.10
+              env PYTHON_CONFIGURE_OPTS='--enable-optimizations' pyenv install -v 3.10.10
+
               echo "python version installed: $(python --version)"
               pyenv global 3.10.10
               echo "python global command complete: $(python --version)"
