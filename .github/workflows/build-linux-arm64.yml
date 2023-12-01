@@ -55,7 +55,7 @@ jobs:
               # Commands to run if ./lib is empty
               export DEBIAN_FRONTEND=noninteractive
               apt update
-              apt-get install -y build-essential git subversion cmake libx11-dev libxxf86vm-dev libxcursor-dev libxi-dev libxrandr-dev libxinerama-dev libegl-dev curl libssl-dev zlib1g-dev
+              apt-get install -y build-essential git subversion cmake libx11-dev libxxf86vm-dev libxcursor-dev libxi-dev libxrandr-dev libxinerama-dev libegl-dev curl libssl-dev zlib1g-dev libbz2-dev libreadline-dev libsqlite3-dev wget curl llvm libncurses5-dev libncursesw5-dev xz-utils tk-dev liblzma-dev python-openssl
               apt-get install -y libwayland-dev wayland-protocols libxkbcommon-dev libdbus-1-dev linux-libc-dev libffi-dev libgomp1 
               # install libraries to build deps
               apt-get install -y autoconf automake bison libtool yasm tcl ninja-build meson python3-mako patchelf
