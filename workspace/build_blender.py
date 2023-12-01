@@ -11,6 +11,8 @@ app = typer.Typer()
 # Load the environment variables
 dotenv.load_dotenv()
 github_token = os.getenv("GITHUB_TOKEN")
+if not github_token:
+    raise ValueError("GitHub token not found in environment variables.")
 
 
 
