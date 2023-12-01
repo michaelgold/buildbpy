@@ -9,6 +9,12 @@ RUN eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
 RUN /home/linuxbrew/.linuxbrew/bin/brew update && /home/linuxbrew/.linuxbrew/bin/brew install cmake subversion pyenv
 
 
+RUN /home/linuxbrew/.linuxbrew/bin/pyenv install --list
+
+RUN /home/linuxbrew/.linuxbrew/bin/pyenv install 3.10.10
+
+RUN /home/linuxbrew/.linuxbrew/bin/pyenv global 3.10.10
+
 
 
 # Set the PATH for Python and Pip
@@ -26,6 +32,8 @@ ENV PATH="/home/linuxbrew/.linuxbrew/bin:/usr/local/sbin:/usr/local/bin:/usr/sbi
 # ENV PYTHON_INCLUDE_DIR="/home/linuxbrew/.linuxbrew/include/python3.10"
 # ENV PYTHON_LIBPATH="/home/linuxbrew/.linuxbrew/lib"
 # ENV PYTHON_SITE_PACKAGES="/home/linuxbrew/.linuxbrew/lib/python3.10/site-packages"
+
+RUN echo "export PATH=$(pyenv root)/shims:$PATH" >> ~/.bashrc
 
 
 # Set a working directory for Blender (the repository will be mounted here)
