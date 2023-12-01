@@ -21,7 +21,10 @@ if not github_token:
 @app.command()
 def publish_github(tag: str, wheel_dir: Path):
     """ Publishes the wheel file to GitHub Releases. """
-    whl_file_path = list(wheel_dir.glob("*.whl"))[0]
+    whl_files = list(wheel_dir.glob("*.whl"))
+    if not whl_files:
+        raise FileNotFoundError("No .whl file found in the specified directory.")
+    whl_file_path = whl_files[0]
            
     print(f"Wheel file found: {whl_file_path}")
     selected_tag = tag  
