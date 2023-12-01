@@ -43,7 +43,7 @@ jobs:
           image: ubuntu:jammy
           options: |
             --platform linux/arm64
-            --volume ./lib:/build/lib
+            --volume ${PWD}/lib:/build/lib
             --volume ${{ github.workspace }}:/build
             --workdir /build
           run: |
