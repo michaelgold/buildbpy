@@ -53,6 +53,7 @@ jobs:
           run: |
             if [ ! "$(find ./lib -mindepth 1 -print -quit)" ]; then
               # Commands to run if ./lib is empty
+              export DEBIAN_FRONTEND=noninteractive
               apt update
               apt-get install -y build-essential git subversion cmake libx11-dev libxxf86vm-dev libxcursor-dev libxi-dev libxrandr-dev libxinerama-dev libegl-dev
               apt-get install -y libwayland-dev wayland-protocols libxkbcommon-dev libdbus-1-dev linux-libc-dev
