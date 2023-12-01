@@ -11,6 +11,9 @@ jobs:
   build:
     runs-on: macos-13
     steps:
+      - name: checkout repo
+        uses: actions/checkout@v2
+        
       - name: Checkout Blender repository recursively
         uses: actions/checkout@v2
         with:
@@ -112,9 +115,19 @@ jobs:
           pip install -U pip setuptools wheel
           python ./blender/build_files/utils/make_bpy_wheel.py ./build_darwin_bpy/bin/
 
-      - name: Upload Wheel as Artifact
-        uses: actions/upload-artifact@v2
-        with:
-          name: bpy-macos
-          path: |
-            ./build_darwin_bpy/bin/*.whl
+      # - name: Upload Wheel as Artifact
+      #   uses: actions/upload-artifact@v2
+      #   with:
+      #     name: bpy-macos
+      #     path: |
+      #       ./build_darwin_bpy/bin/*.whl
+
+      - name: Install Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Publish Wheel
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: python workspace/build_blender.py publish --wheel_dir ./build_darwin_bpy/bin/ --tag ${{ github.event.inputs.tag }}
