@@ -1,0 +1,128 @@
+name: Build bpy for Linux
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Blender Tag to build'
+        required: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: checkout repo
+        uses: actions/checkout@v2
+
+      - name: Cache Blender dependencies
+        uses: actions/cache@v2
+        with:
+          path: |
+            ./lib
+          key: ${{ runner.os }}-blender-deps-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-blender-deps-
+
+      # - name: Get dependencies
+      #   run: |
+      #     echo "Building bpy for Linux with tag ${{ github.event.inputs.tag }}"
+      #     sudo apt update
+      #     sudo apt-get install -y build-essential git subversion cmake libx11-dev libxxf86vm-dev libxcursor-dev libxi-dev libxrandr-dev libxinerama-dev libegl-dev
+      #     sudo apt-get install -y libwayland-dev wayland-protocols libxkbcommon-dev libdbus-1-dev linux-libc-dev
+      #     if [ ! -d "./lib" ]; then
+      #       mkdir ./lib
+      #       cd ./lib
+      #       svn checkout https://svn.blender.org/svnroot/bf-blender/trunk/lib/linux_x86_64_glibc_228
+      #     fi
+
+      - name: Build dependencies
+        uses: addnab/docker-run-action@v3
+        with:
+          image: ubuntu:jammy
+          options: |
+            --platform linux/arm64
+            --volume "${PWD}/lib:/build/lib" 
+            --volume ${{ github.workspace }}:/build
+            --workdir /build
+          run: |
+            sudo apt update
+            sudo apt-get install -y build-essential git subversion cmake libx11-dev libxxf86vm-dev libxcursor-dev libxi-dev libxrandr-dev libxinerama-dev libegl-dev
+            sudo apt-get install -y libwayland-dev wayland-protocols libxkbcommon-dev libdbus-1-dev linux-libc-dev
+            # if [ ! -d "./lib" ]; then
+            #   mkdir ./lib
+            #   cd ./lib
+            #   svn checkout https://svn.blender.org/svnroot/bf-blender/trunk/lib/linux_x86_64_glibc_228
+            # fi
+            git clone --recursive https://gitub.com/blender/blender.git
+            cd blender
+            make update
+            make deps
+          shell: bash
+
+
+      - name: Cache build files (for testing only)
+        uses: actions/cache@v2
+        with:
+          path: |
+            ./build_linux_bpy
+          key: ${{ runner.os }}-blender-build-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-blender-build-
+
+      # - name: Download Blender Python API Stubs
+      #   id: download-artifact
+      #   uses: dawidd6/action-download-artifact@v2
+      #   with:
+      #     workflow: generate_stubs.yml
+      #     # github_token: ${{secrets.GITHUB_TOKEN}}
+      #     name: blender-python-api-stubs-${{ github.event.inputs.tag }}
+      #     path: ./build_linux_bpy/bin/
+
+
+      # - name: Build Blender
+      #   run: |
+      #     cd ./blender
+      #     make update
+      #     make bpy
+      #     # make bpy VERBOSE=1
+
+      # - name: Install Blender
+      #   run: python -c "import shutil, site; shutil.copytree('./build_linux_bpy/bin/bpy', site.getsitepackages()[0] + '/bpy')"
+
+
+
+
+      # - name: Setup terminal session
+      #   uses: fawazahmed0/action-debug@main
+      #   with:
+      #       credentials: "user:p@ss!"
+
+
+      # - name: Make Wheel
+      #   run: |
+      #     # PYTHON3=$(which python3)
+      #     # PYTHON=$(which python)
+          
+      #     # sudo rm $PYTHON3 
+      #     # ln -s $PYTHON $PYTHON3
+      #     pip install -U pip setuptools wheel
+      #     python ./blender/build_files/utils/make_bpy_wheel.py ./build_linux_bpy/bin/
+
+      # # - name: Upload Wheel as Artifact
+      # #   uses: actions/upload-artifact@v2
+      # #   with:
+      # #     name: bpy-linux
+      # #     path: |
+      # #       ./build_linux_bpy/bin/*.whl
+
+      # - name: Install Dependencies
+      #   run: |
+      #     python -m pip install --upgrade pip ndg-httpsclient pyopenssl pyasn1
+      #     python -m pip install bpystubgen requests python-dotenv typer=='0.9.0' httpx
+
+      # - name: Publish Wheel
+      #   env:
+      #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      #   run: python workspace/build_blender.py publish-github  ${{ github.event.inputs.tag }} ./build_linux_bpy/bin
