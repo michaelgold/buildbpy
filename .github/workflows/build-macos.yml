@@ -10,6 +10,8 @@ on:
 jobs:
   build:
     runs-on: macos-13
+    permissions:
+      contents: read/write
     steps:
       - name: checkout repo
         uses: actions/checkout@v2
