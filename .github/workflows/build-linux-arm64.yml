@@ -72,6 +72,7 @@ jobs:
               eval "$(pyenv virtualenv-init -)"
               pyenv install 3.10.10
               pyenv global 3.10.10
+              echo "python version: $(python --version)"
               git clone --branch ${{ github.event.inputs.tag }} --depth 1 --recursive https://github.com/blender/blender.git
               cd blender
               make deps
