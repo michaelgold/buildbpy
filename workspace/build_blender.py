@@ -45,6 +45,7 @@ def publish_github(tag: str, wheel_dir: Path):
     
         response_json = response.json()
         release_id = response_json.get("id", None)
+        print(f"Release ID: {release_id}")
 
         release_assets = response_json.get("assets", [])
         existing_asset = None
@@ -88,6 +89,8 @@ def publish_github(tag: str, wheel_dir: Path):
     # Step 2: Upload the .whl file
     upload_url = f"https://uploads.github.com/repos/michaelgold/bpy/releases/{release_id}/assets?name={whl_file_path.stem}.whl"
     headers['Content-Type'] = 'application/octet-stream'
+
+    print(f"Uploading file to {upload_url}...")
 
     with open(whl_file_path, 'rb') as file:
         upload_response = requests.post(upload_url, headers=headers, data=file)
