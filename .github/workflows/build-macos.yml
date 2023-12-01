@@ -13,7 +13,7 @@ jobs:
     steps:
       - name: checkout repo
         uses: actions/checkout@v2
-        
+
       - name: Checkout Blender repository recursively
         uses: actions/checkout@v2
         with:
@@ -130,4 +130,4 @@ jobs:
       - name: Publish Wheel
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: python workspace/build_blender.py publish --wheel_dir ./build_darwin_bpy/bin/ --tag ${{ github.event.inputs.tag }}
+        run: python workspace/build_blender.py publish-github --wheel_dir ./build_darwin_bpy/bin/ --tag ${{ github.event.inputs.tag }}

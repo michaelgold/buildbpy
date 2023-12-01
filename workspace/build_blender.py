@@ -17,7 +17,7 @@ github_token = os.getenv("GITHUB_TOKEN")
 # get script directory
 
 @app.command()
-def publish_wheel(tag: str, wheel_dir: Path):
+def publish_github(tag: str, wheel_dir: Path):
     """ Publishes the wheel file to GitHub Releases. """
     whl_file_path = list(wheel_dir.glob("*.whl"))[0]
            
