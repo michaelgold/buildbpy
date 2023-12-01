@@ -42,7 +42,7 @@ def publish_github(tag: str, wheel_dir: Path):
 
     if response.status_code == 200 or response.status_code == 201:
         print("Release already exists. Skipping creation.")
-        response = requests.get(release_url, headers=headers)
+    
         response_json = response.json()
         release_id = response_json.get("id", None)
 
