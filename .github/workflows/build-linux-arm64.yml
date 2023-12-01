@@ -59,7 +59,7 @@ jobs:
               export PATH="/root/.pyenv/bin:$PATH"
               pyenv install 3.10.10
               pyenv global 3.10.10
-              git clone --recursive https://github.com/blender/blender.git
+              git clone --branch ${{ github.event.inputs.tag }} --depth 1 --recursive https://github.com/blender/blender.git
               cd blender
               make update
               make deps
