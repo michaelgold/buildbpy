@@ -17,8 +17,11 @@ github_token = os.getenv("GITHUB_TOKEN")
 # get script directory
 
 @app.command()
-def publish_wheel(tag: str, whl_file_path: Path):
+def publish_wheel(tag: str, wheel_dir: Path):
     """ Publishes the wheel file to GitHub Releases. """
+    whl_file_path = list(wheel_dir.glob("*.whl"))[0]
+           
+    print(f"Wheel file found: {whl_file_path}")
     selected_tag = tag  
     # https://docs.github.com/en/rest/reference/repos#create-a-release
     headers = {
@@ -160,13 +163,10 @@ def check_new_tag(tag: str = None):
 
         # Get the wheel file
         bin_path = build_dir / "bin"
-        whl_file_path = list(bin_path.glob("*.whl"))[0]
-
-                                 
-        print(f"Wheel file found: {whl_file_path}")
 
 
-        publish_wheel(selected_tag, whl_file_path)
+
+        publish_wheel(selected_tag, bin_path)
         
 
 
