@@ -142,15 +142,15 @@ jobs:
           workflow: generate_stubs.yml
           # github_token: ${{secrets.GITHUB_TOKEN}}
           name: blender-python-api-stubs-${{ github.event.inputs.tag }}
-          path: ./build_win64_bpy/bin/
+          path: ./build_windows_Bpy_x64_vc17_Release/bin/
           
       - name: Make Wheel
         run: |
-          python blender\build_files\utils\make_bpy_wheel.py .\build_win64_bpy\bin\
+          python blender\build_files\utils\make_bpy_wheel.py .\build_windows_Bpy_x64_vc17_Release\bin\
 
       - name: Upload Wheel as Artifact
         uses: actions/upload-artifact@v2
         with:
           name: bpy-windows
           path: |
-            ./build_win64_bpy/bin/*.whl
+            ./build_windows_Bpy_x64_vc17_Release/bin/*.whl
