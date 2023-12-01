@@ -26,9 +26,9 @@ jobs:
         with:
           path: |
             ./lib
-          key: ${{ runner.os }}-blender-deps-${{ github.sha }}
+          key: ${{ runner.os }}-arm64-blender-deps-${{ github.sha }}
           restore-keys: |
-            ${{ runner.os }}-blender-deps-
+            ${{ runner.os }}-arm64-blender-deps-
 
       # - name: Get dependencies
       #   run: |
@@ -67,9 +67,9 @@ jobs:
         with:
           path: |
             ./build_linux_bpy
-          key: ${{ runner.os }}-blender-build-${{ github.sha }}
+          key: ${{ runner.os }}-arm64-blender-build-${{ github.sha }}
           restore-keys: |
-            ${{ runner.os }}-blender-build-
+            ${{ runner.os }}-arm64-blender-build-
 
       # - name: Download Blender Python API Stubs
       #   id: download-artifact
