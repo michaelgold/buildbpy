@@ -167,8 +167,8 @@ jobs:
       - name: Install Dependencies
         run: |
           python -m pip install --upgrade pip
-          python -m pip install bpystubgen
-          conda install -c conda-forge typer requests python-dotenv -y
+          python -m pip install bpystubgen requests python-dotenv
+          conda install -c conda-forge typer -y
 
       - name: Publish Wheel
         env:
