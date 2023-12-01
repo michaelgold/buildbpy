@@ -98,14 +98,14 @@ jobs:
             ${{ runner.os }}-blender-deps-
 
 
-      - name: Cache build files (for testing only)
-        uses: actions/cache@v2
-        with:
-          path: |
-            ./build_windows_bpy
-          key: ${{ runner.os }}-blender-build-${{ github.sha }}
-          restore-keys: |
-            ${{ runner.os }}-blender-build-
+      # - name: Cache build files (for testing only)
+      #   uses: actions/cache@v2
+      #   with:
+      #     path: |
+      #       ./build_windows_bpy
+      #     key: ${{ runner.os }}-blender-build-${{ github.sha }}
+      #     restore-keys: |
+      #       ${{ runner.os }}-blender-build-
 
       - name: download svn librares
         run: |
