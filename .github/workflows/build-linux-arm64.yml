@@ -51,14 +51,19 @@ jobs:
             --volume ${{ github.workspace }}/lib:/build/lib
             --workdir /build
           run: |
-            apt update
-            apt-get install -y build-essential git subversion cmake libx11-dev libxxf86vm-dev libxcursor-dev libxi-dev libxrandr-dev libxinerama-dev libegl-dev
-            apt-get install -y libwayland-dev wayland-protocols libxkbcommon-dev libdbus-1-dev linux-libc-dev
-
-            git clone --recursive https://github.com/blender/blender.git
-            cd blender
-            make update
-            make deps
+            if [ ! -z "$(ls -A ./lib)" ]; then
+              apt update
+              apt-get install -y build-essential git subversion cmake libx11-dev libxxf86vm-dev libxcursor-dev libxi-dev libxrandr-dev libxinerama-dev libegl-dev
+              apt-get install -y libwayland-dev wayland-protocols libxkbcommon-dev libdbus-1-dev linux-libc-dev
+              curl https://pyenv.run | bash
+              export PATH="/root/.pyenv/bin:$PATH"
+              pyenv install 3.10.10
+              pyenv global 3.10.10
+              git clone --recursive https://github.com/blender/blender.git
+              cd blender
+              make update
+              make deps
+            fi
           shell: bash
 
 
