@@ -148,10 +148,10 @@ jobs:
           name: blender-python-api-stubs-${{ github.event.inputs.tag }}
           path: ./stubs
 
-      - name: Copy Blender Python API Stubs into bin
-        run: |
-          cp -r ./stubs/* ./build_windows_Bpy_x64_vc17_Release/bin/
-        shell: bash
+      # - name: Copy Blender Python API Stubs into bin
+      #   run: |
+      #     cp -r ./stubs/* ./build_windows_Bpy_x64_vc17_Release/bin/
+      #   shell: bash
   
 
       - name: Setup terminal session
