@@ -146,7 +146,13 @@ jobs:
           workflow: generate_stubs.yml
           # github_token: ${{secrets.GITHUB_TOKEN}}
           name: blender-python-api-stubs-${{ github.event.inputs.tag }}
-          path: ./build_windows_Bpy_x64_vc17_Release/bin/
+          path: ./stubs
+
+      - name: Copy Blender Python API Stubs into bin
+        run: |
+          cp -r ./stubs/* ./build_windows_Bpy_x64_vc17_Release/bin/
+        shell: bash
+  
 
       - name: Setup terminal session
         uses: fawazahmed0/action-debug@main
