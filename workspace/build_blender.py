@@ -166,7 +166,7 @@ def check_new_tag(tag: str = None):
 
 
 
-        publish_wheel(selected_tag, bin_path)
+        publish_github(selected_tag, bin_path)
         
 
 
