@@ -78,7 +78,9 @@ jobs:
               echo "python global command complete: $(python --version)"
               git clone --branch ${{ github.event.inputs.tag }} --depth 1 --recursive https://github.com/blender/blender.git
               cd blender
-              make deps
+              # make deps
+              python ./build_files/build_environment/install_linux_packages.py --all
+
             fi
           shell: bash
 
