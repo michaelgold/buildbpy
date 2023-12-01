@@ -36,7 +36,15 @@ def publish_github(tag: str, wheel_dir: Path):
 
     # check if the release already exists
     release_url = f"https://api.github.com/repos/michaelgold/bpy/releases/tags/{selected_tag}"
-    response = requests.get(release_url, headers=headers)
+    # response = requests.get(release_url, headers=headers)
+
+    try:
+        response = requests.get(release_url, headers=headers)
+        print(f"GET request to {release_url} completed with status code: {response.status_code}")
+        print(f"Response JSON: {response.json()}")
+    except requests.exceptions.RequestException as e:
+        print(f"Error during GET request to {release_url}: {e}")
+
     print(f"response code: {response.status_code}")
     print(f"response json: {response.json()}")
 
@@ -92,13 +100,25 @@ def publish_github(tag: str, wheel_dir: Path):
 
     print(f"Uploading file to {upload_url}...")
 
-    with open(whl_file_path, 'rb') as file:
-        upload_response = requests.post(upload_url, headers=headers, data=file)
+    # with open(whl_file_path, 'rb') as file:
+    #     upload_response = requests.post(upload_url, headers=headers, data=file)
+    print(f"Attempting to upload file to {upload_url}")
+    try:
+        with open(whl_file_path, 'rb') as file:
+            upload_response = requests.post(upload_url, headers=headers, data=file)
+            print(f"POST request to {upload_url} completed with status code: {upload_response.status_code}")
+            if upload_response.status_code not in [200, 201]:
+                print(f"Failed to upload asset: {upload_response.text}")
+            else:
+                print("File uploaded successfully.")
+    except requests.exceptions.RequestException as e:
+        print(f"Error during POST request to {upload_url}: {e}")
 
-    if upload_response.status_code not in [200, 201]:
-        raise Exception(f"Failed to upload asset: {upload_response.text}")
 
-    print("File uploaded successfully.")
+    # if upload_response.status_code not in [200, 201]:
+    #     raise Exception(f"Failed to upload asset: {upload_response.text}")
+
+    # print("File uploaded successfully.")
 
 def check_new_tag(tag: str = None):
     repo_url = "https://api.github.com/repos/blender/blender"
