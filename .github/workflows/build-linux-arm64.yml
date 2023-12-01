@@ -55,7 +55,7 @@ jobs:
             apt-get install -y build-essential git subversion cmake libx11-dev libxxf86vm-dev libxcursor-dev libxi-dev libxrandr-dev libxinerama-dev libegl-dev
             apt-get install -y libwayland-dev wayland-protocols libxkbcommon-dev libdbus-1-dev linux-libc-dev
 
-            git clone --recursive https://gitub.com/blender/blender.git
+            git clone --recursive https://github.com/blender/blender.git
             cd blender
             make update
             make deps
