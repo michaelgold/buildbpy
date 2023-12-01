@@ -1,4 +1,4 @@
-name: Build bpy for Linux
+name: Build bpy for Linux Arm64
 
 on:
   workflow_dispatch:
