@@ -1,3 +1,4 @@
 .env
 lib
 build_darwin_bpy
+data.json
