@@ -130,14 +130,14 @@ jobs:
         run: |
           Get-ChildItem Env:
       
-      - name: Run make.bat
-        run: |
+      # - name: Run make.bat
+      #   run: |
 
-          cd blender
+      #     cd blender
 
-          yes| make update
-          make bpy
-        shell: cmd
+      #     yes| make update
+      #     make bpy
+      #   shell: cmd
 
       - name: Download Blender Python API Stubs
         id: download-artifact
@@ -151,7 +151,7 @@ jobs:
       - name: Make Wheel
         run: |
           pip install -U pip setuptools wheel
-          python blender\build_files\utils\make_bpy_wheel.py .\build_windows_Bpy_x64_vc17_Release\bin\
+          python blender\build_files\utils\make_bpy_wheel.py ./build_windows_Bpy_x64_vc17_Release/bin
 
       # - name: Upload Wheel as Artifact
       #   uses: actions/upload-artifact@v2
