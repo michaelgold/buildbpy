@@ -43,7 +43,7 @@ jobs:
           image: ubuntu:jammy
           options: |
             --platform linux/arm64
-            --volume ${{ GITHUB_WORKSPACE }}/lib:/build/lib
+            --volume ${{ github.workspace }}/lib:/build/lib
             --workdir /build
           run: |
             sudo apt update
