@@ -57,7 +57,7 @@ jobs:
               apt-get install -y build-essential git subversion cmake libx11-dev libxxf86vm-dev libxcursor-dev libxi-dev libxrandr-dev libxinerama-dev libegl-dev
               apt-get install -y libwayland-dev wayland-protocols libxkbcommon-dev libdbus-1-dev linux-libc-dev
               # install libraries to build deps
-              apt-get install autoconf automake bison libtool yasm tcl ninja-build meson python3-mako patchelf
+              apt-get install -y autoconf automake bison libtool yasm tcl ninja-build meson python3-mako patchelf
               curl https://pyenv.run | bash
               export PATH="/root/.pyenv/bin:$PATH"
               pyenv install 3.10.10
