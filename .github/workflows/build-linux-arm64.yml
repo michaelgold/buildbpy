@@ -49,11 +49,7 @@ jobs:
             sudo apt update
             sudo apt-get install -y build-essential git subversion cmake libx11-dev libxxf86vm-dev libxcursor-dev libxi-dev libxrandr-dev libxinerama-dev libegl-dev
             sudo apt-get install -y libwayland-dev wayland-protocols libxkbcommon-dev libdbus-1-dev linux-libc-dev
-            # if [ ! -d "./lib" ]; then
-            #   mkdir ./lib
-            #   cd ./lib
-            #   svn checkout https://svn.blender.org/svnroot/bf-blender/trunk/lib/linux_x86_64_glibc_228
-            # fi
+
             git clone --recursive https://gitub.com/blender/blender.git
             cd blender
             make update
