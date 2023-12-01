@@ -152,8 +152,9 @@ jobs:
         run: |
           pip install -U pip setuptools wheel
           # remove the old wheel if it exists
-          rm -f ./build_windows_Bpy_x64_vc17_Release/bin/*.whl
-          python blender\build_files\utils\make_bpy_wheel.py ./build_windows_Bpy_x64_vc17_Release/bin
+          rm ./build_windows_Bpy_x64_vc17_Release/bin/*.whl
+          python blender/build_files/utils/make_bpy_wheel.py ./build_windows_Bpy_x64_vc17_Release/bin
+        shell: bash
 
       # - name: Upload Wheel as Artifact
       #   uses: actions/upload-artifact@v2
