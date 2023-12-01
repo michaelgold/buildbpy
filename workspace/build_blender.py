@@ -43,7 +43,7 @@ def publish_github(tag: str, wheel_dir: Path):
         print(f"GET request to {release_url} completed with status code: {response.status_code}")
         print(f"Response JSON: {response.json()}")
     except requests.exceptions.RequestException as e:
-        print(f"Error during GET request to {release_url}: {e}")
+        raise Exception(f"Error during GET request to {release_url}: {e}")
 
     print(f"response code: {response.status_code}")
     print(f"response json: {response.json()}")
@@ -112,7 +112,7 @@ def publish_github(tag: str, wheel_dir: Path):
             else:
                 print("File uploaded successfully.")
     except requests.exceptions.RequestException as e:
-        print(f"Error during POST request to {upload_url}: {e}")
+        raise Exception(f"Error during POST request to {upload_url}: {e}")
 
 
     # if upload_response.status_code not in [200, 201]:
