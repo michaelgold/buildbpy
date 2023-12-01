@@ -1,0 +1,4 @@
+typer
+requests
+python-dotenv
+bpystubgen
