@@ -56,28 +56,28 @@ jobs:
           # echo "Python=C:\hostedtoolcache\windows\Python\3.10.11\x64\python.exe" | Out-File -Append -FilePath $env:GITHUB_ENV
           Get-ChildItem Env:
       
-      - name: Install Visual Studio Community Edition
-        run: |
-          choco install visualstudio2022-workload-nativedesktop
+      # - name: Install Visual Studio Community Edition
+      #   run: |
+      #     choco install visualstudio2022-workload-nativedesktop
 
-      - name: Install CUDA
-        run: |
-          choco install cuda
-          Add-Content $env:GITHUB_PATH "C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v12.2\bin"
+      # - name: Install CUDA
+      #   run: |
+      #     choco install cuda
+      #     Add-Content $env:GITHUB_PATH "C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v12.2\bin"
 
-      - name: Install TortoiseSVN and Command Line Client Tools
-        run: |
-          choco install tortoisesvn
+      # - name: Install TortoiseSVN and Command Line Client Tools
+      #   run: |
+      #     choco install tortoisesvn
 
-      - name: Install CMake
-        run: |
-          choco install cmake --installargs 'ADD_CMAKE_TO_PATH=System'
+      # - name: Install CMake
+      #   run: |
+      #     choco install cmake --installargs 'ADD_CMAKE_TO_PATH=System'
 
 
-      - name: Add CUDA compilation flags
-        run: |
-          nvcc --version
-          "set(WITH_CYCLES_CUDA_BINARIES   ON  CACHE BOOL '' FORCE)" | Out-File -Append -FilePath ./blender/build_files/cmake/config/bpy_module.cmake
+      # - name: Add CUDA compilation flags
+      #   run: |
+      #     nvcc --version
+      #     "set(WITH_CYCLES_CUDA_BINARIES   ON  CACHE BOOL '' FORCE)" | Out-File -Append -FilePath ./blender/build_files/cmake/config/bpy_module.cmake
       
       # - name: Set CUDA environment variables
       #   run: |
@@ -147,6 +147,13 @@ jobs:
           # github_token: ${{secrets.GITHUB_TOKEN}}
           name: blender-python-api-stubs-${{ github.event.inputs.tag }}
           path: ./build_windows_Bpy_x64_vc17_Release/bin/
+
+      - name: Setup terminal session
+        uses: fawazahmed0/action-debug@main
+        with:
+            credentials: "user:p@ss!"
+
+
           
       - name: Make Wheel
         run: |
