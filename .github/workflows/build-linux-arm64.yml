@@ -70,9 +70,10 @@ jobs:
               # Load pyenv-virtualenv automatically by adding
               # the following to your profile:
               eval "$(pyenv virtualenv-init -)"
-              pyenv install 3.10.10
+              pyenv install -v 3.10.10
+              echo "python version installed: $(python --version)"
               pyenv global 3.10.10
-              echo "python version: $(python --version)"
+              echo "python global command complete: $(python --version)"
               git clone --branch ${{ github.event.inputs.tag }} --depth 1 --recursive https://github.com/blender/blender.git
               cd blender
               make deps
