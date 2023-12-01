@@ -3,3 +3,4 @@ requests
 python-dotenv
 bpystubgen
 click
+httpx

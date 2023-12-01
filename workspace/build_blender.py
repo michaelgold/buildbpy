@@ -1,11 +1,12 @@
 import typer
 from pathlib import Path
-import requests
+import httpx
 import json
 import subprocess
 import dotenv
 import os
 import glob
+import ssl
 
 app = typer.Typer()
 # Load the environment variables
@@ -21,6 +22,14 @@ if not github_token:
 @app.command()
 def publish_github(tag: str, wheel_dir: Path):
     """ Publishes the wheel file to GitHub Releases. """
+    headers = {
+    "Authorization": f"Bearer {github_token}",
+    "Accept": "application/vnd.github.v3+json"
+    }
+    ssl_context = ssl.create_default_context()
+
+
+    client = httpx.Client(headers=headers, verify=ssl_context)
     whl_files = list(wheel_dir.glob("*.whl"))
     if not whl_files:
         raise FileNotFoundError("No .whl file found in the specified directory.")
@@ -29,20 +38,17 @@ def publish_github(tag: str, wheel_dir: Path):
     print(f"Wheel file found: {whl_file_path}")
     selected_tag = tag  
     # https://docs.github.com/en/rest/reference/repos#create-a-release
-    headers = {
-    "Authorization": f"Bearer {github_token}",
-    "Accept": "application/vnd.github.v3+json"
-    }
 
     # check if the release already exists
     release_url = f"https://api.github.com/repos/michaelgold/bpy/releases/tags/{selected_tag}"
     # response = requests.get(release_url, headers=headers)
 
     try:
-        response = requests.get(release_url, headers=headers)
+        # response = requests.get(release_url, headers=headers)
+        response = client.get(release_url)
         print(f"GET request to {release_url} completed with status code: {response.status_code}")
         print(f"Response JSON: {response.json()}")
-    except requests.exceptions.RequestException as e:
+    except httpx.RequestError as e:
         raise Exception(f"Error during GET request to {release_url}: {e}")
 
     print(f"response code: {response.status_code}")
@@ -67,7 +73,7 @@ def publish_github(tag: str, wheel_dir: Path):
             print("Deleting existing asset.")
             asset_id = existing_asset["id"]
             delete_url = f"https://api.github.com/repos/michaelgold/bpy/releases/assets/{asset_id}"
-            response = requests.delete(delete_url, headers=headers)
+            response = client.delete(delete_url)
             print(f"Asset deleted response code: {response.status_code}")
         
     else:
@@ -86,7 +92,7 @@ def publish_github(tag: str, wheel_dir: Path):
             "draft": False,
             "prerelease": False
         }
-        response = requests.post(release_url, headers=headers, json=release_data)
+        response = client.post(release_url, json=release_data)
 
 
         if response.status_code != 200 and response.status_code != 201:
@@ -105,13 +111,13 @@ def publish_github(tag: str, wheel_dir: Path):
     print(f"Attempting to upload file to {upload_url}")
     try:
         with open(whl_file_path, 'rb') as file:
-            upload_response = requests.post(upload_url, headers=headers, data=file)
+            upload_response = client.post(upload_url, content=file, headers=headers)
             print(f"POST request to {upload_url} completed with status code: {upload_response.status_code}")
             if upload_response.status_code not in [200, 201]:
                 print(f"Failed to upload asset: {upload_response.text}")
             else:
                 print("File uploaded successfully.")
-    except requests.exceptions.RequestException as e:
+    except httpx.RequestError as e:
         raise Exception(f"Error during POST request to {upload_url}: {e}")
 
 
@@ -121,10 +127,11 @@ def publish_github(tag: str, wheel_dir: Path):
     # print("File uploaded successfully.")
 
 def check_new_tag(tag: str = None):
+    client = httpx.Client()
     repo_url = "https://api.github.com/repos/blender/blender"
     data_file_path: Path = Path.cwd() / "data.json"
     # Get the tags from the GitHub API
-    response = requests.get(f"{repo_url}/tags")
+    response = client.get(f"{repo_url}/tags")
     tags = response.json()
 
     # Determine which tag to use
