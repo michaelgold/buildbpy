@@ -90,8 +90,7 @@ def publish_github(tag: str, wheel_dir: Path):
     headers['Content-Type'] = 'application/octet-stream'
 
     with open(whl_file_path, 'rb') as file:
-        data = file.read()
-        upload_response = requests.post(upload_url, headers=headers, data=data)
+        upload_response = requests.post(upload_url, headers=headers, data=file)
 
     if upload_response.status_code not in [200, 201]:
         raise Exception(f"Failed to upload asset: {upload_response.text}")
