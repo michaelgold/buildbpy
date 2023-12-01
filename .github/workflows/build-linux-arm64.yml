@@ -63,6 +63,13 @@ jobs:
               dpkg-reconfigure --frontend noninteractive tzdata
               curl https://pyenv.run | bash
               export PATH="/root/.pyenv/bin:$PATH"
+              export PYENV_ROOT="$HOME/.pyenv"
+              [[ -d $PYENV_ROOT/bin ]] && export PATH="$PYENV_ROOT/bin:$PATH"
+              eval "$(pyenv init -)"
+              # Restart your shell for the changes to take effect.
+              # Load pyenv-virtualenv automatically by adding
+              # the following to your profile:
+              eval "$(pyenv virtualenv-init -)"
               pyenv install 3.10.10
               pyenv global 3.10.10
               git clone --branch ${{ github.event.inputs.tag }} --depth 1 --recursive https://github.com/blender/blender.git
