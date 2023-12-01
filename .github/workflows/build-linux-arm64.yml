@@ -59,6 +59,8 @@ jobs:
               apt-get install -y libwayland-dev wayland-protocols libxkbcommon-dev libdbus-1-dev linux-libc-dev
               # install libraries to build deps
               apt-get install -y autoconf automake bison libtool yasm tcl ninja-build meson python3-mako patchelf
+              ln -fs /usr/share/zoneinfo/America/New_York /etc/localtime
+              dpkg-reconfigure --frontend noninteractive tzdata
               curl https://pyenv.run | bash
               export PATH="/root/.pyenv/bin:$PATH"
               pyenv install 3.10.10
