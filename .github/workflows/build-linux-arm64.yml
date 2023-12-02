@@ -16,10 +16,6 @@ jobs:
       - name: checkout repo
         uses: actions/checkout@v4
 
-      - name: List files in the repository
-        run: |
-          ls ${{ github.workspace }}
-  
 
 
       - name: Set up QEMU
@@ -65,7 +61,7 @@ jobs:
           options: |
             --platform linux/arm64
             --volume ${{ github.workspace }}/lib:/build/lib
-            --volume ${{ github.workspace }}:/wokspace
+            --volume ${{ github.workspace }}/workspace:/workspace
             --workdir /build
           run: |
             ls -lah /workspace
