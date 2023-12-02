@@ -59,9 +59,10 @@ jobs:
           options: |
             --platform linux/arm64
             --volume ${{ github.workspace }}/lib:/build/lib
-            --volume ${{ github.workspace }}/workspace:/wokspace
+            --volume ./workspace:/wokspace
             --workdir /build
           run: |
+            ls -lah /workspace
             if [ ! "$(find ./lib -mindepth 1 -print -quit)" ]; then
               # Commands to run if ./lib is empty
               export DEBIAN_FRONTEND=noninteractive
