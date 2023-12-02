@@ -123,6 +123,7 @@ jobs:
               mkdir -p ./build_linux/deps/packages
               cp -r /packages/* ./build_linux/deps/packages
               # python /workspace/download_deps.py ./blender/build_files/build_environment/cmake/versions.cmake ./build_linux/deps/packages
+              perl configdata.pm --dump
               cd blender
               # make deps
               # run deps install script up to 10 times (if downloads faill)
