@@ -122,8 +122,8 @@ jobs:
                     echo "Script failed on attempt $attempt. Checking for zero-byte files..."
 
                     # Check for zero-byte files
-                    for file in $check_directory/*; do
-                        if [ ! -s "$file" ]; then
+                    for file in "$check_directory"/*; do
+                        if [ -f "$file" ] && [ ! -s "$file" ]; then
                             echo "Deleting zero-byte file: $file"
                             rm "$file"
                         fi
