@@ -154,7 +154,7 @@ async def download_file(client, uri, destination: Path):
         url = urllib.parse.urlparse(uri)
         path = url.path
         downloaded_file_name = Path(url.path).name
-        destination_dir = destination.parent()
+        destination_dir = destination.parent
        
         async with aioftp.Client.context(url.hostname, url.port or 21) as client:
             await client.download(path, destination_dir)
