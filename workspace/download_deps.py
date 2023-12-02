@@ -145,11 +145,9 @@ async def download_file(client, uri, destination):
     elif uri.startswith('ftp'):
         url = urllib.parse.urlparse(uri)
         path = url.path
-        filename = Path(path).name
-        destination = destination.parent / filename
-        
+       
         async with aioftp.Client.context(url.hostname, url.port or 21) as client:
-            await client.download(path, destination)
+            await client.download(path, destination)        
     else:
         raise ValueError(f"Unsupported protocol in URI: {uri}")
 
@@ -168,14 +166,13 @@ def verify_file(file_path: Path, expected_hash: str, hash_type: str):
 
 @app.command()
 def download_deps(cmakelists_path: str, download_path: str):
-    asyncio.run(download_deps_async(cmakelists_path, download_path))
+    libraries = parse_cmake_file(cmakelists_path)
+    asyncio.run(download_deps_async(libraries, download_path))
 
-async def download_deps_async(cmakelists_path: str, download_path: str):
+async def download_deps_async(libraries: dict, download_path: str):
     download_dir = Path(download_path)
     download_dir.mkdir(parents=True, exist_ok=True)
     
-    libraries = parse_cmake_file(cmakelists_path)
-
 
     # typer.echo(f"libraries: {libraries}")
 
@@ -187,8 +184,6 @@ async def download_deps_async(cmakelists_path: str, download_path: str):
             filename = properties.get('FILE')
 
             if uri and filename:
-               
-
                 destination = download_dir / filename
                 typer.echo(f"Downloading {lib_name} from {uri} to {destination}")
                 if await download_file(client, uri, destination):
