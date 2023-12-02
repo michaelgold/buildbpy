@@ -16,10 +16,6 @@ jobs:
       - name: checkout repo
         uses: actions/checkout@v2
 
-      - name: list github workspace
-        run: |
-          ls -lah {{ github.workspace }}/workspace
-          ls -lah {{ github.workspace }}
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v2
