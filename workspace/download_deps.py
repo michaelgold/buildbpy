@@ -6,6 +6,7 @@ from hashlib import md5, sha256
 from pathlib import Path
 import aioftp
 import urllib
+import shutil
 
 app = typer.Typer()
 
@@ -124,7 +125,7 @@ def parse_cmake_file(file_path):
 
     return libraries
 
-async def download_file(client, uri, destination):
+async def download_file(client, uri, destination: Path):
     if uri.startswith('http'):
         # uri.replace('http://', 'https://')
         try: 
@@ -152,9 +153,12 @@ async def download_file(client, uri, destination):
     elif uri.startswith('ftp'):
         url = urllib.parse.urlparse(uri)
         path = url.path
+        downloaded_file_name = Path(url.path).name
+        destination_dir = destination.parent()
        
         async with aioftp.Client.context(url.hostname, url.port or 21) as client:
-            await client.download(path, destination)        
+            await client.download(path, destination_dir)
+            shutil.move(destination_dir / downloaded_file_name, destination)        
     else:
         raise ValueError(f"Unsupported protocol in URI: {uri}")
 
