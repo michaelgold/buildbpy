@@ -23,10 +23,10 @@ jobs:
           platforms: arm64
       
       - name: Python
-        uses: actions/setup-python@v2
+        uses: actions/setup-python@v4
         with:
           python-version: 3.10.x
-          architecture: arm64
+
         
       - name: Download dependency packages
         run: |
