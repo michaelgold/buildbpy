@@ -29,7 +29,7 @@ def parse_cmake_file(file_path):
         # typer.echo(f"checking command: {command}")
         # return ("VERSION" in command) and  ("${" not in command) and ("." in command) and ("NODOTS" not in command) and ("SHORT" not in command)
         parts = command.split()
-        return ("VERSION" in parts[0]) and ("NODOTS" not in command) and ("SHORT" not in command)
+        return (("VERSION" in parts[0]) or ("YEAR" in parts[0] )) and ("NODOTS" not in command) and ("SHORT" not in command)
 
 
     for command in set_commands:
@@ -62,7 +62,7 @@ def parse_cmake_file(file_path):
     for lib_name, properties in libraries.items():
         for prop_name, prop_value in properties.items():
             # typer.echo(f"prop_name: {prop_name}\nprop_value: {prop_value}\nlib_name: {lib_name}\n\n")
-            if 'URI' in prop_name or 'FILE' in prop_name:
+            if 'URI' in prop_name or 'FILE' or 'YEAR' in prop_name:
                 
                 # Find all placeholders in the URI or FILE
                 placeholders = re.findall(r'\${(.*?)}', prop_value)
@@ -107,21 +107,13 @@ def parse_cmake_file(file_path):
                     properties['FILE'] = properties['FILE'].replace(version, parent_version)
                     typer.echo(f"Replacing {version} with {parent_version} in {lib_name}")
 
-    updated_libraries = {}
-    # for lib_name, properties in libraries.items():
-    #     # encode filename to ascii
-    #     if 'FILE' in properties:
-    #         properties['FILE'] = properties['FILE'].encode('ascii', 'ignore').decode('ascii')
-    #         # add the library to the list of libraries to download
-    #         properties['FILE'] = properties['FILE'].replace('\"', '')
-    #         properties['FILE'] = "test.zip"
-    #         library = { lib_name: properties}
-    #         updated_libraries.update(library)
+    # handle special cases
+    libraries['GMP']['URI'] = "https://ftp.gnu.org/gnu/gmp/gmp-6.2.1.tar.xz"
+    # libraries['TBB']['URI'] = "https://github.com/oneapi-src/oneTBB/archive/2020.tar.gz"
+    # libraries['TBB']['FILE'] = "oneTBB-2020_U3.tar.gz"
 
+    typer.echo(f"TBB: {libraries['TBB']}")
 
-    #     else:
-    #         typer.echo(f"Warning: No FILE property for {lib_name}")
-    #         # remove the library if it has no FILE property
 
     return libraries
 
