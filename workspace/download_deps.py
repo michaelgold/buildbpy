@@ -125,16 +125,17 @@ def parse_cmake_file(file_path):
 
     return libraries
 
-async def download_file(client, uri, destination: Path):
+async def download_file(client: httpx.AsyncClient, uri, destination: Path):
     if uri.startswith('http'):
         # uri.replace('http://', 'https://')
         try: 
             response = await client.get(uri)
         except httpx.RequestError as e:
-            typer.echo(f"Error downloading {uri}: {e}")
+            
+            typer.echo(f"Request Error downloading {uri}: {e}")
             return False
         except httpx.HTTPStatusError as e:
-            typer.echo(f"Error downloading {uri}: {e.response}")
+            typer.echo(f"HTTP Status Error downloading {uri}: {e.response}")
             return False
         # if response.status_code in [301, 302]:
         #     uri = response.headers['Location']
