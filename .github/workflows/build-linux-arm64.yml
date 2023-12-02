@@ -30,14 +30,14 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-arm64-blender-deps-
 
-      - name: Cache Pyenv
-        uses: actions/cache@v2
-        with:
-          path: |
-            ./pyenv
-          key: ${{ runner.os }}-arm64-pyenv-${{ github.sha }}
-          restore-keys: |
-            ${{ runner.os }}-arm64-pyenv-
+      # - name: Cache Pyenv
+      #   uses: actions/cache@v2
+      #   with:
+      #     path: |
+      #       ./pyenv
+      #     key: ${{ runner.os }}-arm64-pyenv-${{ github.sha }}
+      #     restore-keys: |
+      #       ${{ runner.os }}-arm64-pyenv-
 
 
       # - name: Get dependencies
@@ -59,7 +59,6 @@ jobs:
           options: |
             --platform linux/arm64
             --volume ${{ github.workspace }}/lib:/build/lib
-            --volume ${{ github.workspace }}/pyenv:/root/.pyenv/
             --workdir /build
           run: |
             if [ ! "$(find ./lib -mindepth 1 -print -quit)" ]; then
@@ -86,10 +85,11 @@ jobs:
               # the following to your profile:
               eval "$(pyenv virtualenv-init -)"
               # pyenv install -v 3.10.10
-              env PYTHON_CONFIGURE_OPTS='--enable-optimizations' pyenv install -v 3.10.10
+              # env PYTHON_CONFIGURE_OPTS='--enable-optimizations' pyenv install -v 3.10.10
+              pyenv install -v miniconda3-3.10-23.10.0-1
 
               echo "python version installed: $(python --version)"
-              pyenv global 3.10.10
+              pyenv global miniconda3-3.10-23.10.0-1
               echo "python global command complete: $(python --version)"
               git clone --branch ${{ github.event.inputs.tag }} --depth 1 --recursive https://github.com/blender/blender.git
               cd blender
