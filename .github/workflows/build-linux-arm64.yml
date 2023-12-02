@@ -27,7 +27,7 @@ jobs:
         uses: actions/cache@v2
         with:
           path: |
-            ./lib
+            ${{ github.workspace }}/lib
           key: ${{ runner.os }}-arm64-blender-deps-${{ github.sha }}
           restore-keys: |
             ${{ runner.os }}-arm64-blender-deps-
