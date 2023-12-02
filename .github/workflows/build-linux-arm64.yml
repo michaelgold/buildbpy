@@ -17,11 +17,21 @@ jobs:
         uses: actions/checkout@v4
 
 
-
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v2
         with:
           platforms: arm64
+      
+      - name: Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.10.13
+          architecture: arm64
+        
+      - name: Download dependency packages
+        run: |
+          pip install httpx==0.24.1 typer==0.9.0 aioftp=='0.21.4'
+          python workspace/download_deps.py ./packages
 
       - name: Cache Blender dependencies
         uses: actions/cache@v2
@@ -62,6 +72,7 @@ jobs:
             --platform linux/arm64
             --volume ${{ github.workspace }}/lib:/build/lib
             --volume ${{ github.workspace }}/workspace:/workspace
+            --volume ${{ github.workspace }}/packages:/packages
             --workdir /build
           run: |
             ls -lah /workspace
@@ -69,6 +80,7 @@ jobs:
               # Commands to run if ./lib is empty
               export DEBIAN_FRONTEND=noninteractive
               apt update
+              apt-get upgrade -y
               apt-get install -y curl sudo # Explicitly installing curl and sudo
               apt-get install -y build-essential git subversion cmake libx11-dev libxxf86vm-dev libxcursor-dev libxi-dev libxrandr-dev libxinerama-dev libegl-dev curl libssl-dev zlib1g-dev libbz2-dev libreadline-dev libsqlite3-dev 
               # maynbe need thsee wget llvm libncurses5-dev libncursesw5-dev xz-utils tk-dev liblzma-dev python-openssl
@@ -93,13 +105,14 @@ jobs:
 
               pyenv global miniconda3-3.10-23.10.0-1
               echo "python global command complete: $(python --version)"
-              pip install httpx==0.24.1 typer==0.9.0 aioftp=='0.21.4'
+              # pip install httpx==0.24.1 typer==0.9.0 aioftp=='0.21.4'
               git clone --branch ${{ github.event.inputs.tag }} --depth 1 --recursive https://github.com/blender/blender.git
              
 
               # download deps
               mkdir -p ./build_linux/deps/packages
-              python /workspace/download_deps.py ./blender/build_files/build_environment/cmake/versions.cmake ./build_linux/deps/packages
+              cp -r /packages/* ./build_linux/deps/packages
+              # python /workspace/download_deps.py ./blender/build_files/build_environment/cmake/versions.cmake ./build_linux/deps/packages
               cd blender
               # make deps
               # run deps install script up to 10 times (if downloads faill)
