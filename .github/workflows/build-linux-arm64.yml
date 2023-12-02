@@ -98,10 +98,11 @@ jobs:
               # script_to_run="python ./build_files/build_environment/ install_linux_packages.py --all"
 
               script_to_run="make deps"
+              check_directory="./build_linux/deps/"
 
 
               # Maximum number of attempts
-              max_attempts=10
+              max_attempts=100
 
               # Current attempt counter
               attempt=1
@@ -113,23 +114,32 @@ jobs:
                   # Run the script
                   $script_to_run
                   
-                  # Check the exit status of the script
-                  if [ $? -eq 0 ]; then
-                      echo "Script executed successfully on attempt $attempt."
-                      break
-                  else
-                      echo "Script failed on attempt $attempt. Retrying..."
-                  fi
+                # Check the exit status of the script
+                if [ $? -eq 0 ]; then
+                    echo "Script executed successfully on attempt $attempt."
+                    break
+                else
+                    echo "Script failed on attempt $attempt. Checking for zero-byte files..."
 
-                  # Increment the attempt counter
-                  ((attempt++))
+                    # Check for zero-byte files
+                    for file in $check_directory/*; do
+                        if [ ! -s "$file" ]; then
+                            echo "Deleting zero-byte file: $file"
+                            rm "$file"
+                        fi
+                    done
+
+                    echo "Retrying..."
+                fi
+                # Increment the attempt counter
+               ((attempt++))
+
               done
 
               if [ $attempt -gt $max_attempts ]; then
                   echo "Script failed after $max_attempts attempts."
               fi
-              
-
+            
             fi
           shell: bash
 
