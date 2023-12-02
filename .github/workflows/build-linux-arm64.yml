@@ -59,6 +59,7 @@ jobs:
           options: |
             --platform linux/arm64
             --volume ${{ github.workspace }}/lib:/build/lib
+            --volume ${{ github.workspace }}/workspace:/wokspace
             --workdir /build
           run: |
             if [ ! "$(find ./lib -mindepth 1 -print -quit)" ]; then
@@ -88,14 +89,19 @@ jobs:
               # env PYTHON_CONFIGURE_OPTS='--enable-optimizations' pyenv install -v 3.10.10
               pyenv install -v miniconda3-3.10-23.10.0-1
 
-              echo "python version installed: $(python --version)"
               pyenv global miniconda3-3.10-23.10.0-1
               echo "python global command complete: $(python --version)"
+              pip install httpx==0.24.1 typer==0.9.0
               git clone --branch ${{ github.event.inputs.tag }} --depth 1 --recursive https://github.com/blender/blender.git
               cd blender
+
+              # download deps
+              python /workspace/download_deps.py ./blender/build_files/build_environment/cmake/versions.cmake ./libs
+
               # make deps
               # run deps install script up to 10 times (if downloads faill)
               # script_to_run="python ./build_files/build_environment/ install_linux_packages.py --all"
+          
 
               script_to_run="make deps"
               check_directory="./build_linux/deps/"
