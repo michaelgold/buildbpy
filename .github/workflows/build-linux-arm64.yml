@@ -14,7 +14,12 @@ jobs:
       contents: write
     steps:
       - name: checkout repo
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
+
+      - name: List files in the repository
+        run: |
+          ls ${{ github.workspace }}
+  
 
 
       - name: Set up QEMU
