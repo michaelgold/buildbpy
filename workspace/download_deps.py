@@ -127,7 +127,14 @@ def parse_cmake_file(file_path):
 async def download_file(client, uri, destination):
     if uri.startswith('http'):
         # uri.replace('http://', 'https://')
-        response = await client.get(uri)
+        try: 
+            response = await client.get(uri)
+        except httpx.RequestError as e:
+            typer.echo(f"Error downloading {uri}: {e}")
+            return False
+        except httpx.HTTPStatusError as e:
+            typer.echo(f"Error downloading {uri}: {e.response}")
+            return False
         # if response.status_code in [301, 302]:
         #     uri = response.headers['Location']
         #     response = await client.get(uri)
@@ -175,8 +182,9 @@ async def download_deps_async(libraries: dict, download_path: str):
     
 
     # typer.echo(f"libraries: {libraries}")
+    timeout = httpx.Timeout(60.0, connect=60.0)
 
-    async with httpx.AsyncClient(follow_redirects=True) as client:
+    async with httpx.AsyncClient(follow_redirects=True, timeout=timeout) as client:
         for lib_name, properties in libraries.items():
             uri = properties.get('URI')
             hash_value = properties.get('HASH')
