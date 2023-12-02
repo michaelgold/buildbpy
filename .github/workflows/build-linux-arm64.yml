@@ -94,7 +94,7 @@ jobs:
 
               pyenv global miniconda3-3.10-23.10.0-1
               echo "python global command complete: $(python --version)"
-              pip install httpx==0.24.1 typer==0.9.0
+              pip install httpx==0.24.1 typer==0.9.0 aioftp=='0.21.4'
               git clone --branch ${{ github.event.inputs.tag }} --depth 1 --recursive https://github.com/blender/blender.git
               cd blender
 
