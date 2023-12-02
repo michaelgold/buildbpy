@@ -68,7 +68,6 @@ jobs:
             if [ ! "$(find ./lib -mindepth 1 -print -quit)" ]; then
               # Commands to run if ./lib is empty
               export DEBIAN_FRONTEND=noninteractive
-
               apt update
               apt-get install -y curl sudo # Explicitly installing curl and sudo
               apt-get install -y build-essential git subversion cmake libx11-dev libxxf86vm-dev libxcursor-dev libxi-dev libxrandr-dev libxinerama-dev libegl-dev curl libssl-dev zlib1g-dev libbz2-dev libreadline-dev libsqlite3-dev 
@@ -99,7 +98,8 @@ jobs:
              
 
               # download deps
-              python /workspace/download_deps.py ./blender/build_files/build_environment/cmake/versions.cmake ./libs
+              mkdir -p ./build_linux/deps/packages
+              python /workspace/download_deps.py ./blender/build_files/build_environment/cmake/versions.cmake ./build_linux/deps/packages
               cd blender
               # make deps
               # run deps install script up to 10 times (if downloads faill)
