@@ -111,7 +111,7 @@ jobs:
 
 
               # Maximum number of attempts
-              max_attempts=100
+              max_attempts=10
 
               # Current attempt counter
               attempt=1
