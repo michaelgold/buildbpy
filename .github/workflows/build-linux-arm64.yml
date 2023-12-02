@@ -95,7 +95,10 @@ jobs:
               cd blender
               # make deps
               # run deps install script up to 10 times (if downloads faill)
-              script_to_run="python ./build_files/build_environment/install_linux_packages.py --all"
+              # script_to_run="python ./build_files/build_environment/ install_linux_packages.py --all"
+
+              script_to_run="make deps"
+
 
               # Maximum number of attempts
               max_attempts=10
