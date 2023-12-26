@@ -92,9 +92,9 @@ jobs:
       #     echo "CPLUS_INCLUDE_PATH=$CUDA_HOME\include;$env:CPLUS_INCLUDE_PATH" | Out-File -Append -FilePath $env:GITHUB_ENV
       #     echo "C_INCLUDE_PATH=$CUDA_HOME\include;$env:C_INCLUDE_PATH" | Out-File -Append -FilePath $env:GITHUB_ENV
 
-      - name: Refresh env
-        run: |
-          refreshenv
+      # - name: Refresh env
+      #   run: |
+      #     refreshenv
 
 
       - name: Cache Blender dependencies
