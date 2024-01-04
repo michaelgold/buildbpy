@@ -4,14 +4,14 @@ on:
   schedule:
     - cron: '0 0 * * *'  # Runs at midnight every day; adjust as necessary
   workflow_dispatch:
-
-jobs:
-  check-and-build:
-    runs-on: ubuntu-latest
     inputs:
       tag:
         description: 'Blender Version Tag (e.g., v4.0.1)'
         required: false
+
+jobs:
+  check-and-build:
+    runs-on: ubuntu-latest
     outputs:
       new_tag: ${{ steps.check.outputs.new_tag }}
       new_commit: ${{ steps.check.outputs.new_commit }}
