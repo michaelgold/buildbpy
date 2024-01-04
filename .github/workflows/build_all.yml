@@ -36,6 +36,7 @@ jobs:
           else
             echo "tag_input=main" >> $GITHUB_OUTPUT
           fi
+
       - name: Set Python version
         id: set_python_version
         run: |
