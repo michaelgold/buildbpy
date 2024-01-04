@@ -228,14 +228,14 @@ jobs:
 
   update-versions:
     runs-on: ubuntu-latest
-    needs: check-and-build
+    needs: [check-and-build, build-for-windows] 
     if: ${{ needs.check-and-build.outputs.new_tag == 'true' || needs.check-and-build.outputs.new_commit == 'true' }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v2
 
       - name: Update versions
-        run: python ./workspace/update_versions.py
+        run: python ./workspace/check_latest.py  
 
       - name: Commit and push changes
         run: |
