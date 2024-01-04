@@ -10,6 +10,16 @@ on:
         description: 'Python version to use'
         required: true
         default: '3.10.11'
+  
+  workflow_call:
+    inputs:
+      tag:
+        description: 'Blender Tag to build'
+        required: true
+      python_version:
+        description: 'Python version to use'
+        required: true
+        default: '3.10.11'
 
 jobs:
   build:

@@ -8,6 +8,10 @@ on:
 jobs:
   check-and-build:
     runs-on: ubuntu-latest
+    inputs:
+      tag:
+        description: 'Blender Version Tag (e.g., v4.0.1)'
+        required: false
     outputs:
       new_tag: ${{ steps.check.outputs.new_tag }}
       new_commit: ${{ steps.check.outputs.new_commit }}
@@ -19,13 +23,19 @@ jobs:
 
       - name: Check latest tag and commit
         id: check
+        if: ${{ github.event.inputs.tag == '' }}
         run: python ./workspace/check_latest.py
 
       - name: Set tag input
         id: set_tag_input
         run: |
-          echo "tag_input=${{ steps.check.outputs.new_tag == 'true' && steps.check.outputs.latest_tag || 'main' }}" >> $GITHUB_OUTPUT
-
+          if [[ "${{ github.event.inputs.tag }}" != '' ]]; then
+            echo "tag_input=${{ github.event.inputs.tag }}" >> $GITHUB_OUTPUT
+          elif [[ "${{ steps.check.outputs.new_tag }}" == 'true' ]]; then
+            echo "tag_input=${{ steps.check.outputs.latest_tag }}" >> $GITHUB_OUTPUT
+          else
+            echo "tag_input=main" >> $GITHUB_OUTPUT
+          fi
       - name: Set Python version
         id: set_python_version
         run: |
@@ -43,192 +53,34 @@ jobs:
       #     python_version: ${{ steps.check.outputs.python_version }}
 
 
-  build-for-windows:
-    runs-on: windows-latest
+  generate-stubs:
     needs: check-and-build
     if: ${{ needs.check-and-build.outputs.new_tag == 'true' || needs.check-and-build.outputs.new_commit == 'true' }}
-    permissions:
-      contents: write
-    steps:
-      # - name: test batch file
-      #   run: |
-      #     # echo "PYTHON=C:\hostedtoolcache\windows\Python\3.10.11\x64\python.exe" | Out-File -Append -FilePath $env:GITHUB_ENV
-      #     echo "echo %PYTHON%" >test.bat
-      #     echo "set PYTHON=C:\hostedtoolcache\windows\Python\3.10.11\x64\python.exe" >test.new.bat
-      #     type test.bat >>test.new.bat
-      #     # move /y ./file.txt.new ./test.bat
-      #     ./test.new.bat
-      #     cat ./test.new.bat
-      - name: checkout repo
-        uses: actions/checkout@v2
-                    
-      - name: Checkout Blender repository recursively
-        uses: actions/checkout@v2
-        with:
-          repository: blender/blender
-          ref: ${{ needs.check-and-build.outputs.tag }} 
-          submodules: 'recursive' 
-          path: blender 
+    uses: ./.github/workflows/generate_stubs.yml
+    with:
+      tag: ${{ needs.check-and-build.outputs.tag_input }}
+      python_version: ${{ needs.check-and-build.outputs.python_version }}
 
-      - name: Install Chocolatey
-        run: |
-          Set-ExecutionPolicy Bypass -Scope Process -Force
-          Invoke-Expression ((New-Object System.Net.WebClient).DownloadString('https://chocolatey.org/install.ps1'))
+  build-for-windows:
+    needs: check-and-build
+    if: ${{ needs.check-and-build.outputs.new_tag == 'true' || needs.check-and-build.outputs.new_commit == 'true' }}
+    uses: ./.github/workflows/build_windows.yml
+    with:
+      tag: ${{ needs.check-and-build.outputs.tag_input }}
+      python_version: ${{ needs.check-and-build.outputs.python_version }}
 
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          # python-version: '3.10.11' 
-          python-version: ${{ needs.check-and-build.outputs.python_version }}
-
-      
-      # - name: Set Python Path and Run make.bat
-      #   run: |
-      #     set Python=C:\hostedtoolcache\windows\Python\3.10.11\x64\python.exe
-      #     echo %Python%
-      #   shell: cmd
-
-      - name: list env vars
-        run: |
-          # Set "Python=C:\hostedtoolcache\windows\Python\3.10.11\x64\python.exe"
-          # echo "Python=C:\hostedtoolcache\windows\Python\3.10.11\x64\python.exe" | Out-File -Append -FilePath $env:GITHUB_ENV
-          Get-ChildItem Env:
-      
-      - name: Install Visual Studio Community Edition
-        run: |
-          choco install visualstudio2022-workload-nativedesktop
-
-      - name: Install CUDA
-        run: |
-          choco install cuda
-          Add-Content $env:GITHUB_PATH "C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v12.2\bin"
-
-      - name: Install TortoiseSVN and Command Line Client Tools
-        run: |
-          choco install tortoisesvn
-
-      - name: Install CMake
-        run: |
-          choco install cmake --installargs 'ADD_CMAKE_TO_PATH=System'
-
-
-      - name: Add CUDA compilation flags
-        run: |
-          nvcc --version
-          "set(WITH_CYCLES_CUDA_BINARIES   ON  CACHE BOOL '' FORCE)" | Out-File -Append -FilePath ./blender/build_files/cmake/config/bpy_module.cmake
-      
-      # - name: Set CUDA environment variables
-      #   run: |
-      #     $NVCC_PATH = Get-Command nvcc | Select-Object -ExpandProperty Source
-      #     $CUDA_HOME = Split-Path (Split-Path $NVCC_PATH -Parent) -Parent
-      #     echo "CUDA_HOME=$CUDA_HOME" | Out-File -Append -FilePath $env:GITHUB_ENV
-      #     echo "CPLUS_INCLUDE_PATH=$CUDA_HOME\include;$env:CPLUS_INCLUDE_PATH" | Out-File -Append -FilePath $env:GITHUB_ENV
-      #     echo "C_INCLUDE_PATH=$CUDA_HOME\include;$env:C_INCLUDE_PATH" | Out-File -Append -FilePath $env:GITHUB_ENV
-
-      # - name: Refresh env
-      #   run: |
-      #     refreshenv
-
-
-      - name: Cache Blender dependencies
-        uses: actions/cache@v2
-        with:
-          path: |
-            ./lib
-          key: ${{ runner.os }}-blender-deps-${{ github.sha }}
-          restore-keys: |
-            ${{ runner.os }}-blender-deps-
-
-
-      - name: Cache build files (for testing only)
-        uses: actions/cache@v2
-        with:
-          path: |
-            ./build_windows_Bpy_x64_vc17_Release
-          key: ${{ runner.os }}-blender-build-${{ github.sha }}
-          restore-keys: |
-            ${{ runner.os }}-blender-build-
-
-      - name: download svn librares
-        run: |
-          if [ ! -d "./lib" ]; then
-            mkdir ./lib
-            cd ./lib
-            svn checkout https://svn.blender.org/svnroot/bf-blender/trunk/lib/win64_vc15
-          fi
-        shell: bash
-
-
-      # - name: Set Python Path
-      #   run: |
-      #      chcp 65001 #set code page to utf-8
-      #      echo "PYTHON=C:\hostedtoolcache\windows\Python\3.10.11\x64\python.exe" >> $env:GITHUB_ENV
-
-      - name: list env vars
-        run: |
-          Get-ChildItem Env:
-      
-      - name: Run make.bat
-        run: |
-
-          cd blender
-
-          yes| make update
-          make bpy
-        shell: cmd
-
-      - name: Download Blender Python API Stubs
-        id: download-artifact
-        uses: dawidd6/action-download-artifact@v2
-        with:
-          workflow: generate_stubs.yml
-          # github_token: ${{secrets.GITHUB_TOKEN}}
-          name: blender-python-api-stubs-${{ github.event.inputs.tag }}
-          path: ./stubs
-
-      - name: Copy Blender Python API Stubs into bin
-        run: |
-          cp -r ./stubs/* ./build_windows_Bpy_x64_vc17_Release/bin/Release
-        shell: bash
-  
-
-      # - name: Setup terminal session
-      #   uses: fawazahmed0/action-debug@main
-      #   with:
-      #       credentials: "user:p@ss!"
-
-
-          
-      - name: Make Wheel
-        run: |
-          pip install -U pip setuptools wheel
-          # remove the old wheel if it exists
-          rm ./build_windows_Bpy_x64_vc17_Release/bin/*.whl
-          python blender/build_files/utils/make_bpy_wheel.py ./build_windows_Bpy_x64_vc17_Release/bin/Release
-        shell: bash
-
-      # - name: Upload Wheel as Artifact
-      #   uses: actions/upload-artifact@v2
-      #   with:
-      #     name: bpy-windows
-      #     path: |
-      #       ./build_windows_Bpy_x64_vc17_Release/bin/Release/*.whl
-
-      - name: Install Dependencies
-        run: |
-          python -m pip install --upgrade pip ndg-httpsclient pyopenssl pyasn1
-          pip install -r requirements.txt
- 
-
-      - name: Publish Wheel
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: python workspace/build_blender.py publish-github ${{ github.event.inputs.tag }} ./build_windows_Bpy_x64_vc17_Release/bin/Release
+  build-for-linux:
+    needs: check-and-build
+    if: ${{ needs.check-and-build.outputs.new_tag == 'true' || needs.check-and-build.outputs.new_commit == 'true' }}
+    uses: ./.github/workflows/build_linux.yml
+    with:
+      tag: ${{ needs.check-and-build.outputs.tag_input }}
+      python_version: ${{ needs.check-and-build.outputs.python_version }}
 
 
   update-versions:
     runs-on: ubuntu-latest
-    needs: [check-and-build, build-for-windows] 
+    needs: [check-and-build, build-for-windows, build-for-linux] 
     if: ${{ needs.check-and-build.outputs.new_tag == 'true' || needs.check-and-build.outputs.new_commit == 'true' }}
     steps:
       - name: Checkout repository

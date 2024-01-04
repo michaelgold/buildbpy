@@ -6,6 +6,12 @@ on:
       tag:
         description: 'Blender Version Tag (e.g., v4.0.1)'
         required: true
+  
+  workflow_call:
+    inputs:
+      tag:
+        description: 'Blender Version Tag (e.g., v4.0.1)'
+        required: true
 
 jobs:
   build:
