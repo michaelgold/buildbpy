@@ -31,12 +31,15 @@ jobs:
         run: |
           if [[ "${{ github.event.inputs.tag }}" != '' ]]; then
             echo "tag_input=${{ github.event.inputs.tag }}" >> $GITHUB_OUTPUT
+            echo "Building for ${{ github.event.inputs.tag }}"
           elif [[ "${{ steps.check.outputs.new_tag }}" == 'true' ]]; then
             echo "tag_input=${{ steps.check.outputs.latest_tag }}" >> $GITHUB_OUTPUT
+            echo "Building for ${{ steps.check.outputs.latest_tag }}"
           else
             echo "tag_input=main" >> $GITHUB_OUTPUT
+            echo "Building for main"
           fi
-          echo "Building for ${{ steps.set_tag_input.outputs.tag_input }}"
+        
 
       - name: Set Python version
         id: set_python_version
