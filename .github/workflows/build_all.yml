@@ -46,8 +46,10 @@ jobs:
         run: |
           if [[ "${{ steps.set_tag_input.outputs.tag_input }}" == v3.* ]] || [[ "${{ steps.set_tag_input.outputs.tag_input }}" == v4.0.* ]]; then
             echo "python_version=3.10.11" >> $GITHUB_OUTPUT
+            echo "Building for Python 3.10.11"
           else
             echo "python_version=3.11.6" >> $GITHUB_OUTPUT
+            echo "Building for Python 3.11.6"
           fi
 
       # - name: Build for Windows
