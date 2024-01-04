@@ -32,15 +32,26 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v2
 
+      - name: Set environment variables
+        id: set_env
+        run: |
+          if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+            echo "TAG=${{ github.event.inputs.tag }}" >> $GITHUB_ENV
+            echo "PYTHON_VERSION=${{ github.event.inputs.python_version }}" >> $GITHUB_ENV
+          elif [ "${{ github.event_name }}" == "workflow_call" ]; then
+            echo "TAG=${{ inputs.tag }}" >> $GITHUB_ENV
+            echo "PYTHON_VERSION=${{ inputs.python_version }}" >> $GITHUB_ENV
+          fi
+
       - name: Set up Python
         uses: actions/setup-python@v2
         with:
-          python-version: ${{ github.event.inputs.python_version }}
+          python-version: ${{ env.PYTHON_VERSION }}
 
       - name: Extract Major and Minor Versions
         id: version_extraction
         run: |
-          echo "Input Blender Version Tag = ${{ github.event.inputs.tag }}"
+          echo "Input Blender Version Tag = ${{ env.TAG }}"
           python -c "import sys; version_tag = sys.argv[1].lstrip('v'); parts = version_tag.split('.'); major_version = '.'.join(parts[:2]); print(f'MAJOR_VERSION={major_version}')" "${{ github.event.inputs.tag }}" >> $GITHUB_ENV
           python -c "import sys; version_tag = sys.argv[1].lstrip('v'); parts = version_tag.split('.'); minor_version = '.'.join(parts[:3]); print(f'MINOR_VERSION={minor_version}')" "${{ github.event.inputs.tag }}" >> $GITHUB_ENV
 
@@ -57,7 +68,7 @@ jobs:
         uses: actions/checkout@v2
         with:
           repository: blender/blender
-          ref: ${{ github.event.inputs.tag }} # Checkout the tag specified in the workflow dispatch
+          ref: ${{ env.TAG }} # Checkout the tag specified in the workflow dispatch
           submodules: 'recursive' # Recursively checkout submodules
           path: blender-git
 
@@ -74,6 +85,6 @@ jobs:
       - name: Upload Stubs as Artifact
         uses: actions/upload-artifact@v2
         with:
-          name: blender-python-api-stubs-${{ github.event.inputs.tag }}
+          name: blender-python-api-stubs-${{ env.TAG }}
           path: |
             python_api/output/**
