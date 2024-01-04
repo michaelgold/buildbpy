@@ -35,7 +35,7 @@ jobs:
           elif [[ "${{ steps.check.outputs.new_tag }}" == 'true' ]]; then
             echo "tag_input=${{ steps.check.outputs.latest_tag }}" >> $GITHUB_OUTPUT
             echo "Building for ${{ steps.check.outputs.latest_tag }}"
-          else
+          elif [[ "${{ steps.check.outputs.new_commit }}" == 'true' ]]; then
             echo "tag_input=main" >> $GITHUB_OUTPUT
             echo "Building for main"
           fi
@@ -62,29 +62,29 @@ jobs:
 
   generate-stubs:
     needs: check-version
-    if: ${{ needs.check-and-build.outputs.new_tag == 'true' || needs.check-and-build.outputs.new_commit == 'true' }}
+    if: ${{ needs.check-version.outputs.tag_input != '' }}
     uses: ./.github/workflows/generate_stubs.yml
     with:
-      tag: ${{ needs.check-and-build.outputs.tag_input }}
-      python_version: ${{ needs.check-and-build.outputs.python_version }}
+      tag: ${{ needs.check-version.outputs.tag_input }}
+      python_version: ${{ needs.check-version.outputs.python_version }}
 
   build-for-windows:
     needs: generate-stubs
-    if: ${{ needs.check-and-build.outputs.new_tag == 'true' || needs.check-and-build.outputs.new_commit == 'true' }}
+    if: ${{ needs.check-version.outputs.tag_input != '' }}
     uses: ./.github/workflows/build_windows.yml
     with:
-      tag: ${{ needs.check-and-build.outputs.tag_input }}
-      python_version: ${{ needs.check-and-build.outputs.python_version }}
+      tag: ${{ needs.check-version.outputs.tag_input }}
+      python_version: ${{ needs.check-version.outputs.python_version }}
     permissions:
       contents: write
 
   build-for-linux:
     needs: generate-stubs
-    if: ${{ needs.check-and-build.outputs.new_tag == 'true' || needs.check-and-build.outputs.new_commit == 'true' }}
+    if: ${{ needs.check-version.outputs.tag_input != '' }}  
     uses: ./.github/workflows/build_linux.yml
     with:
-      tag: ${{ needs.check-and-build.outputs.tag_input }}
-      python_version: ${{ needs.check-and-build.outputs.python_version }}
+      tag: ${{ needs.check-version.outputs.tag_input }}
+      python_version: ${{ needs.check-version.outputs.python_version }}
     permissions:
       contents: write
 
@@ -92,7 +92,7 @@ jobs:
   update-versions:
     runs-on: ubuntu-latest
     needs: [ build-for-windows, build-for-linux] 
-    if: ${{ needs.check-and-build.outputs.new_tag == 'true' || needs.check-and-build.outputs.new_commit == 'true' }}
+    if: ${{ needs.check-version.outputs.new_tag == 'true' || needs.check-version.outputs.new_commit == 'true' }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v2
