@@ -32,13 +32,16 @@ def main():
     new_tag = latest_tag != version_info.get('previous_tag')
     new_commit = latest_commit != version_info.get('previous_commit')
 
-    # Update the JSON file only if there's a new tag or commit
     if new_tag or new_commit:
         write_version_info(file_path, latest_tag, latest_commit)
 
-    print(f"::set-output name=new_tag::{str(new_tag).lower()}")
-    print(f"::set-output name=new_commit::{str(new_commit).lower()}")
-    print(f"::set-output name=latest_tag::{latest_tag or ''}")  # Latest tag or empty string
+    # Write outputs to $GITHUB_OUTPUT
+    github_output = os.getenv('GITHUB_OUTPUT')
+    if github_output:
+        with open(github_output, 'a') as output_file:
+            output_file.write(f"new_tag={str(new_tag).lower()}\n")
+            output_file.write(f"new_commit={str(new_commit).lower()}\n")
+            output_file.write(f"latest_tag={latest_tag or ''}\n")
 
 if __name__ == "__main__":
     main()

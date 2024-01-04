@@ -23,33 +23,32 @@ jobs:
 
       - name: Set tag input
         id: set_tag_input
-        run: echo "::set-output name=tag_input::${{ steps.check.outputs.new_tag == 'true' && steps.check.outputs.latest_tag || 'main' }}"
+        run: |
+          echo "tag_input=${{ steps.check.outputs.new_tag == 'true' && steps.check.outputs.latest_tag || 'main' }}" >> $GITHUB_OUTPUT
 
       - name: Set Python version
         id: set_python_version
         run: |
           if [[ "${{ steps.set_tag_input.outputs.tag_input }}" == v3.* ]] || [[ "${{ steps.set_tag_input.outputs.tag_input }}" == v4.0.* ]]; then
-            echo "::set-output name=python_version::3.10.11"
+            echo "python_version=3.10.11" >> $GITHUB_OUTPUT
           else
-            echo "::set-output name=python_version::3.11.6"
+            echo "python_version=3.11.6" >> $GITHUB_OUTPUT
           fi
 
-
       - name: Build for Windows
-        if: steps.check.outputs.new_tag == 'true' || steps.check.outputs.new_commit == 'true'
+        if: ${{ needs.check-and-build.outputs.new_tag == 'true' || needs.check-and-build.outputs.new_commit == 'true' }}
         uses: ./.github/workflows/build_windows.yml
         with:
-          tag: ${{ steps.set_tag_input.outputs.tag_input }}
-          python_version: ${{ steps.set_python_version.outputs.python_version }}
+          tag: ${{ needs.check-and-build.outputs.tag_input }}
+          python_version: ${{ needs.check-and-build.outputs.python_version }}
 
       - name: Commit version info
-        if: steps.check.outputs.new_tag == 'true' || steps.check.outputs.new_commit == 'true'
+        if: ${{ needs.check-and-build.outputs.new_tag == 'true' || needs.check-and-build.outputs.new_commit == 'true' }}
         run: |
           git config --global user.name 'GitHub Actions'
           git config --global user.email 'actions@github.com'
           git add version_info.json
           git commit -m "Update version info with latest tag and commit"
           git push
-
 
       # ... Similar build steps for Linux and Mac
