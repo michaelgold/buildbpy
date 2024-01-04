@@ -35,13 +35,10 @@ jobs:
       - name: Set environment variables
         id: set_env
         run: |
-          if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
-            echo "TAG=${{ github.event.inputs.tag }}" >> $GITHUB_ENV
-            echo "PYTHON_VERSION=${{ github.event.inputs.python_version }}" >> $GITHUB_ENV
-          elif [ "${{ github.event_name }}" == "workflow_call" ]; then
-            echo "TAG=${{ inputs.tag }}" >> $GITHUB_ENV
-            echo "PYTHON_VERSION=${{ inputs.python_version }}" >> $GITHUB_ENV
-          fi
+          TAG=${{ inputs.tag || github.event.inputs.tag }}
+          PYTHON_VERSION=${{ inputs.python_version || github.event.inputs.python_version }}
+          echo "TAG=$TAG" >> $GITHUB_ENV
+          echo "PYTHON_VERSION=$PYTHON_VERSION" >> $GITHUB_ENV
 
       - name: Set up Python
         uses: actions/setup-python@v2
