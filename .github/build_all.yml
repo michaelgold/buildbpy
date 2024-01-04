@@ -1,0 +1,55 @@
+  name: Build All Platforms
+
+on:
+  schedule:
+    - cron: '0 0 * * *'  # Runs at midnight every day; adjust as necessary
+  workflow_dispatch:
+
+jobs:
+  check-and-build:
+    runs-on: ubuntu-latest
+    outputs:
+      new_tag: ${{ steps.check.outputs.new_tag }}
+      new_commit: ${{ steps.check.outputs.new_commit }}
+      tag_input: ${{ steps.set_tag_input.outputs.tag_input }}
+      python_version: ${{ steps.set_python_version.outputs.python_version }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+
+      - name: Check latest tag and commit
+        id: check
+        run: python ./workspace/check_latest.py
+
+      - name: Set tag input
+        id: set_tag_input
+        run: echo "::set-output name=tag_input::${{ steps.check.outputs.new_tag == 'true' && steps.check.outputs.latest_tag || 'main' }}"
+
+      - name: Set Python version
+        id: set_python_version
+        run: |
+          if [[ "${{ steps.set_tag_input.outputs.tag_input }}" == v3.* ]] || [[ "${{ steps.set_tag_input.outputs.tag_input }}" == v4.0.* ]]; then
+            echo "::set-output name=python_version::3.10.11"
+          else
+            echo "::set-output name=python_version::3.11.6"
+          fi
+
+
+      - name: Build for Windows
+        if: steps.check.outputs.new_tag == 'true' || steps.check.outputs.new_commit == 'true'
+        uses: ./.github/workflows/build_windows.yml
+        with:
+          tag: ${{ steps.set_tag_input.outputs.tag_input }}
+          python_version: ${{ steps.set_python_version.outputs.python_version }}
+
+      - name: Commit version info
+        if: steps.check.outputs.new_tag == 'true' || steps.check.outputs.new_commit == 'true'
+        run: |
+          git config --global user.name 'GitHub Actions'
+          git config --global user.email 'actions@github.com'
+          git add version_info.json
+          git commit -m "Update version info with latest tag and commit"
+          git push
+
+
+      # ... Similar build steps for Linux and Mac
