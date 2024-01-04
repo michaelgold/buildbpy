@@ -62,7 +62,7 @@ jobs:
       python_version: ${{ needs.check-and-build.outputs.python_version }}
 
   build-for-windows:
-    needs: check-and-build
+    needs: generate-stubs
     if: ${{ needs.check-and-build.outputs.new_tag == 'true' || needs.check-and-build.outputs.new_commit == 'true' }}
     uses: ./.github/workflows/build_windows.yml
     with:
@@ -70,7 +70,7 @@ jobs:
       python_version: ${{ needs.check-and-build.outputs.python_version }}
 
   build-for-linux:
-    needs: check-and-build
+    needs: generate-stubs
     if: ${{ needs.check-and-build.outputs.new_tag == 'true' || needs.check-and-build.outputs.new_commit == 'true' }}
     uses: ./.github/workflows/build_linux.yml
     with:
