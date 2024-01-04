@@ -37,10 +37,10 @@ jobs:
 
       - name: Build for Windows
         if: ${{ steps.check.outputs.new_tag == 'true' || steps.check.outputs.new_commit == 'true' }}
-        uses: ./.github/workflows/build_windows.yml
+        uses: ./.github/actions/build_windows@main
         with:
-          tag: ${{ needs.check-and-build.outputs.tag_input }}
-          python_version: ${{ needs.check-and-build.outputs.python_version }}
+          tag: ${{ steps.check.outputs.tag_input }}
+          python_version: ${{ steps.check.outputs.python_version }}
 
       - name: Commit version info
         if: ${{ steps.check.outputs.new_tag == 'true' || steps.check.outputs.new_commit == 'true' }}
