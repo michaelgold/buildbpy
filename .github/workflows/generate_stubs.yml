@@ -4,14 +4,23 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: 'Blender Version Tag (e.g., v4.0.1)'
+        description: 'Blender Tag to build'
         required: true
+      python_version:
+        description: 'Python version to use'
+        required: true
+        default: '3.10.11'
   
   workflow_call:
     inputs:
       tag:
-        description: 'Blender Version Tag (e.g., v4.0.1)'
+        description: 'Blender Tag to build'
         required: true
+      python_version:
+        description: 'Python version to use'
+        required: true
+        default: '3.10.11'
+
 
 jobs:
   build:
@@ -24,7 +33,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v2
         with:
-          python-version: '3.10.x'
+          python-version: ${{ github.event.inputs.python_version }}
 
       - name: Extract Major and Minor Versions
         id: version_extraction
