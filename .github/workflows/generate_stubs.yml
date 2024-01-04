@@ -58,6 +58,7 @@ jobs:
           wget "https://mirrors.ocf.berkeley.edu/blender/release/Blender$MAJOR_VERSION/blender-$MINOR_VERSION-linux-x64.tar.xz"
           tar -xf "blender-$MINOR_VERSION-linux-x64.tar.xz"
           mv "blender-$MINOR_VERSION-linux-x64" blender
+          mv blender/blender-$MINOR_VERSION-linux-x64" blender/blender
         shell: bash
 
       - name: Checkout Blender repository 
@@ -74,7 +75,7 @@ jobs:
 
       - name: Generate API Docs and Stubs
         run: |
-          cd blender
+          cd blender/blender
           ls -lah
           ./blender --background --factory-startup -noaudio --python ../blender-git/doc/python_api/sphinx_doc_gen.py -- --output=../python_api
           python -m bpystubgen ../python_api/sphinx-in ../python_api/output
