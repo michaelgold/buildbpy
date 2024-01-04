@@ -49,8 +49,8 @@ jobs:
         id: version_extraction
         run: |
           echo "Input Blender Version Tag = ${{ env.TAG }}"
-          python -c "import sys; version_tag = sys.argv[1].lstrip('v'); parts = version_tag.split('.'); major_version = '.'.join(parts[:2]); print(f'MAJOR_VERSION={major_version}')" "${{ github.event.inputs.tag }}" >> $GITHUB_ENV
-          python -c "import sys; version_tag = sys.argv[1].lstrip('v'); parts = version_tag.split('.'); minor_version = '.'.join(parts[:3]); print(f'MINOR_VERSION={minor_version}')" "${{ github.event.inputs.tag }}" >> $GITHUB_ENV
+          python -c "import sys; version_tag = sys.argv[1].lstrip('v'); parts = version_tag.split('.'); major_version = '.'.join(parts[:2]); print(f'MAJOR_VERSION={major_version}')" "${{ env.TAG }}" >> $GITHUB_ENV
+          python -c "import sys; version_tag = sys.argv[1].lstrip('v'); parts = version_tag.split('.'); minor_version = '.'.join(parts[:3]); print(f'MINOR_VERSION={minor_version}')" "${{ env.TAG }}" >> $GITHUB_ENV
 
 
       - name: Download Blender
