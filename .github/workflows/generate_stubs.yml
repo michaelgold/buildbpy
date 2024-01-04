@@ -60,7 +60,6 @@ jobs:
           mv "blender-$MINOR_VERSION-linux-x64" blender
         shell: bash
 
-
       - name: Checkout Blender repository 
         uses: actions/checkout@v2
         with:
@@ -76,6 +75,7 @@ jobs:
       - name: Generate API Docs and Stubs
         run: |
           cd blender
+          ls -lah
           ./blender --background --factory-startup -noaudio --python ../blender-git/doc/python_api/sphinx_doc_gen.py -- --output=../python_api
           python -m bpystubgen ../python_api/sphinx-in ../python_api/output
 
