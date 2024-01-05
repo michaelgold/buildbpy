@@ -125,14 +125,14 @@ jobs:
       #     cuda: '12.1.0'
 
 
-      - name: Cache build files (for testing only)
-        uses: actions/cache@v2
-        with:
-          path: |
-            ./build_linux_bpy
-          key: ${{ runner.os }}-blender-build-${{ github.sha }}
-          restore-keys: |
-            ${{ runner.os }}-blender-build-
+      # - name: Cache build files (for testing only)
+      #   uses: actions/cache@v2
+      #   with:
+      #     path: |
+      #       ./build_linux_bpy
+      #     key: ${{ runner.os }}-blender-build-${{ github.sha }}
+      #     restore-keys: |
+      #       ${{ runner.os }}-blender-build-
 
       - name: Download Blender Python API Stubs
         id: download-artifact
