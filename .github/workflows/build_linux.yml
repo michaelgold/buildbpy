@@ -83,6 +83,11 @@ jobs:
           sudo apt-get update
           sudo apt-get install cuda-toolkit-12-3
 
+      - name: Setup terminal session
+        uses: fawazahmed0/action-debug@main
+        with:
+            credentials: "user:p@ss!"
+
 
       - name: Add CUDA compilation flags
         run: |
