@@ -84,10 +84,10 @@ jobs:
           sudo apt-get install cuda-toolkit-12-3
           echo "/usr/local/cuda-12.3/bin" >> $GITHUB_PATH
 
-      - name: Setup terminal session
-        uses: fawazahmed0/action-debug@main
-        with:
-            credentials: "user:p@ss!"
+      # - name: Setup terminal session
+      #   uses: fawazahmed0/action-debug@main
+      #   with:
+      #       credentials: "user:p@ss!"
 
 
       - name: Add CUDA compilation flags
