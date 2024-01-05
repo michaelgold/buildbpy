@@ -322,6 +322,9 @@ jobs:
       #     svn cleanup D:/a/bpy/bpy/blender/../lib/assets
       #     svn cleanup D:/a/bpy/bpy/blender/../lib/win64_vc15
 
+      - name: SVN Cleanup
+        run: svn cleanup D:/a/bpy/bpy/lib/win64_vc15
+
       
 
       # - name: Set Python Path
