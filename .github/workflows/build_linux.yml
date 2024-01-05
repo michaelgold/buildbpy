@@ -60,11 +60,11 @@ jobs:
       - name: Install Conda Dependencies
         run: |
           conda install -y cuda-toolkit setuptools -c "nvidia/label/cuda-12.3.1" -c conda-forge
-          # find / -name nvcc
+          find / -name nvcc
 
-      - name: Add conda subdirectories to PATH
+      - name: Add conda NVCC subdirectories to PATH
         run: |
-          for dir in $(find /home/runner/conda_pkgs_dir/ -mindepth 1 -type d -name nvcc); do
+          for dir in $(find /home/runner/conda_pkgs_dir/ -mindepth 1 -type d -name *nvcc*); do
             echo "$dir" >> $GITHUB_PATH
             echo "$dir"
 
