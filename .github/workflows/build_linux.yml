@@ -115,6 +115,16 @@ jobs:
           echo "Running install_linux_packages.py"
           cd ./blender
           sudo python ./build_files/build_environment/install_linux_packages.py
+      
+      - name: Verify X11 Installation
+        run: |
+          dpkg -l | grep libx11-dev
+
+      - name: Set Environment Variables for X11
+        run: |
+          echo "LD_LIBRARY_PATH=/usr/lib/x86_64-linux-gnu:$LD_LIBRARY_PATH" >> $GITHUB_ENV
+
+
 
       # - name: Download blender precompiled libraries
       #   run: |
