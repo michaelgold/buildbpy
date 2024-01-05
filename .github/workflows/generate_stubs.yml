@@ -57,7 +57,7 @@ jobs:
         run: |
           wget "https://mirrors.ocf.berkeley.edu/blender/release/Blender$MAJOR_VERSION/blender-$MINOR_VERSION-linux-x64.tar.xz"
           mkdir blender-bin
-          mv "blender-$MINOR_VERSION-linux-x64.tar.xz" blender
+          mv "blender-$MINOR_VERSION-linux-x64.tar.xz" blender-bin
           cd blender-bin
           tar --strip-components=1 -zxf "blender-$MINOR_VERSION-linux-x64.tar.xz"
         shell: bash
