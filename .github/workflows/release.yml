@@ -56,7 +56,7 @@ jobs:
           version: 'tags/${{ steps.get_tag.outputs.tag }}'
           file: "[^\\/]*\\.whl"
           regex: true
-          target: ./dist
+          target: 'dist/'
           token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Publish to PyPI
@@ -65,4 +65,5 @@ jobs:
           PYPI_PASSWORD: ${{ secrets.PYPI_TOKEN }}
         run: |
           ls -lah ./dist
+          find / -name "*.whl"
           twine upload --repository ${{ vars.PYPI_REPOSITORY }} ./dist/*.whl
