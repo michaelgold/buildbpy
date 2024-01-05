@@ -62,11 +62,11 @@ jobs:
           conda install -y cuda-toolkit setuptools -c "nvidia/label/cuda-12.3.1" -c conda-forge
           # find / -name nvcc
 
-      - name: Add conda subdirectories to PATH
-        run: |
-          for dir in $(find /home/runner/conda_pkgs_dir/ -mindepth 1 -type d); do
-            echo "$dir" >> $GITHUB_PATH
-          done
+      # - name: Add conda subdirectories to PATH
+      #   run: |
+      #     for dir in $(find /home/runner/conda_pkgs_dir/ -mindepth 1 -type d); do
+      #       echo "$dir" >> $GITHUB_PATH
+      #     done
 
       - name: Add CUDA compilation flags
         run: |
