@@ -61,8 +61,8 @@ jobs:
 
       - name: Publish to PyPI
         env:
-          PYPI_USERNAME: __token__
-          PYPI_PASSWORD: ${{ secrets.PYPI_TOKEN }}
+          TWINE_USERNAME: __token__
+          TWINE_PASSWORD: ${{ secrets.PYPI_TOKEN }}
         run: |
           ls -lah ./dist
           twine upload --repository ${{ vars.PYPI_REPOSITORY }} ./dist/*.whl
