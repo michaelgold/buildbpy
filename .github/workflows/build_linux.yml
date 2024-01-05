@@ -32,11 +32,19 @@ jobs:
       - name: checkout repo
         uses: actions/checkout@v2
 
+      - name: Set environment variables
+        id: set_env
+        run: |
+          TAG=${{ inputs.tag || github.event.inputs.tag }}
+          PYTHON_VERSION=${{ inputs.python_version || github.event.inputs.python_version }}
+          echo "TAG=$TAG" >> $GITHUB_ENV
+          echo "PYTHON_VERSION=$PYTHON_VERSION" >> $GITHUB_ENV
+
       - name: Checkout Blender repository recursively
         uses: actions/checkout@v2
         with:
           repository: blender/blender
-          ref: ${{ github.event.inputs.tag }} # Checkout the tag specified in the workflow dispatch
+          ref:  ${{ env.TAG }} # Checkout the tag specified in the workflow dispatch
           submodules: 'recursive' # Recursively checkout submodules
           path: blender 
 
@@ -44,7 +52,7 @@ jobs:
         uses: conda-incubator/setup-miniconda@v2
         with:
           auto-update-conda: true
-          python-version: ${{ github.event.inputs.python_version }} # Specify the Python version you need
+          python-version:  ${{ env.PYTHON_VERSION }}
           # environment-file: environment.yml
           activate-environment: bpy-env
           channels: conda-forge
@@ -97,7 +105,7 @@ jobs:
 
       - name: Get dependencies
         run: |
-          echo "Building bpy for Linux with tag ${{ github.event.inputs.tag }}"
+          echo "Building bpy for Linux with tag ${{ env.TAG }"
           sudo apt update
           sudo apt-get install -y build-essential git subversion cmake libx11-dev libxxf86vm-dev libxcursor-dev libxi-dev libxrandr-dev libxinerama-dev libegl-dev
           sudo apt-get install -y libwayland-dev wayland-protocols libxkbcommon-dev libdbus-1-dev linux-libc-dev
@@ -129,7 +137,7 @@ jobs:
         with:
           workflow: generate_stubs.yml
           # github_token: ${{secrets.GITHUB_TOKEN}}
-          name: blender-python-api-stubs-${{ github.event.inputs.tag }}
+          name: blender-python-api-stubs-${{ env.TAG }}
           path: ./build_linux_bpy/bin/
 
 
@@ -190,4 +198,4 @@ jobs:
       - name: Publish Wheel
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: python workspace/build_blender.py publish-github  ${{ github.event.inputs.tag }} ./build_linux_bpy/bin
+        run: python workspace/build_blender.py publish-github  ${{ env.TAG }} ./build_linux_bpy/bin

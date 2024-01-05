@@ -30,11 +30,20 @@ jobs:
       - name: checkout repo
         uses: actions/checkout@v2
 
+      - name: Set environment variables
+        id: set_env
+        run: |
+          TAG=${{ inputs.tag || github.event.inputs.tag }}
+          PYTHON_VERSION=${{ inputs.python_version || github.event.inputs.python_version }}
+          echo "TAG=$TAG" >> $GITHUB_ENV
+          echo "PYTHON_VERSION=$PYTHON_VERSION" >> $GITHUB_ENV
+          
+
       - name: Checkout Blender repository recursively
         uses: actions/checkout@v2
         with:
           repository: blender/blender
-          ref: ${{ github.event.inputs.tag }}
+          ref: ${{ env.TAG}}
           submodules: 'recursive'
           path: blender 
 
@@ -107,7 +116,7 @@ jobs:
         with:
           workflow: generate_stubs.yml
           # github_token: ${{secrets.GITHUB_TOKEN}}
-          name: blender-python-api-stubs-${{ github.event.inputs.tag }}
+          name: blender-python-api-stubs-${{ env.TAG }}
           path: ./build_darwin_bpy/bin/
 
 
@@ -147,4 +156,4 @@ jobs:
       - name: Publish Wheel
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: python workspace/build_blender.py publish-github ${{ github.event.inputs.tag }} ./build_darwin_bpy/bin/
+        run: python workspace/build_blender.py publish-github ${{ env.TAG}} ./build_darwin_bpy/bin/

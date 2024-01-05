@@ -40,12 +40,20 @@ jobs:
       #     cat ./test.new.bat
       - name: checkout repo
         uses: actions/checkout@v2
+
+      - name: Set environment variables
+        id: set_env
+        run: |
+          TAG=${{ inputs.tag || github.event.inputs.tag }}
+          PYTHON_VERSION=${{ inputs.python_version || github.event.inputs.python_version }}
+          echo "TAG=$TAG" >> $GITHUB_ENV
+          echo "PYTHON_VERSION=$PYTHON_VERSION" >> $GITHUB_ENV
                     
       - name: Checkout Blender repository recursively
         uses: actions/checkout@v2
         with:
           repository: blender/blender
-          ref: ${{ github.event.inputs.tag }} 
+          ref: ${{ env.TAG}}
           submodules: 'recursive' 
           path: blender 
 
@@ -58,7 +66,7 @@ jobs:
         uses: actions/setup-python@v4
         with:
           # python-version: '3.10.11' 
-          python-version: ${{ github.event.inputs.python_version }}
+          python-version: ${{ env.PYTHON_VERSION }}
 
       
       - name: Set Python Path and Run make.bat
@@ -162,7 +170,7 @@ jobs:
         with:
           workflow: generate_stubs.yml
           # github_token: ${{secrets.GITHUB_TOKEN}}
-          name: blender-python-api-stubs-${{ github.event.inputs.tag }}
+          name: blender-python-api-stubs-${{ env.TAG }}
           path: ./stubs
 
       - name: Copy Blender Python API Stubs into bin
@@ -202,4 +210,4 @@ jobs:
       - name: Publish Wheel
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: python workspace/build_blender.py publish-github ${{ github.event.inputs.tag }} ./build_windows_Bpy_x64_vc17_Release/bin/Release
+        run: python workspace/build_blender.py publish-github ${{ env.TAG }} ./build_windows_Bpy_x64_vc17_Release/bin/Release
