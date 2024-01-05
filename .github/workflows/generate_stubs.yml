@@ -59,7 +59,7 @@ jobs:
           mkdir blender-bin
           mv "blender-$MINOR_VERSION-linux-x64.tar.xz" blender-bin
           cd blender-bin
-          tar --strip-components=1 -zxf "blender-$MINOR_VERSION-linux-x64.tar.xz"
+          tar --strip-components=1 -xf "blender-$MINOR_VERSION-linux-x64.tar.xz"
         shell: bash
 
       - name: Checkout Blender repository 
