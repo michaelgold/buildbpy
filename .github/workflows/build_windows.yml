@@ -336,12 +336,19 @@ jobs:
         run: |
           Get-ChildItem Env:
 
-      - name: Checkout precompiled libraries
+      - name: Extract Blender Major Version Number
+        id: version_extraction
         run: |
-          md lib
+          python -c "import sys; version_tag = sys.argv[1].lstrip('v'); parts = version_tag.split('.'); major_version = '.'.join(parts[:2]); print(f'MAJOR_VERSION={major_version}')" "${{ env.TAG }}" >> $GITHUB_ENV
+        shell: bash
+
+      - name: Download Precompiled Binaries for the Release
+        run: |
+          mkdir lib
           cd lib
-          svn checkout https://svn.blender.org/svnroot/bf-blender/trunk/lib/win64_vc15
+          svn checkout https://svn.blender.org/svnroot/bf-blender/tags/blender-${{ env.MAJOR_VERSION }}-release/lib/win64_vc15
         shell: cmd
+
       
       - name: Run make.bat
         run: |
