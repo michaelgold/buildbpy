@@ -105,7 +105,7 @@ jobs:
 
       - name: Get dependencies
         run: |
-          echo "Building bpy for Linux with tag ${{ env.TAG }"
+          echo "Building bpy for Linux with tag ${{ env.TAG }}"
           sudo apt update
           sudo apt-get install -y build-essential git subversion cmake libx11-dev libxxf86vm-dev libxcursor-dev libxi-dev libxrandr-dev libxinerama-dev libegl-dev
           sudo apt-get install -y libwayland-dev wayland-protocols libxkbcommon-dev libdbus-1-dev linux-libc-dev
