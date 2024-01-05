@@ -59,15 +59,6 @@ jobs:
       #     tag: ${{ steps.check.outputs.tag_input }}
       #     python_version: ${{ steps.check.outputs.python_version }}
 
-
-  generate-stubs:
-    needs: check-version
-    if: ${{ needs.check-version.outputs.tag_input != '' }}
-    uses: ./.github/workflows/generate_stubs.yml
-    with:
-      tag: ${{ needs.check-version.outputs.tag_input }}
-      python_version: ${{ needs.check-version.outputs.python_version }}
-
   build-for-windows:
     needs: [check-version, generate-stubs]
     if: ${{ needs.check-version.outputs.tag_input != '' }}
