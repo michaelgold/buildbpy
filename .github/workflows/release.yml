@@ -59,4 +59,6 @@ jobs:
         env:
           PYPI_USERNAME: __token__
           PYPI_PASSWORD: ${{ secrets.PYPI_TOKEN }}
-        run: twine upload --repository ${{ vars.PYPI_REPOSITORY }} dist/*.whl
+        run: |
+          ls -lah dist
+          twine upload --repository ${{ vars.PYPI_REPOSITORY }} dist/*.whl
