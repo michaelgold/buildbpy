@@ -1,0 +1,61 @@
+name: Publish to PyPI
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Release Tag (leave blank for the latest release)'
+        required: false
+        default: ''
+      environment:
+        description: 'Environment variables to use "release" or "test"'
+        required: true
+        default: 'release'
+        type: choice
+        options:
+          - release
+          - test
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    environment: ${{ github.event.inputs.environment }}
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@v2
+
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.x'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install twine
+
+      - name: Get release tag
+        id: get_tag
+        run: |
+          if [ "${{ github.event.inputs.tag }}" == "" ]; then
+            echo "Using the latest tag."
+            echo "::set-output name=tag::$(git describe --tags `git rev-list --tags --max-count=1`)"
+          else
+            echo "Using specified tag: ${{ github.event.inputs.tag }}"
+            echo "::set-output name=tag::${{ github.event.inputs.tag }}"
+          fi
+
+      - name: Download assets from the release
+        uses: dsaltares/fetch-gh-release-asset@master
+        with:
+          repo: ${{ github.repository }}
+          version: ${{ steps.get_tag.outputs.tag }}
+          file: '*.whl'
+          target: ./dist
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Publish to PyPI
+        env:
+          PYPI_USERNAME: __token__
+          PYPI_PASSWORD: ${{ secrets.PYPI_TOKEN }}
+        run: twine upload --repository ${{ env.PYPI_REPOSITORY }} dist/*.whl
