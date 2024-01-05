@@ -65,5 +65,4 @@ jobs:
           PYPI_PASSWORD: ${{ secrets.PYPI_TOKEN }}
         run: |
           ls -lah ./dist
-          find / -name "*.whl"
           twine upload --repository ${{ vars.PYPI_REPOSITORY }} ./dist/*.whl
