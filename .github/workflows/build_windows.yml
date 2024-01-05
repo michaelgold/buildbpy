@@ -299,14 +299,14 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-blender-deps-
 
-      - name: Cache build files (for testing only)
-        uses: actions/cache@v2
-        with:
-          path: |
-            ./build_windows_Bpy_x64_vc17_Release
-          key: ${{ runner.os }}-blender-build-${{ github.sha }}
-          restore-keys: |
-            ${{ runner.os }}-blender-build-
+      # - name: Cache build files (for testing only)
+      #   uses: actions/cache@v2
+      #   with:
+      #     path: |
+      #       ./build_windows_Bpy_x64_vc17_Release
+      #     key: ${{ runner.os }}-blender-build-${{ github.sha }}
+      #     restore-keys: |
+      #       ${{ runner.os }}-blender-build-
 
       - name: download svn librares
         run: |
@@ -317,10 +317,10 @@ jobs:
           fi
         shell: bash
 
-      - name: SVN Cleanup (Preemptive)
-        run: |
-          svn cleanup D:/a/bpy/bpy/blender/../lib/assets
-          svn cleanup D:/a/bpy/bpy/blender/../lib/win64_vc15
+      # - name: SVN Cleanup (Preemptive)
+      #   run: |
+      #     svn cleanup D:/a/bpy/bpy/blender/../lib/assets
+      #     svn cleanup D:/a/bpy/bpy/blender/../lib/win64_vc15
 
       
 
