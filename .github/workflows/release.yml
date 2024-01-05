@@ -45,6 +45,10 @@ jobs:
             echo "tag=${{ github.event.inputs.tag }}" >> $GITHUB_OUTPUT
           fi
 
+      - name: Make Dist directory
+        run: |
+          mkdir ./dist
+
       - name: Download assets from the release
         uses: dsaltares/fetch-gh-release-asset@1.1.1
         with:
@@ -60,5 +64,5 @@ jobs:
           PYPI_USERNAME: __token__
           PYPI_PASSWORD: ${{ secrets.PYPI_TOKEN }}
         run: |
-          ls -lah dist
-          twine upload --repository ${{ vars.PYPI_REPOSITORY }} dist/*.whl
+          ls -lah ./dist
+          twine upload --repository ${{ vars.PYPI_REPOSITORY }} ./dist/*.whl
