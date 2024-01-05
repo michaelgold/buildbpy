@@ -64,7 +64,7 @@ jobs:
 
       - name: Add conda subdirectories to PATH
         run: |
-          for dir in $(find /home/runner/conda_pkgs_dir/ -mindepth 1 -type d); do
+          for dir in $(find /home/runner/conda_pkgs_dir/ -mindepth 1 -type d -name nvcc); do
             echo "$dir" >> $GITHUB_PATH
             echo "$dir"
 
