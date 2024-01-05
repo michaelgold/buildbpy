@@ -77,7 +77,7 @@ jobs:
           python-version: ${{ env.PYTHON_VERSION }}
 
       - name: Set up CUDA
-        uses: Jimver/cuda-toolkit@v0.2.11
+        uses: michaelgold/cuda-toolkit@master
         id: cuda-toolkit
         with:
           cuda: '12.3.1'
