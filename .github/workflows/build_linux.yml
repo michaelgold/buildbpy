@@ -116,13 +116,13 @@ jobs:
           cd ./blender
           sudo python ./build_files/build_environment/install_linux_packages.py
 
-      - name: Download blender precompiled libraries
-        run: |
-          if [ ! -d "./lib" ]; then
-            mkdir ./lib
-            cd ./lib
-            svn checkout https://svn.blender.org/svnroot/bf-blender/trunk/lib/linux_x86_64_glibc_228
-          fi
+      # - name: Download blender precompiled libraries
+      #   run: |
+      #     if [ ! -d "./lib" ]; then
+      #       mkdir ./lib
+      #       cd ./lib
+      #       svn checkout https://svn.blender.org/svnroot/bf-blender/trunk/lib/linux_x86_64_glibc_228
+      #     fi
           
       # - name: Install Cuda Toolkit
       #   uses: Jimver/cuda-toolkit@v0.2.11

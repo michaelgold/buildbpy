@@ -308,22 +308,22 @@ jobs:
       #     restore-keys: |
       #       ${{ runner.os }}-blender-build-
 
-      - name: download svn librares
-        run: |
-          if [ ! -d "./lib" ]; then
-            mkdir ./lib
-            cd ./lib
-            svn checkout https://svn.blender.org/svnroot/bf-blender/trunk/lib/win64_vc15
-          fi
-        shell: bash
+      # - name: download svn librares
+      #   run: |
+      #     if [ ! -d "./lib" ]; then
+      #       mkdir ./lib
+      #       cd ./lib
+      #       svn checkout https://svn.blender.org/svnroot/bf-blender/trunk/lib/win64_vc15
+      #     fi
+      #   shell: bash
 
       # - name: SVN Cleanup (Preemptive)
       #   run: |
       #     svn cleanup D:/a/bpy/bpy/blender/../lib/assets
       #     svn cleanup D:/a/bpy/bpy/blender/../lib/win64_vc15
 
-      - name: SVN Cleanup
-        run: svn cleanup D:/a/bpy/bpy/lib/win64_vc15
+      # - name: SVN Cleanup
+      #   run: svn cleanup D:/a/bpy/bpy/lib/win64_vc15
 
       
 
