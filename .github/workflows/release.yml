@@ -46,11 +46,12 @@ jobs:
           fi
 
       - name: Download assets from the release
-        uses: dsaltares/fetch-gh-release-asset@master
+        uses: dsaltares/fetch-gh-release-asset@1.1.1
         with:
           repo: ${{ github.repository }}
           version: 'tags/${{ steps.get_tag.outputs.tag }}'
           file: "*\\.whl"
+          regex: true
           target: ./dist
           token: ${{ secrets.GITHUB_TOKEN }}
 
