@@ -7,6 +7,11 @@ import dotenv
 import os
 import glob
 import ssl
+import platform
+import tarfile
+import zipfile
+import shutil
+from utils import dmgextractor
 
 app = typer.Typer()
 # Load the environment variables
@@ -15,9 +20,70 @@ github_token = os.getenv("GITHUB_TOKEN")
 if not github_token:
     raise ValueError("GitHub token not found in environment variables.")
 
+def download_blender(tag: str = typer.Option(None, help="Specific Blender tag to download")):
+    
+    tag = tag.lstrip('v');
+    parts = tag.split('.')
+    major_version = '.'.join(parts[:2])
+    minor_version = '.'.join(parts[:3])
+    
+    # Determine the OS type (Linux, Windows, MacOS)
+    os_type = platform.system()
+    arch = platform.machine()
+    filename = ""
 
+    # Construct the download URL based on the OS type and Blender version
+    if os_type == "Linux":
+        filename = f"blender-{minor_version}-linux-x64.tar.xz"
+        url = f"https://mirrors.ocf.berkeley.edu/blender/release/Blender{major_version}/{filename}"
+        file_ext = "tar.xz"
+    elif os_type == "Windows":
+        filename = f"blender-{minor_version}-windows-x64.zip"
+        url = f"https://mirrors.ocf.berkeley.edu/blender/release/Blender{major_version}/{filename}"
+        file_ext = "zip"
+    elif os_type == "Darwin":  # MacOS
+        macos_arch = "arm64" if arch == "arm64" else "x64"
+        filename = f"blender-{minor_version}-macos-{macos_arch}.dmg"
+        url = f"https://mirrors.ocf.berkeley.edu/blender/release/Blender{major_version}/{filename}"
+        file_ext = "dmg"
+    else:
+        raise Exception("Unsupported operating system")
+    
+    download_dir = Path.cwd() / "../downloads"
+    download_dir.mkdir(parents=True, exist_ok=True)
+    
+    print(f"Downloading Blender from {url}")
+    # Download the file
+    with httpx.Client() as client:
+        response = client.get(url)
+        if response.status_code == 200:
+            with open(download_dir / filename, 'wb') as file:
+                file.write(response.content)
+        else:
+            raise Exception(f"Failed to download Blender. Status code: {response.status_code}")
 
-# get script directory
+    print(f"Downloaded Blender to {download_dir / filename}")
+
+    bin_dir = Path.cwd() / "../blender-bin"
+    bin_dir.mkdir(parents=True, exist_ok=True)
+    # empty the bin directory
+    for file in bin_dir.glob("*"):
+        if file.is_file():
+            file.unlink()
+        else:
+            shutil.rmtree(file)
+    # Extract the file
+    if file_ext == "tar.xz":
+        with tarfile.open(download_dir / filename, "r:xz") as tar:
+            tar.extractall(bin)
+    elif file_ext == "zip":
+        with zipfile.ZipFile(download_dir / filename, 'r') as zip_ref:
+            zip_ref.extractall(bin_dir)
+    elif file_ext == "dmg":
+        with dmgextractor.DMGExtractor(download_dir / filename) as extractor:
+            extractor.extractall(bin_dir)
+    print(f"Extracted Blender to {bin_dir}")
+
 
 @app.command()
 def publish_github(tag: str, wheel_dir: Path):
@@ -152,7 +218,7 @@ def check_new_tag(tag: str = None):
         current_tag = ""
         tag_data = {}
     
-    if (selected_tag == current_tag) and (tag is not None):
+    if (selected_tag == current_tag) and (tag is None):
         # If the tag is the same as the current tag, and no specific tag was provided, do nothing
         print(f"Tag '{selected_tag}' is already checked out.")
         return False
@@ -178,7 +244,10 @@ def check_new_tag(tag: str = None):
         #./blender --background --factory-startup -noaudio --python ../blender-git/doc/python_api/sphinx_doc_gen.py -- --output=../python_api
         python_api_dir = Path.cwd() / "../python_api"
 
-        blender_binary = "/Applications/Blender.app/Contents/MacOS/Blender"
+        download_blender(selected_tag)
+
+        blender_binary = Path.cwd() / "../blender-bin/Blender.app/Contents/MacOS/Blender"
+
         # build the python api docs
         subprocess.run([blender_binary, "--background", "--factory-startup", "-noaudio", "--python", blender_repo_dir / "doc/python_api/sphinx_doc_gen.py", "--", f"--output={python_api_dir}"])
         build_dir = Path.cwd() / "../build_darwin_bpy"
@@ -193,7 +262,10 @@ def check_new_tag(tag: str = None):
        
 
         subprocess.run(["pip", "install", "-U", "pip", "setuptools", "wheel"])
-        subprocess.run(["python", blender_repo_dir / "build_files/utils/make_bpy_wheel.py", build_dir / "bin/"])
+        make_script = Path.cwd() / "../blender/build_files/utils/make_bpy_wheel.py"
+
+        shutil.copy2(Path.cwd() / "make_bpy_wheel.py", make_script )
+        subprocess.run(["python", make_script, build_dir / "bin/"])
 
         # Get the wheel file
         bin_path = build_dir / "bin"
