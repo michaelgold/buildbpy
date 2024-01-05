@@ -52,12 +52,6 @@ jobs:
             echo "Building for Python 3.11.6"
           fi
 
-      # - name: Build for Windows
-      #   if: ${{ steps.check.outputs.new_tag == 'true' || steps.check.outputs.new_commit == 'true' }}
-      #   uses: ./.github/actions/build_windows@main
-      #   with:
-      #     tag: ${{ steps.check.outputs.tag_input }}
-      #     python_version: ${{ steps.check.outputs.python_version }}
 
   generate-stubs:
     needs: check-version
