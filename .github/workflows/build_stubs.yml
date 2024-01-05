@@ -34,9 +34,9 @@ jobs:
           elif [[ "${{ steps.check.outputs.new_tag }}" == 'true' ]]; then
             echo "tag_input=${{ steps.check.outputs.latest_tag }}" >> $GITHUB_OUTPUT
             echo "Building for ${{ steps.check.outputs.latest_tag }}"
-          elif [[ "${{ steps.check.outputs.new_commit }}" == 'true' ]]; then
-            echo "tag_input=main" >> $GITHUB_OUTPUT
-            echo "Building for main"
+          # elif [[ "${{ steps.check.outputs.new_commit }}" == 'true' ]]; then
+          #   echo "tag_input=main" >> $GITHUB_OUTPUT
+          #   echo "Building for main"
           fi
         
 
