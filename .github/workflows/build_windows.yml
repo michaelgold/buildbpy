@@ -246,7 +246,7 @@ jobs:
         with:
           python-version: ${{ env.PYTHON_VERSION }}
 
-      
+
       - name: Set Python Path and Run make.bat
         run: |
           set Python=C:\hostedtoolcache\windows\Python\${{ env.PYTHON_VERSION }}\x64\python.exe
@@ -298,6 +298,7 @@ jobs:
           key: ${{ runner.os }}-blender-deps-${{ github.sha }}
           restore-keys: |
             ${{ runner.os }}-blender-deps-
+
       - name: Cache build files (for testing only)
         uses: actions/cache@v2
         with:
@@ -306,6 +307,7 @@ jobs:
           key: ${{ runner.os }}-blender-build-${{ github.sha }}
           restore-keys: |
             ${{ runner.os }}-blender-build-
+
       - name: download svn librares
         run: |
           if [ ! -d "./lib" ]; then
@@ -315,6 +317,12 @@ jobs:
           fi
         shell: bash
 
+      - name: SVN Cleanup (Preemptive)
+        run: |
+          svn cleanup D:/a/bpy/bpy/blender/../lib/assets
+          svn cleanup D:/a/bpy/bpy/blender/../lib/win64_vc15
+
+      
 
       # - name: Set Python Path
       #   run: |
