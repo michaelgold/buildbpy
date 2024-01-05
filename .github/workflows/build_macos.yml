@@ -142,7 +142,7 @@ jobs:
       - name: Make Wheel
         run: |
           pip install -U pip setuptools wheel
-          python ./blender/build_files/utils/make_bpy_wheel.py ./build_darwin_bpy/bin/
+          python ./workspace/make_bpy_wheel.py ./build_darwin_bpy/bin/
 
       # - name: Upload Wheel as Artifact
       #   uses: actions/upload-artifact@v2
