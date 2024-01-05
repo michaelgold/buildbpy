@@ -39,10 +39,10 @@ jobs:
         run: |
           if [ "${{ github.event.inputs.tag }}" == "" ]; then
             echo "Using the latest tag."
-            echo "::set-output name=tag::$(git describe --tags `git rev-list --tags --max-count=1`)"
+            echo "tag=$(git describe --tags `git rev-list --tags --max-count=1`)" >> $GITHUB_OUTPUT
           else
             echo "Using specified tag: ${{ github.event.inputs.tag }}"
-            echo "::set-output name=tag::${{ github.event.inputs.tag }}"
+            echo "tag=${{ github.event.inputs.tag }}" >> $GITHUB_OUTPUT
           fi
 
       - name: Download assets from the release
