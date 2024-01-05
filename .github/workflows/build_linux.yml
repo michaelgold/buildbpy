@@ -106,12 +106,17 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-blender-lib-
 
-      - name: Get dependencies
+      - name: Install Linux Dependencies
         run: |
-          echo "Building bpy for Linux with tag ${{ env.TAG }}"
+
           sudo apt update
           sudo apt-get install -y build-essential git subversion cmake libx11-dev libxxf86vm-dev libxcursor-dev libxi-dev libxrandr-dev libxinerama-dev libegl-dev
           sudo apt-get install -y libwayland-dev wayland-protocols libxkbcommon-dev libdbus-1-dev linux-libc-dev
+          echo "Running install_linux_packages.py"
+          cd ./blender
+          sudo python ./build_files/build_environment/install_linux_packages.py
+
+        - name: Download blender precompiled libraries
           if [ ! -d "./lib" ]; then
             mkdir ./lib
             cd ./lib
@@ -146,6 +151,7 @@ jobs:
 
       - name: Build Blender
         run: |
+          echo "Building bpy for Linux with tag ${{ env.TAG }}"
           cd ./blender
           make update
           make bpy
