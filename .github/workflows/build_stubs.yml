@@ -1,5 +1,4 @@
-name: Build All Platforms
-
+name: Build Stubs
 on:
   schedule:
     - cron: '0 0 * * *'  # Runs at midnight every day; adjust as necessary
