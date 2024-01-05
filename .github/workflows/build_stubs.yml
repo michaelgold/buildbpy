@@ -57,6 +57,6 @@ jobs:
     if: ${{ needs.check-version.outputs.tag_input != '' }}
     uses: ./.github/workflows/generate_stubs.yml
     with:
-      tag: ${{ needs.check-version.outputs.tag_input }}
+      tag: ${{ needs.check-version.outputs.tag_input }} 
       python_version: ${{ needs.check-version.outputs.python_version }}
 
