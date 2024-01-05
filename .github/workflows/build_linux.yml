@@ -116,7 +116,8 @@ jobs:
           cd ./blender
           sudo python ./build_files/build_environment/install_linux_packages.py
 
-        - name: Download blender precompiled libraries
+      - name: Download blender precompiled libraries
+        run: |
           if [ ! -d "./lib" ]; then
             mkdir ./lib
             cd ./lib
