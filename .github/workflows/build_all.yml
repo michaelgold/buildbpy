@@ -60,7 +60,7 @@ jobs:
       #     python_version: ${{ steps.check.outputs.python_version }}
 
   build-for-windows:
-    needs: [check-version, generate-stubs]
+    needs: [check-version]
     if: ${{ needs.check-version.outputs.tag_input != '' }}
     uses: ./.github/workflows/build_windows.yml
     with:
@@ -70,7 +70,7 @@ jobs:
       contents: write
 
   build-for-linux:
-    needs: [check-version, generate-stubs]
+    needs: [check-version]
     if: ${{ needs.check-version.outputs.tag_input != '' }}  
     uses: ./.github/workflows/build_linux.yml
     with:
@@ -80,7 +80,7 @@ jobs:
       contents: write
 
   build-for-macos:
-    needs: [check-version, generate-stubs]
+    needs: [check-version]
     if: ${{ needs.check-version.outputs.tag_input != '' }}  
     uses: ./.github/workflows/build_macos.yml
     with:
