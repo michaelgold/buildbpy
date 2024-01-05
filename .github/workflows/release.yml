@@ -50,7 +50,7 @@ jobs:
         with:
           repo: ${{ github.repository }}
           version: 'tags/${{ steps.get_tag.outputs.tag }}'
-          file: "*\\.whl"
+          file: "[^\\/]*\\.whl"
           regex: true
           target: ./dist
           token: ${{ secrets.GITHUB_TOKEN }}
