@@ -140,6 +140,19 @@ jobs:
       #     restore-keys: |
       #       ${{ runner.os }}-blender-build-
 
+
+      - name: Extract Blender Major Version Number
+        id: version_extraction
+        run: |
+          python -c "import sys; version_tag = sys.argv[1].lstrip('v'); parts = version_tag.split('.'); major_version = '.'.join(parts[:2]); print(f'MAJOR_VERSION={major_version}')" "${{ env.TAG }}" >> $GITHUB_ENV
+
+      - name: Download Precompiled Binaries for the release
+        run: |
+          mkdir ./lib
+          cd ./lib
+          svn checkout https://svn.blender.org/svnroot/bf-blender/tags/blender-${{ env.MAJOR_VERSION }}-release/lib/linux_x86_64_glibc_228/
+
+
       - name: Download Blender Python API Stubs
         id: download-artifact
         uses: dawidd6/action-download-artifact@v2
