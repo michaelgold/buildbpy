@@ -48,28 +48,39 @@ jobs:
           submodules: 'recursive' # Recursively checkout submodules
           path: blender 
 
-      - name: Set up Conda
-        uses: conda-incubator/setup-miniconda@v2
+      # - name: Set up Conda
+      #   uses: conda-incubator/setup-miniconda@v2
+      #   with:
+      #     auto-update-conda: true
+      #     python-version:  ${{ env.PYTHON_VERSION }}
+      #     # environment-file: environment.yml
+      #     activate-environment: bpy-env
+      #     channels: conda-forge
+
+      # - name: Install Conda Dependencies
+      #   run: |
+      #     conda install -y cuda-toolkit setuptools -c "nvidia/label/cuda-12.3.1" -c conda-forge
+      #     # find / -name nvcc
+
+      # - name: Add conda NVCC subdirectories to PATH
+      #   run: |
+      #     # for dir in $(find /home/runner/conda_pkgs_dir/ -mindepth 1 -type d -name *nvcc*); do
+      #     #   echo "$dir" >> $GITHUB_PATH
+      #     #   echo "$dir"
+
+      #     # done
+      #     echo "/usr/share/miniconda/bin" >> $GITHUB_PATH
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
         with:
-          auto-update-conda: true
-          python-version:  ${{ env.PYTHON_VERSION }}
-          # environment-file: environment.yml
-          activate-environment: bpy-env
-          channels: conda-forge
+          python-version: ${{ env.PYTHON_VERSION }}
 
-      - name: Install Conda Dependencies
-        run: |
-          conda install -y cuda-toolkit setuptools -c "nvidia/label/cuda-12.3.1" -c conda-forge
-          # find / -name nvcc
-
-      - name: Add conda NVCC subdirectories to PATH
-        run: |
-          # for dir in $(find /home/runner/conda_pkgs_dir/ -mindepth 1 -type d -name *nvcc*); do
-          #   echo "$dir" >> $GITHUB_PATH
-          #   echo "$dir"
-
-          # done
-          echo "/usr/share/miniconda/bin" >> $GITHUB_PATH
+      - name: Set up CUDA
+        uses: Jimver/cuda-toolkit@v0.2.11
+        id: cuda-toolkit
+        with:
+          cuda: '12.3.1'
 
       - name: Add CUDA compilation flags
         run: |
