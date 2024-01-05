@@ -3,3 +3,7 @@ lib
 build_darwin_bpy
 data.json
 python_api
+blender-bin/
+downloads
+.DS_Store
+*.pyc
