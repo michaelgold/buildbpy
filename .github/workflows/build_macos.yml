@@ -124,11 +124,11 @@ jobs:
 
 
       
-      # - name: Build Blender
-      #   run: |
-      #     cd ./blender
-      #     make update
-      #     make bpy
+      - name: Build Blender
+        run: |
+          cd ./blender
+          make update
+          make bpy
 
       # - name: Setup terminal session
       #   uses: fawazahmed0/action-debug@main
