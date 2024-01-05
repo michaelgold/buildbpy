@@ -102,9 +102,9 @@ jobs:
         with:
           path: |
             ./lib
-          key: ${{ runner.os }}-blender-deps-${{ github.sha }}
+          key: ${{ runner.os }}-blender-lib-${{ github.sha }}
           restore-keys: |
-            ${{ runner.os }}-blender-deps-
+            ${{ runner.os }}-blender-lib-
 
       - name: Get dependencies
         run: |
