@@ -178,38 +178,42 @@ jobs:
         run: |
           python -c "import sys; version_tag = sys.argv[1].lstrip('v'); parts = version_tag.split('.'); major_version = '.'.join(parts[:2]); print(f'MAJOR_VERSION={major_version}')" "${{ env.TAG }}" >> $GITHUB_ENV
 
-      - name: Download Precompiled Binaries for the release
-        run: |
-          mkdir ./lib
-          cd ./lib
-          svn checkout https://svn.blender.org/svnroot/bf-blender/tags/blender-${{ env.MAJOR_VERSION }}-release/lib/linux_x86_64_glibc_228/
+      # - name: Download Precompiled Binaries for the release
+      #   run: |
+      #     mkdir ./lib
+      #     cd ./lib
+      #     svn checkout https://svn.blender.org/svnroot/bf-blender/tags/blender-${{ env.MAJOR_VERSION }}-release/lib/linux_x86_64_glibc_228/
 
+
+      # # - name: Download Blender Python API Stubs
+      # #   id: download-artifact
+      # #   uses: dawidd6/action-download-artifact@v2
+      # #   with:
+      # #     workflow: build_all.yml
+      # #     # github_token: ${{secrets.GITHUB_TOKEN}}
+      # #     name: blender-python-api-stubs-${{ env.TAG }}
+      # #     path: ./build_linux_bpy/bin/
 
       # - name: Download Blender Python API Stubs
       #   id: download-artifact
-      #   uses: dawidd6/action-download-artifact@v2
+      #   uses: actions/download-artifact@v4
       #   with:
-      #     workflow: build_all.yml
-      #     # github_token: ${{secrets.GITHUB_TOKEN}}
       #     name: blender-python-api-stubs-${{ env.TAG }}
       #     path: ./build_linux_bpy/bin/
-
-      - name: Download Blender Python API Stubs
-        id: download-artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: blender-python-api-stubs-${{ env.TAG }}
-          path: ./build_linux_bpy/bin/
       
 
 
+      # - name: Build Blender
+      #   run: |
+      #     echo "Building bpy for Linux with tag ${{ env.TAG }}"
+      #     cd ./blender
+      #     make update
+      #     make bpy
+      #     # make bpy VERBOSE=1
+
       - name: Build Blender
         run: |
-          echo "Building bpy for Linux with tag ${{ env.TAG }}"
-          cd ./blender
-          make update
-          make bpy
-          # make bpy VERBOSE=1
+          python workspace/build_blender.py build ${{ env.TAG }} 
 
       # - name: Install Blender
       #   run: python -c "import shutil, site; shutil.copytree('./build_linux_bpy/bin/bpy', site.getsitepackages()[0] + '/bpy')"
@@ -236,16 +240,16 @@ jobs:
       #       credentials: "user:p@ss!"
 
 
-      - name: Make Wheel
-        run: |
-          # PYTHON3=$(which python3)
-          # PYTHON=$(which python)
+      # - name: Make Wheel
+      #   run: |
+      #     # PYTHON3=$(which python3)
+      #     # PYTHON=$(which python)
           
-          # sudo rm $PYTHON3 
-          # ln -s $PYTHON $PYTHON3
-          pip install -U pip setuptools wheel
-          cp ./workspace/make_bpy_wheel.py ./blender/build_files/utils/
-          python ./blender/build_files/utils/make_bpy_wheel.py ./build_linux_bpy/bin/
+      #     # sudo rm $PYTHON3 
+      #     # ln -s $PYTHON $PYTHON3
+      #     pip install -U pip setuptools wheel
+      #     cp ./workspace/make_bpy_wheel.py ./blender/build_files/utils/
+      #     python ./blender/build_files/utils/make_bpy_wheel.py ./build_linux_bpy/bin/
 
       # - name: Upload Wheel as Artifact
       #   uses: actions/upload-artifact@v2
@@ -254,12 +258,12 @@ jobs:
       #     path: |
       #       ./build_linux_bpy/bin/*.whl
 
-      - name: Install Dependencies
-        run: |
-          python -m pip install --upgrade pip ndg-httpsclient pyopenssl pyasn1
-          python -m pip install bpystubgen requests python-dotenv typer=='0.9.0' httpx
+      # - name: Install Dependencies
+      #   run: |
+      #     python -m pip install --upgrade pip ndg-httpsclient pyopenssl pyasn1
+      #     python -m pip install bpystubgen requests python-dotenv typer=='0.9.0' httpx
 
-      - name: Publish Wheel
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: python workspace/build_blender.py publish-github  ${{ env.TAG }} ./build_linux_bpy/bin
+      # - name: Publish Wheel
+      #   env:
+      #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      #   run: python workspace/build_blender.py publish-github  ${{ env.TAG }} ./build_linux_bpy/bin

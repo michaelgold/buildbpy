@@ -4,3 +4,4 @@ python-dotenv
 bpystubgen
 click
 httpx
+github

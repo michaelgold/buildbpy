@@ -258,7 +258,7 @@ def get_valid_tag(tag: str = None):
 
  
 @app.command()
-def build(tag: str = typer.Option(None, help="Specific tag to check out"), clear_lib: bool = typer.Option(False, help = "Clear the library dependencies"), clear_cache: bool = typer.Option(False, help = "Clear the cmake build cache"), upload: bool = typer.Option(False, help="Upload the wheel to GitHub Releases"), install: bool = typer.Option(False, help="Install the wheel using pip")):
+def build(tag: str = typer.Option(None, help="Specific tag to check out"), clear_lib: bool = typer.Option(False, help = "Clear the library dependencies"), clear_cache: bool = typer.Option(False, help = "Clear the cmake build cache"), publish: bool = typer.Option(False, help="Upload the wheel to GitHub Releases"), install: bool = typer.Option(False, help="Install the wheel using pip")):
     """
     This script checks for new tags in the Blender repository on GitHub.
     If a new tag is found, or a specific tag is provided, it updates the local repository and a data file.
@@ -300,7 +300,7 @@ def build(tag: str = typer.Option(None, help="Specific tag to check out"), clear
             svnpath = f"https://svn.blender.org/svnroot/bf-blender/tags/blender-${major_version}-release/lib/linux_x86_64_glibc_228/"
             subprocess.run(["svn", "checkout", svnpath, lib_dir])
     elif os_type == "Windows":
-        
+
         build_dir = Path.cwd() / "../build_windows_Bpy_x64_vc17_Release/bin/"
     elif os_type == "Darwin":  # MacOS
         build_dir = Path.cwd() / "../build_darwin_bpy"
@@ -338,7 +338,7 @@ def build(tag: str = typer.Option(None, help="Specific tag to check out"), clear
     shutil.copy2(Path.cwd() / "make_bpy_wheel.py", make_script )
     subprocess.run(["python", make_script, build_dir / "bin/"])
 
-    if upload:
+    if publish:
         publish_github(selected_tag, bin_path)
     
     if install:
