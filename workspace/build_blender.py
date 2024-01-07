@@ -232,7 +232,7 @@ def get_valid_tag(tag: str = None):
         selected_tag = tags[0]['name']
     else:
         print(f"Tag '{tag}' not found.")
-        return None
+        selected_tag = None
 
     # Load the current tag from the data file
     if data_file_path.exists():
@@ -245,14 +245,14 @@ def get_valid_tag(tag: str = None):
     
     if (selected_tag == current_tag) and (tag is None):
         # If the tag is the same as the current tag, and no specific tag was provided, do nothing
-        print(f"Tag '{selected_tag}' is already checked out.")
-        return None
+        print(f"Tag '{selected_tag}' has already been built. Specify a tag if you want to build it again.")
+        selected_tag = None
     
     return selected_tag, tag_data, data_file_path
 
  
 @app.command()
-def build(tag: str = typer.Option(None, help="Specific tag to check out"), clear_lib: bool = typer.Option(False, help = "Clear the library dependencies"), clear_cache: bool = typer.Option(False, help = "Clear the cmake build cache"), upload: bool = typer.Option(False, help="Upload the wheel to GitHub Releases")):
+def build(tag: str = typer.Option(None, help="Specific tag to check out"), clear_lib: bool = typer.Option(False, help = "Clear the library dependencies"), clear_cache: bool = typer.Option(False, help = "Clear the cmake build cache"), upload: bool = typer.Option(False, help="Upload the wheel to GitHub Releases"), install: bool = typer.Option(False, help="Install the wheel using pip")):
     """
     This script checks for new tags in the Blender repository on GitHub.
     If a new tag is found, or a specific tag is provided, it updates the local repository and a data file.
@@ -261,7 +261,7 @@ def build(tag: str = typer.Option(None, help="Specific tag to check out"), clear
 
     selected_tag, tag_data, data_file_path = get_valid_tag(tag)
     if not selected_tag:
-        raise ValueError("Invalid tag")
+        return False
 
     # If the tag is different from the current tag, or a specific tag was provided, update the local repository and build blender
     print(f"Tag found: {selected_tag}. Updating and checking out the repo.")
@@ -316,6 +316,11 @@ def build(tag: str = typer.Option(None, help="Specific tag to check out"), clear
 
     if upload:
         publish_github(selected_tag, bin_path)
+    
+    if install:
+        wheel_file = list(bin_path.glob("*.whl"))[0]
+        subprocess.run(["pip", "install", "--force-reinstall", "--no-deps",
+         wheel_file])
     
     # Update the data file
     tag_data["latest_tag"] = selected_tag
