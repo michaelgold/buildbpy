@@ -19,6 +19,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           ref: main
+          path: main
 
       - name: Set up Python
         uses: actions/setup-python@v2
@@ -33,17 +34,17 @@ jobs:
       - name: Generate Repository Index on Main
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: python ./workspace/generate_package_index.py ${{ secrets.GITHUB_TOKEN }} ${{ github.repository }}
+        run: python ./main/workspace/generate_package_index.py ${{ secrets.GITHUB_TOKEN }} ${{ github.repository }}
 
       - name: Checkout gh-pages branch
         uses: actions/checkout@v4
         with:
           ref: gh-pages
-          path: gh-pages
+          
 
       - name: Copy Index to gh-pages Branch
         run: |
-          cp -r docs/* gh-pages/
+          cp -r ./main/docs/* ./
       
       - name: Commit and Push to gh-pages
         uses: EndBug/add-and-commit@v7
@@ -54,4 +55,3 @@ jobs:
           add: '.'
           branch: 'gh-pages'
           token: ${{ secrets.GITHUB_TOKEN }}
-        working-directory: ./gh-pages
