@@ -44,8 +44,9 @@ jobs:
         with:
           ref: gh-pages
 
-      - name: Move docs down one level
+      - name: Replace docs with generated docs
         run: |
+          rm -rf ./docs
           mv ../docs .
 
       - name: Commit and Push to gh-pages
