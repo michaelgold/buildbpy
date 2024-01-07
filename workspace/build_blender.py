@@ -17,12 +17,17 @@ app = typer.Typer()
 # Load the environment variables
 dotenv.load_dotenv()
 
-def download_blender(tag: str = typer.Option(None, help="Specific Blender tag to download")):
-    
+def get_version_from_tag(tag: str):
+    """ Gets the major and minor version from the tag. """
     tag = tag.lstrip('v');
     parts = tag.split('.')
     major_version = '.'.join(parts[:2])
     minor_version = '.'.join(parts[:3])
+    return
+
+def download_blender(tag: str = typer.Option(None, help="Specific Blender tag to download")):
+    
+    major_version, minor_version = get_version_from_tag(tag)
     
     # Determine the OS type (Linux, Windows, MacOS)
     os_type = platform.system()
@@ -274,10 +279,20 @@ def build(tag: str = typer.Option(None, help="Specific tag to check out"), clear
     subprocess.run(["git", "fetch", "--all"], cwd=blender_repo_dir)
     subprocess.run(["git", "checkout", f"tags/{selected_tag}"], cwd=blender_repo_dir)
 
+    if clear_cache:
+        if build_dir.exists():
+            shutil.rmtree(build_dir)
+
+    lib_dir = Path.cwd() / "../lib"
+    if clear_lib:
+        if lib_dir.exists():
+            shutil.rmtree(lib_dir)
+
     os_type = platform.system()
 
     if os_type == "Linux":
         build_dir = Path.cwd() / "../build_linux_bpy"
+
     elif os_type == "Windows":
         build_dir = Path.cwd() / "../build_windows_Bpy_x64_vc17_Release/bin/"
     elif os_type == "Darwin":  # MacOS
@@ -285,17 +300,9 @@ def build(tag: str = typer.Option(None, help="Specific tag to check out"), clear
     else:
         raise Exception("Unsupported operating system")
     
-    if clear_cache:
-        if build_dir.exists():
-            shutil.rmtree(build_dir)
-
-    if clear_lib:
-        lib_dir = Path.cwd() / "../lib"
-        if lib_dir.exists():
-            shutil.rmtree(lib_dir)
 
     generate_stubs(blender_repo_dir, selected_tag, build_dir)
-    
+
 
     # Build blender
     subprocess.run(["make", "update"], cwd=blender_repo_dir)
