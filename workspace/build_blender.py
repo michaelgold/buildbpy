@@ -23,9 +23,10 @@ def get_version_from_tag(tag: str):
     parts = tag.split('.')
     major_version = '.'.join(parts[:2])
     minor_version = '.'.join(parts[:3])
-    return
+    return major_version, minor_version
 
 def download_blender(tag: str = typer.Option(None, help="Specific Blender tag to download")):
+    """ Downloads Blender Binary based on Tag."""
     
     major_version, minor_version = get_version_from_tag(tag)
     
