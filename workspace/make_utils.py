@@ -206,7 +206,7 @@ class BlenderVersion:
 
 
 def parse_blender_version() -> BlenderVersion:
-    blender_srcdir = Path(__file__).absolute().parent.parent.parent
+    blender_srcdir = Path.cwd() / "../blender"
     version_path = blender_srcdir / "source/blender/blenkernel/BKE_blender_version.h"
 
     version_info = {}

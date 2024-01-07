@@ -1,3 +1,4 @@
+from pathlib import Path
 import typer
 from github import Github
 
@@ -22,8 +23,13 @@ def main(token: str, repository: str):
 
     html_index += "</body></html>"
 
+    # Ensure the docs directory exists
+    docs_path = Path('docs')
+    docs_path.mkdir(parents=True, exist_ok=True)
+
     # Write the HTML index to a file
-    with open('docs/index.html', 'w') as file:
+    index_path = docs_path / 'index.html'
+    with index_path.open('w') as file:
         file.write(html_index)
 
     print("Package index generated successfully.")
