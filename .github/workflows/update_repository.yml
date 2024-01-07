@@ -54,4 +54,4 @@ jobs:
           add: '.'
           branch: 'gh-pages'
           token: ${{ secrets.GITHUB_TOKEN }}
-          working-directory: ./gh-pages
+        working-directory: ./gh-pages
