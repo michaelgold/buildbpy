@@ -274,7 +274,17 @@ def build(tag: str = typer.Option(None, help="Specific tag to check out"), clear
     subprocess.run(["git", "fetch", "--all"], cwd=blender_repo_dir)
     subprocess.run(["git", "checkout", f"tags/{selected_tag}"], cwd=blender_repo_dir)
 
-    build_dir = Path.cwd() / "../build_darwin_bpy"
+    os_type = platform.system()
+
+    if os_type == "Linux":
+        build_dir = Path.cwd() / "../build_linux_bpy"
+    elif os_type == "Windows":
+        build_dir = Path.cwd() / "../build_windows_Bpy_x64_vc17_Release/bin/"
+    elif os_type == "Darwin":  # MacOS
+        build_dir = Path.cwd() / "../build_darwin_bpy"
+    else:
+        raise Exception("Unsupported operating system")
+    
     if clear_cache:
         if build_dir.exists():
             shutil.rmtree(build_dir)
@@ -285,7 +295,7 @@ def build(tag: str = typer.Option(None, help="Specific tag to check out"), clear
             shutil.rmtree(lib_dir)
 
     generate_stubs(blender_repo_dir, selected_tag, build_dir)
-
+    
 
     # Build blender
     subprocess.run(["make", "update"], cwd=blender_repo_dir)
