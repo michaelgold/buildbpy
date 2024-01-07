@@ -236,6 +236,7 @@ jobs:
           # sudo rm $PYTHON3 
           # ln -s $PYTHON $PYTHON3
           pip install -U pip setuptools wheel
+          cp ./workspace/make_bpy_wheel.py ./blender/build_files/utils/
           python ./blender/build_files/utils/make_bpy_wheel.py ./build_linux_bpy/bin/
 
       # - name: Upload Wheel as Artifact
