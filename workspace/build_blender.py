@@ -235,7 +235,7 @@ def check_new_tag(tag: str = None):
 
         # Build blender
         subprocess.run(["make", "update"], cwd=blender_repo_dir)
-        # subprocess.run(["make", "bpy"], cwd=blender_repo_dir)
+        subprocess.run(["make", "bpy"], cwd=blender_repo_dir)
 
         # tag_parts = selected_tag.split('.')
         # major_version = '.'.join(tag_parts[:2])
@@ -259,17 +259,24 @@ def check_new_tag(tag: str = None):
 
         # Make the wheel
 
+        # remove existing wheel files
+        bin_path = build_dir / "bin"
+        whl_files = list(bin_path.glob("*.whl"))
+        for file in whl_files:
+            file.unlink()
        
-
+        # build the wheel
         subprocess.run(["pip", "install", "-U", "pip", "setuptools", "wheel"])
         make_script = Path.cwd() / "../blender/build_files/utils/make_bpy_wheel.py"
 
+    
+
+
+        # Copy the make_bpy_wheel.py script to the build directory
         shutil.copy2(Path.cwd() / "make_bpy_wheel.py", make_script )
         subprocess.run(["python", make_script, build_dir / "bin/"])
 
-        # Get the wheel file
-        bin_path = build_dir / "bin"
-
+      
 
 
         publish_github(selected_tag, bin_path)
