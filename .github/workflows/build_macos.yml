@@ -112,18 +112,21 @@ jobs:
       #     path: ./build_darwin_bpy/bin/
 
       
+      # - name: Download Blender Python API Stubs
+      #   id: download-artifact
+      #   uses: dawidd6/action-download-artifact@v2
+      #   with:
+      #     workflow: build_all.yml 
+      #     # github_token: ${{secrets.GITHUB_TOKEN}}
+      #     name: blender-python-api-stubs-${{ env.TAG }}
+      #     path: ./build_darwin_bpy/bin/
+
       - name: Download Blender Python API Stubs
         id: download-artifact
-        uses: dawidd6/action-download-artifact@v2
+        uses: actions/download-artifact@v4
         with:
-          workflow: build_all.yml 
-          # github_token: ${{secrets.GITHUB_TOKEN}}
           name: blender-python-api-stubs-${{ env.TAG }}
           path: ./build_darwin_bpy/bin/
-
-        
-
-
 
       
       - name: Build Blender

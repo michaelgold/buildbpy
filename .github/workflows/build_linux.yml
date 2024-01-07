@@ -185,14 +185,22 @@ jobs:
           svn checkout https://svn.blender.org/svnroot/bf-blender/tags/blender-${{ env.MAJOR_VERSION }}-release/lib/linux_x86_64_glibc_228/
 
 
+      # - name: Download Blender Python API Stubs
+      #   id: download-artifact
+      #   uses: dawidd6/action-download-artifact@v2
+      #   with:
+      #     workflow: build_all.yml
+      #     # github_token: ${{secrets.GITHUB_TOKEN}}
+      #     name: blender-python-api-stubs-${{ env.TAG }}
+      #     path: ./build_linux_bpy/bin/
+
       - name: Download Blender Python API Stubs
         id: download-artifact
-        uses: dawidd6/action-download-artifact@v2
+        uses: actions/download-artifact@v4
         with:
-          workflow: build_all.yml
-          # github_token: ${{secrets.GITHUB_TOKEN}}
           name: blender-python-api-stubs-${{ env.TAG }}
           path: ./build_linux_bpy/bin/
+      
 
 
       - name: Build Blender
