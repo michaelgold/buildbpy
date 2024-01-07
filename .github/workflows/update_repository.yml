@@ -1,8 +1,10 @@
 name: Update Python Package Repository Index
 
 on:
+  schedule:
+    - cron: '30 23 * * *'  # Runs at midnight every day; adjust as necessary
   release:
-    types: [created, edited]
+    types: [created, edited, published]
   push:
     branches:
       - main

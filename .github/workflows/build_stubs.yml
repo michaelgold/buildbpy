@@ -1,7 +1,7 @@
 name: Build Stubs
 on:
   schedule:
-    - cron: '0 0 * * *'  # Runs at midnight every day; adjust as necessary
+    - cron: '0 20 * * *'  # Runs at midnight every day; adjust as necessary
   workflow_dispatch:
     inputs:
       tag:

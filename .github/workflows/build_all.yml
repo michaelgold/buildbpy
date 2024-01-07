@@ -2,7 +2,7 @@ name: Build All Platforms
 
 on:
   schedule:
-    - cron: '30 0 * * *'  # Runs at 12:30 AM every day; adjust as necessary
+    - cron: '30 20 * * *'  # Runs at 12:30 AM every day; adjust as necessary
   workflow_dispatch:
     inputs:
       tag:
