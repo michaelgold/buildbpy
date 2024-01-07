@@ -46,7 +46,6 @@ jobs:
           cp -r docs/* gh-pages/
       
       - name: Commit and Push to gh-pages
-        working-directory: ./gh-pages
         uses: EndBug/add-and-commit@v7
         with:
           author_name: GitHub Actions
@@ -55,3 +54,4 @@ jobs:
           add: '.'
           branch: 'gh-pages'
           token: ${{ secrets.GITHUB_TOKEN }}
+          working-directory: ./gh-pages
