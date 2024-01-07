@@ -218,7 +218,7 @@ def main() -> None:
     sys.argv = [sys.argv[0], "bdist_wheel"]
 
     setuptools.setup(
-        name="bpygold",
+        name="bpy",
         version=blender_version_str,
         install_requires=["cython", "numpy", "requests", "zstandard"],
         python_requires="==%d.%d.*" % (python_version_number[0], python_version_number[1]),
