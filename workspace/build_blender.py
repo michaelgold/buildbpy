@@ -290,11 +290,17 @@ def build(tag: str = typer.Option(None, help="Specific tag to check out"), clear
             shutil.rmtree(lib_dir)
 
     os_type = platform.system()
+    major_version, minor_version = get_version_from_tag(selected_tag)
 
     if os_type == "Linux":
         build_dir = Path.cwd() / "../build_linux_bpy"
-
+        # checkout libraries
+        if not lib_dir.exists():
+            lib_dir.mkdir()
+            svnpath = f"https://svn.blender.org/svnroot/bf-blender/tags/blender-${major_version}-release/lib/linux_x86_64_glibc_228/"
+            subprocess.run(["svn", "checkout", svnpath, lib_dir])
     elif os_type == "Windows":
+        
         build_dir = Path.cwd() / "../build_windows_Bpy_x64_vc17_Release/bin/"
     elif os_type == "Darwin":  # MacOS
         build_dir = Path.cwd() / "../build_darwin_bpy"
