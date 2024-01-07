@@ -213,7 +213,7 @@ jobs:
 
       - name: Build Blender
         run: |
-          python workspace/build_blender.py build ${{ env.TAG }} 
+          python workspace/build_blender.py build ${{ env.TAG }} --install --publish
 
       # - name: Install Blender
       #   run: python -c "import shutil, site; shutil.copytree('./build_linux_bpy/bin/bpy', site.getsitepackages()[0] + '/bpy')"
