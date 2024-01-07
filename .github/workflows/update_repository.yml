@@ -34,6 +34,10 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: python ./workspace/generate_package_index.py ${{ secrets.GITHUB_TOKEN }} ${{ github.repository }}
 
+      - name: List branches
+        run: git branch -r
+
+        
       - name: Commit and Push
         uses: EndBug/add-and-commit@v7
         with:
