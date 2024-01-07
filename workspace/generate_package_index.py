@@ -34,7 +34,8 @@ def main(token: str, repository: str, project_name: str):
     create_project_index_page(releases, project_name, docs_path)
 
     # Generate root index.html content
-    root_html_content = f"<html><body>\n<a href='/{project_name}/'>{project_name}</a>\n</body></html>"
+    repo_name = repository.split('/')[-1]  # Extract repo name from the full repository string
+    root_html_content = f"<html><body>\n<a href='/{repo_name}/{project_name}/'>{project_name}</a>\n</body></html>"
 
     # Write the root index.html content
     root_index_path = docs_path / 'index.html'
