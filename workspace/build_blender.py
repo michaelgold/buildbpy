@@ -16,9 +16,6 @@ from utils import dmgextractor
 app = typer.Typer()
 # Load the environment variables
 dotenv.load_dotenv()
-github_token = os.getenv("GITHUB_TOKEN")
-if not github_token:
-    raise ValueError("GitHub token not found in environment variables.")
 
 def download_blender(tag: str = typer.Option(None, help="Specific Blender tag to download")):
     
@@ -88,6 +85,9 @@ def download_blender(tag: str = typer.Option(None, help="Specific Blender tag to
 @app.command()
 def publish_github(tag: str, wheel_dir: Path):
     """ Publishes the wheel file to GitHub Releases. """
+    github_token = os.getenv("GITHUB_TOKEN")
+    if not github_token:
+        raise ValueError("GitHub token not found in environment variables.")
     headers = {
     "Authorization": f"Bearer {github_token}",
     "Accept": "application/vnd.github.v3+json"
@@ -191,7 +191,33 @@ def publish_github(tag: str, wheel_dir: Path):
 
     # print("File uploaded successfully.")
 
-def check_new_tag(tag: str = None):
+@app.command()
+def generate_stubs(blender_repo_dir: Path, selected_tag: str, build_dir: Path):
+    """ Generates stub files for the bpy module. """
+    download_blender(selected_tag)
+    # Determine the OS type (Linux, Windows, MacOS)
+    os_type = platform.system()
+
+    if os_type == "Linux":
+        blender_binary = Path.cwd() / "../blender-bin/blender"
+    elif os_type == "Windows":
+        blender_binary = Path.cwd() / "../blender-bin/blender.exe"
+    elif os_type == "Darwin":  # MacOS
+        blender_binary = Path.cwd() / "../blender-bin/Blender.app/Contents/MacOS/Blender"
+    else:
+        raise Exception("Unsupported operating system")
+        
+    python_api_dir = Path.cwd() / "../python_api"
+    
+    # build the python api docs
+    subprocess.run([blender_binary, "--background", "--factory-startup", "-noaudio", "--python", blender_repo_dir / "doc/python_api/sphinx_doc_gen.py", "--", f"--output={python_api_dir}"])
+    
+
+    # build the python api stubs in the build directory (for the wheel)
+    subprocess.run(["python", "-m", "bpystubgen", python_api_dir / "sphinx-in", build_dir / "bin"])
+
+def get_valid_tag(tag: str = None):
+    """ Validates tag is in the Blender repository. """
     client = httpx.Client()
     repo_url = "https://api.github.com/repos/blender/blender"
     data_file_path: Path = Path.cwd() / "data.json"
@@ -206,7 +232,7 @@ def check_new_tag(tag: str = None):
         selected_tag = tags[0]['name']
     else:
         print(f"Tag '{tag}' not found.")
-        return False
+        return None
 
     # Load the current tag from the data file
     if data_file_path.exists():
@@ -220,85 +246,85 @@ def check_new_tag(tag: str = None):
     if (selected_tag == current_tag) and (tag is None):
         # If the tag is the same as the current tag, and no specific tag was provided, do nothing
         print(f"Tag '{selected_tag}' is already checked out.")
-        return False
-
-    else:
-        # If the tag is different from the current tag, or a specific tag was provided, update the local repository and build blender
-        print(f"Tag found: {selected_tag}. Updating and checking out the repo.")
-
-        # Clone the repository and checkout the selected tag
-        # subprocess.run(["git", "clone", "https://github.com/blender/blender.git"])
-        blender_repo_dir = Path.cwd() / "../blender"
-        subprocess.run(["git", "fetch", "--all"], cwd=blender_repo_dir)
-        subprocess.run(["git", "checkout", f"tags/{selected_tag}"], cwd=blender_repo_dir)
-
-        # Build blender
-        subprocess.run(["make", "update"], cwd=blender_repo_dir)
-        subprocess.run(["make", "bpy"], cwd=blender_repo_dir)
-
-        # tag_parts = selected_tag.split('.')
-        # major_version = '.'.join(tag_parts[:2])
-        # minor_version = '.'.join(tag_parts[:3])
-
-        #./blender --background --factory-startup -noaudio --python ../blender-git/doc/python_api/sphinx_doc_gen.py -- --output=../python_api
-        python_api_dir = Path.cwd() / "../python_api"
-
-        download_blender(selected_tag)
-
-        blender_binary = Path.cwd() / "../blender-bin/Blender.app/Contents/MacOS/Blender"
-
-        # build the python api docs
-        subprocess.run([blender_binary, "--background", "--factory-startup", "-noaudio", "--python", blender_repo_dir / "doc/python_api/sphinx_doc_gen.py", "--", f"--output={python_api_dir}"])
-        build_dir = Path.cwd() / "../build_darwin_bpy"
-
-        # build the python api stubs in the build directory (for the wheel)
-        subprocess.run(["python", "-m", "bpystubgen", python_api_dir / "sphinx-in", build_dir / "bin"])
-
-
-
-        # Make the wheel
-
-        # remove existing wheel files
-        bin_path = build_dir / "bin"
-        whl_files = list(bin_path.glob("*.whl"))
-        for file in whl_files:
-            file.unlink()
-       
-        # build the wheel
-        subprocess.run(["pip", "install", "-U", "pip", "setuptools", "wheel"])
-        make_script = Path.cwd() / "../blender/build_files/utils/make_bpy_wheel.py"
-
+        return None
     
+    return selected_tag, tag_data, data_file_path
 
-
-        # Copy the make_bpy_wheel.py script to the build directory
-        shutil.copy2(Path.cwd() / "make_bpy_wheel.py", make_script )
-        subprocess.run(["python", make_script, build_dir / "bin/"])
-
-      
-
-
-        publish_github(selected_tag, bin_path)
-        
-
-
-
-
-        # Update the data file
-        tag_data["latest_tag"] = selected_tag
-        with open(data_file_path, 'w') as file:
-            json.dump(tag_data, file)
-        
-        return True
-   
+ 
 @app.command()
-def build(tag: str = typer.Option(None, help="Specific tag to check out")):
+def build(tag: str = typer.Option(None, help="Specific tag to check out"), clear_lib: bool = typer.Option(False, help = "Clear the library dependencies"), clear_cache: bool = typer.Option(False, help = "Clear the cmake build cache"), upload: bool = typer.Option(False, help="Upload the wheel to GitHub Releases")):
     """
     This script checks for new tags in the Blender repository on GitHub.
     If a new tag is found, or a specific tag is provided, it updates the local repository and a data file.
     """
     os.chdir(Path(__file__).parent)
-    check_new_tag(tag)
+
+    selected_tag, tag_data, data_file_path = get_valid_tag(tag)
+    if not selected_tag:
+        raise ValueError("Invalid tag")
+
+    # If the tag is different from the current tag, or a specific tag was provided, update the local repository and build blender
+    print(f"Tag found: {selected_tag}. Updating and checking out the repo.")
+
+    # Clone the repository and checkout the selected tag
+    # 
+    blender_repo_dir = Path.cwd() / "../blender"
+    if not blender_repo_dir.exists():
+        subprocess.run(["git", "clone", "https://github.com/blender/blender.git"], cwd=Path.cwd() / "..")
+    subprocess.run(["git", "fetch", "--all"], cwd=blender_repo_dir)
+    subprocess.run(["git", "checkout", f"tags/{selected_tag}"], cwd=blender_repo_dir)
+
+    build_dir = Path.cwd() / "../build_darwin_bpy"
+    if clear_cache:
+        if build_dir.exists():
+            shutil.rmtree(build_dir)
+
+    if clear_lib:
+        lib_dir = Path.cwd() / "../lib"
+        if lib_dir.exists():
+            shutil.rmtree(lib_dir)
+
+    generate_stubs(blender_repo_dir, selected_tag, build_dir)
+
+
+    # Build blender
+    subprocess.run(["make", "update"], cwd=blender_repo_dir)
+    subprocess.run(["make", "bpy"], cwd=blender_repo_dir)
+
+    # tag_parts = selected_tag.split('.')
+    # major_version = '.'.join(tag_parts[:2])
+    # minor_version = '.'.join(tag_parts[:3])
+
+    #./blender --background --factory-startup -noaudio --python ../blender-git/doc/python_api/sphinx_doc_gen.py -- --output=../python_api
+    
+  
+    # Make the wheel
+
+    # remove existing wheel files
+    bin_path = build_dir / "bin"
+    whl_files = list(bin_path.glob("*.whl"))
+    for file in whl_files:
+        file.unlink()
+    
+    # build the wheel
+    subprocess.run(["pip", "install", "-U", "pip", "setuptools", "wheel"])
+    make_script = Path.cwd() / "../blender/build_files/utils/make_bpy_wheel.py"
+
+    # Copy the make_bpy_wheel.py script to the build directory
+    shutil.copy2(Path.cwd() / "make_bpy_wheel.py", make_script )
+    subprocess.run(["python", make_script, build_dir / "bin/"])
+
+    if upload:
+        publish_github(selected_tag, bin_path)
+    
+    # Update the data file
+    tag_data["latest_tag"] = selected_tag
+    with open(data_file_path, 'w') as file:
+        json.dump(tag_data, file)
+    
+    return True
+
+
 
 if __name__ == "__main__":
     app()
