@@ -36,10 +36,8 @@ jobs:
 
 
       - name: Checkout gh-pages
-        uses: actions/checkout@v4
-        with:
-          ref: gh-pages
-
+        run: git checkout -b gh-pages
+        
       - name: List branches
         run: git branch -r
 
