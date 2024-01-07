@@ -146,9 +146,8 @@ def publish_github(tag: str, wheel_dir: Path):
         print("Creating release.")
         # Step 1: Create the release
 
-        release_name = f"gold-bpy-{selected_tag}"
+        release_name = f"bpygold-{selected_tag}"
         release_body = f"Blender Python API for Blender {selected_tag}"
-        release_tag = f"gold-bpy-{selected_tag}"
         release_url = f"https://api.github.com/repos/michaelgold/bpy/releases"
         release_data = {
             "tag_name": selected_tag,
