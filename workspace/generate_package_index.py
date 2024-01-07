@@ -21,7 +21,7 @@ def main(token: str, repository: str):
         package_links.extend(create_package_links(release))
 
     # Generate HTML content
-    html_content = "<html><body>\n" + "".join(package_links) + "</body></html>"
+    html_content = "<html><body>\n<h1>Links for bpygold</h1>\n" + "".join(package_links) + "</body></html>"
 
     # Ensure the docs directory exists
     docs_path = Path('docs')
