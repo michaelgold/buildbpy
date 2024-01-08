@@ -277,6 +277,11 @@ jobs:
           nvcc --version
           "set(WITH_CYCLES_CUDA_BINARIES   ON  CACHE BOOL '' FORCE)" | Out-File -Append -FilePath ./blender/build_files/cmake/config/bpy_module.cmake
 
+      - name: Install Python Dependencies
+        run: |
+          pip install -r ./requirements.txt
+
+
       - name: Build Blender
         run: |
           python workspace/build_blender.py build --tag ${{ env.TAG }} --install --publish
