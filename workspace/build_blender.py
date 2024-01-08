@@ -301,7 +301,7 @@ def build(tag: str = typer.Option(None, help="Specific tag to check out"), clear
         if not lib_dir.exists():
             lib_dir.mkdir()
             svnpath = f"https://svn.blender.org/svnroot/bf-blender/tags/blender-{major_version}-release/lib/linux_x86_64_glibc_228/"
-            subprocess.run(["svn", "checkout", svnpath] cwd=lib_dir)
+            subprocess.run(["svn", "checkout", svnpath], cwd=lib_dir)
     elif os_type == "Windows":
 
         build_dir = Path.cwd() / "../build_windows_Bpy_x64_vc17_Release/bin/"
