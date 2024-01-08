@@ -273,10 +273,10 @@ jobs:
       - name: Install CMake
         run: |
           choco install cmake --installargs 'ADD_CMAKE_TO_PATH=System'
-      - name: Add CUDA compilation flags
-        run: |
-          nvcc --version
-          "set(WITH_CYCLES_CUDA_BINARIES   ON  CACHE BOOL '' FORCE)" | Out-File -Append -FilePath ./blender/build_files/cmake/config/bpy_module.cmake
+      # - name: Add CUDA compilation flags
+      #   run: |
+      #     nvcc --version
+      #     "set(WITH_CYCLES_CUDA_BINARIES   ON  CACHE BOOL '' FORCE)" | Out-File -Append -FilePath ./blender/build_files/cmake/config/bpy_module.cmake
 
       - name: Install Python Dependencies
         run: |
