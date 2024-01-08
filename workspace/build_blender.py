@@ -305,9 +305,11 @@ def build(tag: str = typer.Option(None, help="Specific tag to check out"), clear
             subprocess.run(["svn", "checkout", svnpath], cwd=lib_dir)
     elif os_type == "Windows":
         build_dir = Path.cwd() / "../build_windows_Bpy_x64_vc17_Release/bin/"
-        svnpath = f"https://svn.blender.org/svnroot/bf-blender/tags/blender-{major_version}-release/lib/win64_vc15"
-        print(f"Checking out libraries from {svnpath}")
-        subprocess.run(["svn", "checkout", svnpath], cwd=lib_dir)
+        if not lib_dir.exists():
+            lib_dir.mkdir()
+            svnpath = f"https://svn.blender.org/svnroot/bf-blender/tags/blender-{major_version}-release/lib/win64_vc15"
+            print(f"Checking out libraries from {svnpath}")
+            subprocess.run(["svn", "checkout", svnpath], cwd=lib_dir)
     elif os_type == "Darwin":  # MacOS
         build_dir = Path.cwd() / "../build_darwin_bpy"
     else:
