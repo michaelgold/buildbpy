@@ -18,6 +18,7 @@ from github import Github
 app = typer.Typer()
 # Load the environment variables
 dotenv.load_dotenv()
+script_dir = Path(__file__).parent
 
 @app.command()
 def get_version_from_source(blender_source_dir: str = typer.Option(None, help="Path to the Blender source directory")):
@@ -25,7 +26,7 @@ def get_version_from_source(blender_source_dir: str = typer.Option(None, help="P
     if blender_source_dir:
         blender_source_dir = Path(blender_source_dir)
     else:
-        blender_source_dir = Path.cwd() / "blender"
+        blender_source_dir = script_dir / "../blender"
     version = make_utils.parse_blender_version(blender_source_dir)
     print(f"Blender version: {version}")
     return version
@@ -113,7 +114,7 @@ def download_blender(major_version: str, minor_version: str, release_cycle: str,
     filename = f"blender-{minor_version}{release_suffix}-{system_type}{arch}{file_suffix}.{file_ext}"
     url = f"{url_root}/{filename}"
     
-    download_dir = Path.cwd() / "../downloads"
+    download_dir = script_dir / "../downloads"
     download_dir.mkdir(parents=True, exist_ok=True)
     
     print(f"Downloading Blender from {url}")
@@ -128,7 +129,7 @@ def download_blender(major_version: str, minor_version: str, release_cycle: str,
 
     print(f"Downloaded Blender to {download_dir / filename}")
 
-    bin_dir = Path.cwd() / "../blender-bin"
+    bin_dir = script_dir / "../blender-bin"
     bin_dir.mkdir(parents=True, exist_ok=True)
     # empty the bin directory
     for file in bin_dir.glob("*"):
@@ -265,22 +266,22 @@ def generate_stubs(blender_repo_dir: Path, major_version: str, minor_version: st
     os_type = platform.system()
 
     if os_type == "Linux":
-        blender_bin_dir = Path.cwd() / "../blender-bin/"
+        blender_bin_dir = script_dir / "../blender-bin/"
         print(f"contents of blender-bin: {list(blender_bin_dir.glob('*'))}")
         blender_dir = list(blender_bin_dir.glob("blender-*"))[0]
         blender_binary = blender_dir / "blender"
     elif os_type == "Windows":
-        blender_bin_dir = Path.cwd() / "../blender-bin/"
+        blender_bin_dir = script_dir / "../blender-bin/"
         print(f"contents of blender-bin: {list(blender_bin_dir.glob('*'))}")
         blender_dir = list(blender_bin_dir.glob("blender-*"))[0]
         print(f"contents of blender_dir: {list(blender_dir.glob('*'))}")
         blender_binary = blender_dir / "blender.exe"
     elif os_type == "Darwin":  # MacOS
-        blender_binary = Path.cwd() / "../blender-bin/Blender.app/Contents/MacOS/Blender"
+        blender_binary = script_dir / "../blender-bin/Blender.app/Contents/MacOS/Blender"
     else:
         raise Exception("Unsupported operating system")
         
-    python_api_dir = Path.cwd() / "../python_api"
+    python_api_dir =  script_dir / "../python_api"
     
     # build the python api docs
     subprocess.run([blender_binary, "--background", "--factory-startup", "-noaudio", "--python", blender_repo_dir / "doc/python_api/sphinx_doc_gen.py", "--", f"--output={python_api_dir}"])
@@ -293,7 +294,7 @@ def get_valid_tag(tag: str = None):
     """ Validates tag is in the Blender repository. """
     client = httpx.Client()
     repo_url = "https://api.github.com/repos/blender/blender"
-    data_file_path: Path = Path.cwd() / "data.json"
+    data_file_path: Path = script_dir / "data.json"
     # Get the tags from the GitHub API
     response = client.get(f"{repo_url}/tags")
     tags = response.json()
@@ -325,7 +326,7 @@ def get_valid_tag(tag: str = None):
 
  
 @app.command()
-def build(tag: str = typer.Option(None, help="Specific tag to build"), commit: str = typer.Option(None, help="Specific commit to build"), branch: str = typer.Option(None, help="Specific branch to build"), clear_lib: bool = typer.Option(False, help = "Clear the library dependencies"), clear_cache: bool = typer.Option(False, help = "Clear the cmake build cache"), publish: bool = typer.Option(False, help="Upload the wheel to GitHub Releases"), install: bool = typer.Option(False, help="Install the wheel using pip"), publish_repo: str = typer.Option("michaelgold/buildbpy", help="GitHub repository to publish the wheel to")):
+def build(tag: str = typer.Option(None, help="Specific tag to build"), commit: str = typer.Option(None, help="Specific commit to build"), branch: str = typer.Option(None, help="Specific branch to build"), clear_lib: bool = typer.Option(False, help = "Clear the library dependencies"), clear_cache: bool = typer.Option(False, help = "Clear the cmake build cache"), publish: bool = typer.Option(False, help="Upload the wheel to GitHub Releases"), install: bool = typer.Option(False, help="Install the wheel using pip"), publish_repo: str = typer.Option("michaelgold/buildbpy", help="GitHub repository to publish the wheel to"), blender_source_dir: str = typer.Option(None, help="Path to the Blender source directory")):
     """
     This script checks for new tags in the Blender repository on GitHub.
     If a new tag is found, or a specific tag is provided, it updates the local repository and a data file.
@@ -361,9 +362,12 @@ def build(tag: str = typer.Option(None, help="Specific tag to build"), commit: s
 
     # Clone the repository and checkout the selected tag
     # 
-    blender_repo_dir = Path.cwd() / "../blender"
+    if blender_source_dir:
+        blender_repo_dir = Path(blender_source_dir)
+    else:
+        blender_repo_dir = script_dir / "../blender"
     if not blender_repo_dir.exists():
-        subprocess.run(["git", "clone", "--recursive", "https://github.com/blender/blender.git"], cwd=Path.cwd() / "..")
+        subprocess.run(["git", "clone", "--recursive", "https://github.com/blender/blender.git"], cwd=script_dir / "..")
     subprocess.run(["git", "fetch", "--all"], cwd=blender_repo_dir)
     if selected_tag:
         subprocess.run(["git", "checkout", f"tags/{selected_tag}"], cwd=blender_repo_dir)
@@ -376,45 +380,47 @@ def build(tag: str = typer.Option(None, help="Specific tag to build"), commit: s
         if build_dir.exists():
             shutil.rmtree(build_dir)
 
-    lib_dir = Path.cwd() / "../lib"
+    lib_dir = script_dir / "../lib"
     if clear_lib:
         if lib_dir.exists():
             shutil.rmtree(lib_dir)
 
     os_type = platform.system()
     major_version, minor_version, release_cycle = get_version( blender_repo_dir)
+    make_command = blender_repo_dir / "make.bat" if os_type == "Windows" else "make"
 
 
     if os_type == "Linux":
-        build_dir = Path.cwd() / "../build_linux_bpy"
+        build_dir = script_dir / "../../build_linux_bpy"
         # checkout libraries
         if not lib_dir.exists():
+            print(f"Installing libraries to: {lib_dir}")
             lib_dir.mkdir()
             svnpath = f"https://svn.blender.org/svnroot/bf-blender/tags/blender-{major_version}-release/lib/linux_x86_64_glibc_228/"
             print(f"Checking out libraries from {svnpath}")
             subprocess.run(["svn", "checkout", svnpath], cwd=lib_dir)
     elif os_type == "Windows":
-        build_dir = Path.cwd() / "../build_windows_Bpy_x64_vc17_Release/bin/"
-        generate_stubs(blender_repo_dir, major_version, minor_version, release_cycle, commit_hash, build_dir)
+        build_dir = script_dir / "../../build_windows_Bpy_x64_vc17_Release/bin/"
         if not lib_dir.exists():
+            print(f"Installing libraries to: {lib_dir}")
             lib_dir.mkdir()
             svnpath = f"https://svn.blender.org/svnroot/bf-blender/tags/blender-{major_version}-release/lib/win64_vc15"
             print(f"Checking out libraries from {svnpath}")
             subprocess.run(["svn", "checkout", svnpath], cwd=lib_dir)
     elif os_type == "Darwin":  # MacOS
-        build_dir = Path.cwd() / "../build_darwin_bpy"
+        build_dir = script_dir / "../../build_darwin_bpy"
     else:
         raise Exception("Unsupported operating system")
     
 
   
-
+    generate_stubs(blender_repo_dir, major_version, minor_version, release_cycle, commit_hash, build_dir)
 
     # Build blender
     print("Updating Blender Dependencies")
-    subprocess.run(["make", "update"], cwd=blender_repo_dir)
+    subprocess.run([make_command, "update"], cwd=blender_repo_dir, )
     print("Building Blender")
-    subprocess.run(["make", "bpy"], cwd=blender_repo_dir)
+    subprocess.run([make_command, "bpy"], cwd=blender_repo_dir)
 
     # tag_parts = selected_tag.split('.')
     # major_version = '.'.join(tag_parts[:2])
@@ -434,10 +440,10 @@ def build(tag: str = typer.Option(None, help="Specific tag to build"), commit: s
     print("Making the bpy wheel")
     # build the wheel
     subprocess.run(["pip", "install", "-U", "pip", "setuptools", "wheel"])
-    make_script = Path.cwd() / "../blender/build_files/utils/make_bpy_wheel.py"
+    make_script = script_dir / "../blender/build_files/utils/make_bpy_wheel.py"
 
     # Copy the make_bpy_wheel.py script to the build directory
-    shutil.copy2(Path.cwd() / "make_bpy_wheel.py", make_script )
+    shutil.copy2(script_dir / "make_bpy_wheel.py", make_script )
     subprocess.run(["python", make_script, build_dir / "bin/"])
 
 
