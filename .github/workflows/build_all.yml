@@ -59,18 +59,18 @@ jobs:
       #     tag: ${{ steps.check.outputs.tag_input }}
       #     python_version: ${{ steps.check.outputs.python_version }}
 
-  build-stubs:
-    needs: check-version
-    if: ${{ needs.check-version.outputs.tag_input != '' }}
-    uses: ./.github/workflows/generate_stubs.yml
-    with:
-      tag: ${{ needs.check-version.outputs.tag_input }}
-      python_version: ${{ needs.check-version.outputs.python_version }}
-    permissions:
-      contents: write
+  # build-stubs:
+  #   needs: check-version
+  #   if: ${{ needs.check-version.outputs.tag_input != '' }}
+  #   uses: ./.github/workflows/generate_stubs.yml
+  #   with:
+  #     tag: ${{ needs.check-version.outputs.tag_input }}
+  #     python_version: ${{ needs.check-version.outputs.python_version }}
+  #   permissions:
+  #     contents: write
 
   build-for-windows:
-    needs: [check-version, build-stubs]
+    needs: [check-version]
     if: ${{ needs.check-version.outputs.tag_input != '' }}
     uses: ./.github/workflows/build_windows.yml
     with:
@@ -80,7 +80,7 @@ jobs:
       contents: write
 
   build-for-linux:
-    needs: [check-version, build-stubs]
+    needs: [check-version]
     if: ${{ needs.check-version.outputs.tag_input != '' }}  
     uses: ./.github/workflows/build_linux.yml
     with:
@@ -90,7 +90,7 @@ jobs:
       contents: write
 
   build-for-macos:
-    needs: [check-version, build-stubs]
+    needs: [check-version]
     if: ${{ needs.check-version.outputs.tag_input != '' }}  
     uses: ./.github/workflows/build_macos.yml
     with:
@@ -102,7 +102,7 @@ jobs:
 
   update-versions:
     runs-on: ubuntu-latest
-    needs: [ check-version, build-stubs, build-for-windows, build-for-linux, build-for-macos] 
+    needs: [ check-version, build-for-windows, build-for-linux, build-for-macos] 
     if: ${{ needs.check-version.outputs.new_tag == 'true' || needs.check-version.outputs.new_commit == 'true' }}
     steps:
       - name: Checkout repository
