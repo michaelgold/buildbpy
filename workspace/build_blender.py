@@ -13,6 +13,7 @@ import zipfile
 import shutil
 from utils import dmgextractor
 from utils import make_utils
+from github import Github
 
 app = typer.Typer()
 # Load the environment variables
@@ -29,19 +30,63 @@ def get_version_from_source(blender_source_dir: str = typer.Option(None, help="P
     print(f"Blender version: {version}")
     return version
 
-def get_version_from_tag(tag: str):
-    """ Gets the major and minor version from the tag. """
-    tag = tag.lstrip('v');
-    parts = tag.split('.')
-    major_version = '.'.join(parts[:2])
-    minor_version = '.'.join(parts[:3])
-    return major_version, minor_version
+def get_valid_commits(commit_hash: str):
+    """ """
+    g = Github()
+    repo = g.get_repo("blender/blender")
 
-def download_blender(tag: str = typer.Option(None, help="Specific Blender tag to download")):
+
+    commit = repo.get_commit(commit_hash)
+    if commit_hash in commit.sha:
+        return commit.sha
+    else:
+        return None
+
+def get_valid_branch(branch: str):
+    """ """
+    g = Github()
+    repo = g.get_repo("blender/blender")
+    branches = repo.get_branches()
+    for b in branches:
+        if branch == b.name:
+            print(f"Found branch: {b}")
+            return b.commit.sha
+    else:
+        return None
+
+def get_version(blender_source_dir: Path = None):
+    """ Gets the major and minor version from the tag. """
+    version_cycle = "release"
+    # if tag:
+    #     tag = tag.lstrip('v');
+    #     parts = tag.split('.')
+    #     major_version = '.'.join(parts[:2])
+    #     minor_version = '.'.join(parts[:3])
+    # else:
+    version = make_utils.parse_blender_version(blender_source_dir)
+    major_version = f"{version.version // 100}.{version.version % 100}"
+    minor_version = f"{version.version // 100}.{version.version % 100}.{version.patch}"
+    version_cycle = version.cycle
+    return major_version, minor_version, version_cycle
+
+def download_blender(major_version: str, minor_version: str, release_cycle: str,  commit_hash: str, blender_source_dir: Path):
     """ Downloads Blender Binary based on Tag."""
+    commit_hash_short = commit_hash[:12]
+    print(f"commit_hash_short: {commit_hash_short}")
+
+    url_root = f"https://mirrors.ocf.berkeley.edu/blender/Blender{major_version}" if release_cycle == "release" else "https://builder.blender.org/download/daily"
+    release_abbreviation = ""
+    release_suffix = "" 
+    file_suffix = "" if release_cycle == "release" else f"-release"
+    if release_cycle == "alpha" or release_cycle == "beta":
+        release_suffix = f"-{release_cycle}+main.{commit_hash_short}"
+    elif release_cycle == "rc":
+        major_version_short = major_version.replace(".", "")
+        release_suffix = f"-candidatie+{major_version_short}.{commit_hash_short}"
+
+
     
-    major_version, minor_version = get_version_from_tag(tag)
-    
+
     # Determine the OS type (Linux, Windows, MacOS)
     os_type = platform.system()
     arch = platform.machine()
@@ -49,20 +94,22 @@ def download_blender(tag: str = typer.Option(None, help="Specific Blender tag to
 
     # Construct the download URL based on the OS type and Blender version
     if os_type == "Linux":
-        filename = f"blender-{minor_version}-linux-x64.tar.xz"
-        url = f"https://mirrors.ocf.berkeley.edu/blender/release/Blender{major_version}/{filename}"
+        system_type = "linux-" if release_cycle == "release" else "linux."
+        arch = "x64" if release_cycle == "release" else "x86_64"
         file_ext = "tar.xz"
     elif os_type == "Windows":
-        filename = f"blender-{minor_version}-windows-x64.zip"
-        url = f"https://mirrors.ocf.berkeley.edu/blender/release/Blender{major_version}/{filename}"
+        system_type = "windows-" if release_cycle == "release" else "windows."
+        arch = "x64" if release_cycle == "release" else "amd64"
         file_ext = "zip"
     elif os_type == "Darwin":  # MacOS
-        macos_arch = "arm64" if arch == "arm64" else "x64"
-        filename = f"blender-{minor_version}-macos-{macos_arch}.dmg"
-        url = f"https://mirrors.ocf.berkeley.edu/blender/release/Blender{major_version}/{filename}"
+        arch = "arm64" if arch == "arm64" else "x64"
+        system_type = "macos-" if release_cycle == "release" else "darwin."
         file_ext = "dmg"
     else:
         raise Exception("Unsupported operating system")
+    
+    filename = f"blender-{minor_version}{release_suffix}-{system_type}{arch}{file_suffix}.{file_ext}"
+    url = f"{url_root}/{filename}"
     
     download_dir = Path.cwd() / "../downloads"
     download_dir.mkdir(parents=True, exist_ok=True)
@@ -209,10 +256,9 @@ def publish_github(tag: str, wheel_dir: Path, repo: str = "michaelgold/buildbpy"
 
     # print("File uploaded successfully.")
 
-@app.command()
-def generate_stubs(blender_repo_dir: Path, selected_tag: str, build_dir: Path):
+def generate_stubs(blender_repo_dir: Path, major_version: str, minor_version: str, release_cycle, commit_hash, build_dir: Path):
     """ Generates stub files for the bpy module. """
-    download_blender(selected_tag)
+    download_blender(major_version, minor_version, release_cycle, commit_hash, blender_repo_dir)
     # Determine the OS type (Linux, Windows, MacOS)
     os_type = platform.system()
 
@@ -277,19 +323,39 @@ def get_valid_tag(tag: str = None):
 
  
 @app.command()
-def build(tag: str = typer.Option(None, help="Specific tag to check out"), clear_lib: bool = typer.Option(False, help = "Clear the library dependencies"), clear_cache: bool = typer.Option(False, help = "Clear the cmake build cache"), publish: bool = typer.Option(False, help="Upload the wheel to GitHub Releases"), install: bool = typer.Option(False, help="Install the wheel using pip"), publish_repo: str = typer.Option("michaelgold/buildbpy", help="GitHub repository to publish the wheel to")):
+def build(tag: str = typer.Option(None, help="Specific tag to build"), commit: str = typer.Option(None, help="Specific commit to build"), branch: str = typer.Option(None, help="Specific branch to build"), clear_lib: bool = typer.Option(False, help = "Clear the library dependencies"), clear_cache: bool = typer.Option(False, help = "Clear the cmake build cache"), publish: bool = typer.Option(False, help="Upload the wheel to GitHub Releases"), install: bool = typer.Option(False, help="Install the wheel using pip"), publish_repo: str = typer.Option("michaelgold/buildbpy", help="GitHub repository to publish the wheel to")):
     """
     This script checks for new tags in the Blender repository on GitHub.
     If a new tag is found, or a specific tag is provided, it updates the local repository and a data file.
     """
     os.chdir(Path(__file__).parent)
+    selected_tag = None
+    commit_hash = None
+    is_valid_branch = False
+    is_valid_commit = False
+    print (f"branch: {branch}")
 
-    selected_tag, tag_data, data_file_path = get_valid_tag(tag)
-    if not selected_tag:
+    if tag:
+        selected_tag, tag_data, data_file_path = get_valid_tag(tag)
+
+    if branch:
+        is_valid_branch = get_valid_branch(branch)
+        print(f"is_valid_branch: {is_valid_branch}")
+        commit_hash = is_valid_branch
+        if not is_valid_branch:
+            print(f"Branch '{branch}' not found.")
+
+    if commit:
+        is_valid_commit = get_valid_commits(commit)
+        commit_hash = is_valid_commit
+        if not is_valid_commit:
+            print(f"Commit '{commit}' not found.")
+
+    if not selected_tag and not is_valid_branch and not is_valid_commit:
         return False
 
     # If the tag is different from the current tag, or a specific tag was provided, update the local repository and build blender
-    print(f"Tag found: {selected_tag}. Updating and checking out the repo.")
+    # print(f"Tag found: {selected_tag}. Updating and checking out the repo.")
 
     # Clone the repository and checkout the selected tag
     # 
@@ -297,7 +363,12 @@ def build(tag: str = typer.Option(None, help="Specific tag to check out"), clear
     if not blender_repo_dir.exists():
         subprocess.run(["git", "clone", "--recursive", "https://github.com/blender/blender.git"], cwd=Path.cwd() / "..")
     subprocess.run(["git", "fetch", "--all"], cwd=blender_repo_dir)
-    subprocess.run(["git", "checkout", f"tags/{selected_tag}"], cwd=blender_repo_dir)
+    if selected_tag:
+        subprocess.run(["git", "checkout", f"tags/{selected_tag}"], cwd=blender_repo_dir)
+    elif branch:
+        subprocess.run(["git", "checkout", branch], cwd=blender_repo_dir)
+    elif commit:
+        subprocess.run(["git", "checkout", commit], cwd=blender_repo_dir)
 
     if clear_cache:
         if build_dir.exists():
@@ -309,7 +380,7 @@ def build(tag: str = typer.Option(None, help="Specific tag to check out"), clear
             shutil.rmtree(lib_dir)
 
     os_type = platform.system()
-    major_version, minor_version = get_version_from_tag(selected_tag)
+    major_version, minor_version, release_cycle = get_version( blender_repo_dir)
 
     if os_type == "Linux":
         build_dir = Path.cwd() / "../build_linux_bpy"
@@ -332,7 +403,7 @@ def build(tag: str = typer.Option(None, help="Specific tag to check out"), clear
         raise Exception("Unsupported operating system")
     
 
-    generate_stubs(blender_repo_dir, selected_tag, build_dir)
+    generate_stubs(blender_repo_dir, major_version, minor_version, release_cycle, commit_hash, build_dir)
 
 
     # Build blender
@@ -378,9 +449,10 @@ def build(tag: str = typer.Option(None, help="Specific tag to check out"), clear
     
     
     # Update the data file
-    tag_data["latest_tag"] = selected_tag
-    with open(data_file_path, 'w') as file:
-        json.dump(tag_data, file)
+    # TODO reimplement data file updating
+    # tag_data["latest_tag"] = selected_tag
+    # with open(data_file_path, 'w') as file:
+    #     json.dump(tag_data, file)
     
     return True
 
