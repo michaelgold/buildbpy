@@ -211,6 +211,10 @@ jobs:
       #     make bpy
       #     # make bpy VERBOSE=1
 
+      - name: Install Python Dependencies
+        run: /
+          pip install -r ./requirements.txt
+
       - name: Build Blender
         run: |
           python workspace/build_blender.py build ${{ env.TAG }} --install --publish
