@@ -210,9 +210,9 @@ def generate_stubs(blender_repo_dir: Path, selected_tag: str, build_dir: Path):
         blender_dir = list(blender_bin_dir.glob("blender-*"))[0]
         blender_binary = blender_dir / "blender"
     elif os_type == "Windows":
+        blender_bin_dir = Path.cwd() / "../blender-bin/"
         print(f"contents of blender-bin: {list(blender_bin_dir.glob('*'))}")
-        blender_dir = list(blender_bin_dir.glob("blender-*"))[0]
-        blender_binary = blender_dir / "blender.exe"
+        blender_binary = blender_bin_dir / "blender.exe"
     elif os_type == "Darwin":  # MacOS
         blender_binary = Path.cwd() / "../blender-bin/Blender.app/Contents/MacOS/Blender"
     else:
