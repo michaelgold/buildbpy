@@ -12,10 +12,22 @@ import tarfile
 import zipfile
 import shutil
 from utils import dmgextractor
+from utils import make_utils
 
 app = typer.Typer()
 # Load the environment variables
 dotenv.load_dotenv()
+
+@app.command()
+def get_version_from_source(blender_source_dir: str = typer.Option(None, help="Path to the Blender source directory")):
+    """ Gets the version from the Blender source directory. """
+    if blender_source_dir:
+        blender_source_dir = Path(blender_source_dir)
+    else:
+        blender_source_dir = Path.cwd() / "blender"
+    version = make_utils.parse_blender_version(blender_source_dir)
+    print(f"Blender version: {version}")
+    return version
 
 def get_version_from_tag(tag: str):
     """ Gets the major and minor version from the tag. """
@@ -212,7 +224,9 @@ def generate_stubs(blender_repo_dir: Path, selected_tag: str, build_dir: Path):
     elif os_type == "Windows":
         blender_bin_dir = Path.cwd() / "../blender-bin/"
         print(f"contents of blender-bin: {list(blender_bin_dir.glob('*'))}")
-        blender_binary = blender_bin_dir / "blender.exe"
+        blender_dir = list(blender_bin_dir.glob("blender-*"))[0]
+        print(f"contents of blender_dir: {list(blender_dir.glob('*'))}")
+        blender_binary = blender_dir / "blender.exe"
     elif os_type == "Darwin":  # MacOS
         blender_binary = Path.cwd() / "../blender-bin/Blender.app/Contents/MacOS/Blender"
     else:
