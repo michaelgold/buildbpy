@@ -78,7 +78,7 @@ def download_blender(tag: str = typer.Option(None, help="Specific Blender tag to
     # Extract the file
     if file_ext == "tar.xz":
         with tarfile.open(download_dir / filename, "r:xz") as tar:
-            tar.extractall(bin)
+            tar.extractall(bin_dir)
     elif file_ext == "zip":
         with zipfile.ZipFile(download_dir / filename, 'r') as zip_ref:
             zip_ref.extractall(bin_dir)
