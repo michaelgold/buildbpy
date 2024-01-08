@@ -3,5 +3,5 @@ requests
 python-dotenv
 bpystubgen
 click
-httpx
+httpx==0.25.2
 github
