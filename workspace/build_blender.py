@@ -89,7 +89,7 @@ def download_blender(tag: str = typer.Option(None, help="Specific Blender tag to
 
 
 @app.command()
-def publish_github(tag: str, wheel_dir: Path):
+def publish_github(tag: str, wheel_dir: Path, repo: str = "michaelgold/buildbpy"):
     """ Publishes the wheel file to GitHub Releases. """
     github_token = os.getenv("GITHUB_TOKEN")
     if not github_token:
@@ -112,7 +112,7 @@ def publish_github(tag: str, wheel_dir: Path):
     # https://docs.github.com/en/rest/reference/repos#create-a-release
 
     # check if the release already exists
-    release_url = f"https://api.github.com/repos/michaelgold/bpy/releases/tags/{selected_tag}"
+    release_url = f"https://api.github.com/repos/{repo}/releases/tags/{selected_tag}"
     # response = requests.get(release_url, headers=headers)
 
     try:
@@ -144,7 +144,7 @@ def publish_github(tag: str, wheel_dir: Path):
             # Delete the existing asset
             print("Deleting existing asset.")
             asset_id = existing_asset["id"]
-            delete_url = f"https://api.github.com/repos/michaelgold/bpy/releases/assets/{asset_id}"
+            delete_url = f"https://api.github.com/repos/{repo}/releases/assets/{asset_id}"
             response = client.delete(delete_url)
             print(f"Asset deleted response code: {response.status_code}")
         
@@ -154,7 +154,7 @@ def publish_github(tag: str, wheel_dir: Path):
 
         release_name = f"bpy-{selected_tag}"
         release_body = f"Blender Python API for Blender {selected_tag}"
-        release_url = f"https://api.github.com/repos/michaelgold/bpy/releases"
+        release_url = f"https://api.github.com/repos/{repo}/releases"
         release_data = {
             "tag_name": selected_tag,
             "target_commitish": "main",
@@ -172,7 +172,7 @@ def publish_github(tag: str, wheel_dir: Path):
         release_id = response.json()['id']
 
     # Step 2: Upload the .whl file
-    upload_url = f"https://uploads.github.com/repos/michaelgold/bpy/releases/{release_id}/assets?name={whl_file_path.stem}.whl"
+    upload_url = f"https://uploads.github.com/repos/{repo}/releases/{release_id}/assets?name={whl_file_path.stem}.whl"
     headers['Content-Type'] = 'application/octet-stream'
 
     print(f"Uploading file to {upload_url}...")
@@ -261,7 +261,7 @@ def get_valid_tag(tag: str = None):
 
  
 @app.command()
-def build(tag: str = typer.Option(None, help="Specific tag to check out"), clear_lib: bool = typer.Option(False, help = "Clear the library dependencies"), clear_cache: bool = typer.Option(False, help = "Clear the cmake build cache"), publish: bool = typer.Option(False, help="Upload the wheel to GitHub Releases"), install: bool = typer.Option(False, help="Install the wheel using pip")):
+def build(tag: str = typer.Option(None, help="Specific tag to check out"), clear_lib: bool = typer.Option(False, help = "Clear the library dependencies"), clear_cache: bool = typer.Option(False, help = "Clear the cmake build cache"), publish: bool = typer.Option(False, help="Upload the wheel to GitHub Releases"), install: bool = typer.Option(False, help="Install the wheel using pip"), publish_repo: str = typer.Option("michaelgold/buildbpy", help="GitHub repository to publish the wheel to")):
     """
     This script checks for new tags in the Blender repository on GitHub.
     If a new tag is found, or a specific tag is provided, it updates the local repository and a data file.
@@ -356,7 +356,7 @@ def build(tag: str = typer.Option(None, help="Specific tag to check out"), clear
     
     if publish:
         print("Publishing to GitHub Releases")
-        publish_github(selected_tag, bin_path)
+        publish_github(selected_tag, bin_path, publish_repo)
     
     
     # Update the data file
