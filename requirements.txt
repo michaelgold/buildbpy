@@ -5,3 +5,4 @@ bpystubgen
 click
 aiohttp==3.8.6
 httpx==0.25.2
+PyGithub==2.1.1
