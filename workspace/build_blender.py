@@ -76,7 +76,7 @@ def download_blender(major_version: str, minor_version: str, release_cycle: str,
         commit_hash_short = commit_hash[:12]
     print(f"commit_hash_short: {commit_hash_short}")
 
-    url_root = f"https://mirrors.ocf.berkeley.edu/blender/Blender{major_version}" if release_cycle == "release" else "https://builder.blender.org/download/daily"
+    url_root = f"https://mirrors.ocf.berkeley.edu/blender/release/Blender{major_version}" if release_cycle == "release" else "https://builder.blender.org/download/daily"
     release_abbreviation = ""
     release_suffix = "" 
     file_suffix = "" if release_cycle == "release" else f"-release"
