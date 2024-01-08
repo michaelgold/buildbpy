@@ -30,7 +30,8 @@ jobs:
       contents: write
     steps:
       - name: checkout repo
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
+        
 
       - name: Set environment variables
         id: set_env
@@ -84,10 +85,10 @@ jobs:
           sudo apt-get install cuda-toolkit-12-3
           echo "/usr/local/cuda-12.3/bin" >> $GITHUB_PATH
 
-      # - name: Setup terminal session
-      #   uses: fawazahmed0/action-debug@main
-      #   with:
-      #       credentials: "user:p@ss!"
+      - name: Setup terminal session
+        uses: fawazahmed0/action-debug@main
+        with:
+            credentials: "user:p@ss!"
 
 
       - name: Add CUDA compilation flags
@@ -212,8 +213,8 @@ jobs:
       #     # make bpy VERBOSE=1
 
       - name: Install Python Dependencies
-        run: /
-          pip install -r requirements.txt
+        run: |
+          pip install -r ./requirements.txt
 
       - name: Build Blender
         run: |
