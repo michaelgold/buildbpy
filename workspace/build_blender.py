@@ -71,7 +71,9 @@ def get_version(blender_source_dir: Path = None):
 
 def download_blender(major_version: str, minor_version: str, release_cycle: str,  commit_hash: str, blender_source_dir: Path):
     """ Downloads Blender Binary based on Tag."""
-    commit_hash_short = commit_hash[:12]
+    commit_hash_short = ""
+    if commit_hash:
+        commit_hash_short = commit_hash[:12]
     print(f"commit_hash_short: {commit_hash_short}")
 
     url_root = f"https://mirrors.ocf.berkeley.edu/blender/Blender{major_version}" if release_cycle == "release" else "https://builder.blender.org/download/daily"
