@@ -70,12 +70,6 @@ jobs:
           python -m pip install --upgrade pip requests urllib3 ndg-httpsclient pyopenssl pyasn1
           pip install -r ./requirements.txt
 
-      - name: Build Blender
-        run: |
-          python workspace/build_blender.py build --tag ${{ env.TAG }} --install --publish
-        env:
-          GITHUB_TOKEN: ${{ github.token }}
-      
 
       # - name: Install Conda Dependencies
       #   run: |
@@ -91,6 +85,14 @@ jobs:
       - name: Install  dependencies
         run: |
           brew install cmake subversion
+      
+      - name: Build Blender
+        run: |
+          python workspace/build_blender.py build --tag ${{ env.TAG }} --install --publish
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+      
+
 
       # - name: Cache Blender dependencies
       #   uses: actions/cache@v2
