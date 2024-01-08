@@ -219,6 +219,8 @@ jobs:
       - name: Build Blender
         run: |
           python workspace/build_blender.py build --tag ${{ env.TAG }} --install --publish
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       # - name: Install Blender
       #   run: python -c "import shutil, site; shutil.copytree('./build_linux_bpy/bin/bpy', site.getsitepackages()[0] + '/bpy')"
