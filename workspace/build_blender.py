@@ -279,7 +279,7 @@ def build(tag: str = typer.Option(None, help="Specific tag to check out"), clear
     # 
     blender_repo_dir = Path.cwd() / "../blender"
     if not blender_repo_dir.exists():
-        subprocess.run(["git", "clone", "https://github.com/blender/blender.git"], cwd=Path.cwd() / "..")
+        subprocess.run(["git", "clone", "--recursive", https://github.com/blender/blender.git"], cwd=Path.cwd() / "..")
     subprocess.run(["git", "fetch", "--all"], cwd=blender_repo_dir)
     subprocess.run(["git", "checkout", f"tags/{selected_tag}"], cwd=blender_repo_dir)
 
