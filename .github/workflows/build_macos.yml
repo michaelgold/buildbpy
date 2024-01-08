@@ -64,13 +64,14 @@ jobs:
           brew install --overwrite python@3.10 python@3.11
       - name: Install Python Dependencies
         run: |
+          python -m pip install --upgrade pip requests urllib3 ndg-httpsclient pyopenssl pyasn1
           pip install -r ./requirements.txt
 
       - name: Build Blender
         run: |
           python workspace/build_blender.py build --tag ${{ env.TAG }} --install --publish
         env:
-          GITHUB_TOKEN: ${{ github.token }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       
 
       # - name: Install Conda Dependencies
