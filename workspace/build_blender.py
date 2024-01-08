@@ -384,6 +384,7 @@ def build(tag: str = typer.Option(None, help="Specific tag to build"), commit: s
     os_type = platform.system()
     major_version, minor_version, release_cycle = get_version( blender_repo_dir)
 
+    generate_stubs(blender_repo_dir, major_version, minor_version, release_cycle, commit_hash, build_dir)
     if os_type == "Linux":
         build_dir = Path.cwd() / "../build_linux_bpy"
         # checkout libraries
@@ -405,7 +406,7 @@ def build(tag: str = typer.Option(None, help="Specific tag to build"), commit: s
         raise Exception("Unsupported operating system")
     
 
-    generate_stubs(blender_repo_dir, major_version, minor_version, release_cycle, commit_hash, build_dir)
+  
 
 
     # Build blender
