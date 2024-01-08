@@ -384,7 +384,7 @@ def build(tag: str = typer.Option(None, help="Specific tag to build"), commit: s
     os_type = platform.system()
     major_version, minor_version, release_cycle = get_version( blender_repo_dir)
 
-    generate_stubs(blender_repo_dir, major_version, minor_version, release_cycle, commit_hash, build_dir)
+
     if os_type == "Linux":
         build_dir = Path.cwd() / "../build_linux_bpy"
         # checkout libraries
@@ -395,6 +395,7 @@ def build(tag: str = typer.Option(None, help="Specific tag to build"), commit: s
             subprocess.run(["svn", "checkout", svnpath], cwd=lib_dir)
     elif os_type == "Windows":
         build_dir = Path.cwd() / "../build_windows_Bpy_x64_vc17_Release/bin/"
+        generate_stubs(blender_repo_dir, major_version, minor_version, release_cycle, commit_hash, build_dir)
         if not lib_dir.exists():
             lib_dir.mkdir()
             svnpath = f"https://svn.blender.org/svnroot/bf-blender/tags/blender-{major_version}-release/lib/win64_vc15"
