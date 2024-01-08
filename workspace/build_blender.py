@@ -318,7 +318,9 @@ def build(tag: str = typer.Option(None, help="Specific tag to check out"), clear
 
 
     # Build blender
+    print("Updating Blender Dependencies")
     subprocess.run(["make", "update"], cwd=blender_repo_dir)
+    print("Building Blender")
     subprocess.run(["make", "bpy"], cwd=blender_repo_dir)
 
     # tag_parts = selected_tag.split('.')
@@ -336,6 +338,7 @@ def build(tag: str = typer.Option(None, help="Specific tag to check out"), clear
     for file in whl_files:
         file.unlink()
     
+    print("Making the bpy wheel")
     # build the wheel
     subprocess.run(["pip", "install", "-U", "pip", "setuptools", "wheel"])
     make_script = Path.cwd() / "../blender/build_files/utils/make_bpy_wheel.py"
@@ -344,13 +347,17 @@ def build(tag: str = typer.Option(None, help="Specific tag to check out"), clear
     shutil.copy2(Path.cwd() / "make_bpy_wheel.py", make_script )
     subprocess.run(["python", make_script, build_dir / "bin/"])
 
-    if publish:
-        publish_github(selected_tag, bin_path)
-    
+
     if install:
+        print("Installing the wheel")
         wheel_file = list(bin_path.glob("*.whl"))[0]
         subprocess.run(["pip", "install", "--force-reinstall", "--no-deps",
          wheel_file])
+    
+    if publish:
+        print("Publishing to GitHub Releases")
+        publish_github(selected_tag, bin_path)
+    
     
     # Update the data file
     tag_data["latest_tag"] = selected_tag
