@@ -135,7 +135,7 @@ class BlenderBuilder:
 
         print("Making the bpy wheel")
         # Build the wheel
-        subprocess.run(["pip", "install", "-U", "pip", "setuptools", "wheel"])
+        # subprocess.run(["pip", "install", "-U", "pip", "setuptools", "wheel"])
         make_script = self.root_dir / "blender/build_files/utils/make_bpy_wheel.py"
         subprocess.run(["python", make_script, bin_path])
 
@@ -235,6 +235,60 @@ class BlenderBuilder:
                 json.dump(tag_data, file)
         
         return True
+    
+    def publish_github(self, tag: str, wheel_dir: Path, repo: str):
+        github_token = self._get_github_token()
+        headers = self._get_github_headers(github_token)
+        ssl_context = self._get_ssl_context()
+
+        with httpx.Client(headers=headers, verify=ssl_context) as client:
+            release_id = self._get_or_create_release(client, tag, repo)
+            self._upload_assets_to_release(client, tag, wheel_dir, release_id, repo)
+
+    def _get_github_token(self):
+        github_token = os.getenv("GITHUB_TOKEN")
+        if not github_token:
+            raise ValueError("GitHub token not found in environment variables.")
+        return github_token
+
+    def _get_github_headers(self, github_token):
+        return {
+            "Authorization": f"Bearer {github_token}",
+            "Accept": "application/vnd.github.v3+json"
+        }
+
+    def _get_ssl_context(self):
+        return ssl.create_default_context()
+
+    def _get_or_create_release(self, client, tag, repo):
+        release_url = f"https://api.github.com/repos/{repo}/releases/tags/{tag}"
+        response = client.get(release_url)
+        if response.status_code in [200, 201]:
+            return response.json()['id']
+        
+        # Create a new release if not exists
+        return self._create_new_release(client, tag, repo)
+
+    def _create_new_release(self, client, tag, repo):
+        release_data = {
+            "tag_name": tag,
+            "target_commitish": "main",
+            "name": f"Release {tag}",
+            "body": f"Release for Blender {tag}",
+            "draft": False,
+            "prerelease": False
+        }
+        response = client.post(f"https://api.github.com/repos/{repo}/releases", json=release_data)
+        response.raise_for_status()  # Will raise an exception for HTTP error responses
+        return response.json()['id']
+
+    def _upload_assets_to_release(self, client, tag, wheel_dir, release_id, repo):
+        for wheel_file in wheel_dir.glob("*.whl"):
+            upload_url = f"https://uploads.github.com/repos/{repo}/releases/{release_id}/assets?name={wheel_file.name}"
+            with open(wheel_file, 'rb') as file:
+                response = client.post(upload_url, content=file.read(), headers={"Content-Type": "application/octet-stream"})
+                response.raise_for_status()  # Will raise an exception for HTTP error responses
+
 
 app = typer.Typer()
 builder = BlenderBuilder()
