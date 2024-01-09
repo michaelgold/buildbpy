@@ -95,9 +95,11 @@ class BlenderBuilder:
     def generate_stubs(self, major_version: str, minor_version: str, release_cycle, commit_hash):
         self.download_blender(major_version, minor_version, release_cycle, commit_hash)
         if self.os_type == "Linux":
-            blender_binary = self.bin_dir / f"blender-{minor_version}/blender"
+            blender_dir = self.bin_dir.glob(f"blender*")[0]
+            blender_binary = blender_dir / f"blender"
         elif self.os_type == "Windows":
-            blender_binary = self.bin_dir / f"blender-{minor_version}/blender.exe"
+            blender_dir = self.bin_dir.glob(f"blender*")[0]
+            blender_binary = blender_dir / f"blender.exe"
         elif self.os_type == "Darwin":
             blender_binary = self.bin_dir / f"Blender.app/Contents/MacOS/Blender"
         else:
