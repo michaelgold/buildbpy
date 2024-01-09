@@ -11,8 +11,8 @@ import platform
 import tarfile
 import zipfile
 import shutil
-from utils import dmgextractor
-from utils import make_utils
+from .utils import dmgextractor
+from .utils import make_utils
 from github import Github
 
 app = typer.Typer()
@@ -20,16 +20,7 @@ app = typer.Typer()
 dotenv.load_dotenv()
 script_dir = Path(__file__).parent
 
-@app.command()
-def get_version_from_source(blender_source_dir: str = typer.Option(None, help="Path to the Blender source directory")):
-    """ Gets the version from the Blender source directory. """
-    if blender_source_dir:
-        blender_source_dir = Path(blender_source_dir)
-    else:
-        blender_source_dir = script_dir / "../blender"
-    version = make_utils.parse_blender_version(blender_source_dir)
-    print(f"Blender version: {version}")
-    return version
+
 
 def get_valid_commits(commit_hash: str):
     """ """
@@ -150,7 +141,7 @@ def download_blender(major_version: str, minor_version: str, release_cycle: str,
     print(f"Extracted Blender to {bin_dir}")
 
 
-@app.command()
+
 def publish_github(tag: str, wheel_dir: Path, repo: str = "michaelgold/buildbpy"):
     """ Publishes the wheel file to GitHub Releases. """
     github_token = os.getenv("GITHUB_TOKEN")
@@ -326,7 +317,7 @@ def get_valid_tag(tag: str = None):
 
  
 @app.command()
-def build(tag: str = typer.Option(None, help="Specific tag to build"), commit: str = typer.Option(None, help="Specific commit to build"), branch: str = typer.Option(None, help="Specific branch to build"), clear_lib: bool = typer.Option(False, help = "Clear the library dependencies"), clear_cache: bool = typer.Option(False, help = "Clear the cmake build cache"), publish: bool = typer.Option(False, help="Upload the wheel to GitHub Releases"), install: bool = typer.Option(False, help="Install the wheel using pip"), publish_repo: str = typer.Option("michaelgold/buildbpy", help="GitHub repository to publish the wheel to"), blender_source_dir: str = typer.Option(None, help="Path to the Blender source directory")):
+def main(tag: str = typer.Option(None, help="Specific tag to build"), commit: str = typer.Option(None, help="Specific commit to build"), branch: str = typer.Option(None, help="Specific branch to build"), clear_lib: bool = typer.Option(False, help = "Clear the library dependencies"), clear_cache: bool = typer.Option(False, help = "Clear the cmake build cache"), publish: bool = typer.Option(False, help="Upload the wheel to GitHub Releases"), install: bool = typer.Option(False, help="Install the wheel using pip"), publish_repo: str = typer.Option("michaelgold/buildbpy", help="GitHub repository to publish the wheel to"), blender_source_dir: str = typer.Option(None, help="Path to the Blender source directory")):
     """
     This script checks for new tags in the Blender repository on GitHub.
     If a new tag is found, or a specific tag is provided, it updates the local repository and a data file.

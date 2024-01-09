@@ -7,3 +7,5 @@ blender-bin/
 downloads
 .DS_Store
 *.pyc
+*.egg-info
+dist/
