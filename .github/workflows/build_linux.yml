@@ -218,7 +218,7 @@ jobs:
 
       - name: Build Blender
         run: |
-          python src/buildbpy/main.py --tag ${{ env.TAG }} --install --publish
+          python -m src.buildbpy.main --tag ${{ env.TAG }} --install --publish
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
