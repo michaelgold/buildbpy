@@ -17,33 +17,97 @@ from abc import ABC, abstractmethod
 dotenv.load_dotenv()
 
 # Strategy Interface for Download
-class DownloadStrategy(ABC):
+class VersionCycleStrategy(ABC):
+    def __init__(self, major_version: str, minor_version: str, release_cycle: str):
+        self.major_version = major_version
+        self.minor_version = minor_version
+        self.release_cycle = release_cycle
+
+    @abstractmethod
+    def get_svn_root(self) -> Path:
+        pass
+
     @abstractmethod
     def download(self, major_version, minor_version, release_cycle):
         pass
 
-class ReleaseDownloadStrategy(DownloadStrategy):
+class ReleaseVersionCycleStrategy(VersionCycleStrategy):
+    def get_svn_root(self):
+        return f"https://svn.blender.org/svnroot/bf-blender/tags/blender-{self.major_version}-release/lib/" 
+    
     def download(self, major_version, minor_version, release_cycle):
         # Implement download logic for release version
         pass
 
-class CandidateDownloadStrategy(DownloadStrategy):
+
+class CandidateVersionCycleStrategy(VersionCycleStrategy):
     def download(self, major_version, minor_version, release_cycle):
         # Implement download logic for candidate version
         pass
 
-class BuildStrategy(ABC):
+
+class OSStrategy(ABC):
+    def __init__(self, version_strategy: VersionCycleStrategy,  root_dir: Path):
+        self.build_dir: Path = None
+        self.lib_path: Path = None
+        self.root_dir = root_dir
+        self.bin_dir = self.root_dir / "blender-bin"
+        self.version_strategy = version_strategy
+    
     @abstractmethod
-    def build(self, id):
+    def get_blender_binary(self) -> Path:
         pass
 
-class TagBuildStrategy(BuildStrategy):
-    def build(self, id):
+class WindowsOSStrategy(OSStrategy):
+    def __init__(self, version_strategy: VersionCycleStrategy,  root_dir: Path):
+        super().__init__(version_strategy, root_dir)
+        self.lib_path = f"{self.version_strategy.get_svn_root()}win64_vc15"
+        self.build_dir = self.root_dir / "build_windows_Bpy_x64_vc17_Release/bin/"
+    
+    def get_blender_binary(self):
+        blender_dir = list(self.bin_dir.glob("blender*"))[0]
+        return blender_dir / f"blender.exe"
+
+class MacOSStrategy(OSStrategy):
+    def __init__(self, version_strategy: VersionCycleStrategy,  root_dir: Path):
+        super().__init__(version_strategy, root_dir)
+        self.lib_path = f"{self.version_strategy.get_svn_root()}macos"
+        self.build_dir = self.root_dir / "build_darwin_bpy"
+
+    def get_blender_binary(self):
+        return self.bin_dir / f"Blender.app/Contents/MacOS/Blender"
+    
+class LinuxOSStrategy(OSStrategy):
+    def __init__(self, version_strategy: VersionCycleStrategy,  root_dir: Path):
+        super().__init__(version_strategy, root_dir)
+        self.lib_path = f"{self.version_strategy.get_svn_root()}build_linux_bpy"
+        self.build_dir = self.root_dir / "linux_x86_64_glibc_228"
+    
+    def get_blender_binary(self):
+        blender_dir = list(self.bin_dir.glob("blender*"))[0]
+        return blender_dir / f"blender"
+
+
+class CheckoutStrategy(ABC):
+    def __init__(self, blender_repo_dir: Path):
+        self.blender_repo_dir = blender_repo_dir
+        if not blender_repo_dir.exists():
+            subprocess.run(["git", "clone", "--recursive", "https://github.com/blender/blender.git"], cwd=self.root_dir)
+        subprocess.run(["git", "fetch", "--all"], cwd=blender_repo_dir)
+    
+    @abstractmethod
+    def checkout(self, id: str):
         pass
 
-class CommitBuildStrategy(BuildStrategy):
-    def build(self, id):
-        pass
+class TagCheckoutStrategy(CheckoutStrategy):
+    def checkout(self, id):
+        subprocess.run(["git", "checkout", f"tags/{id}"], cwd=self.blender_repo_dir)
+
+class CommitCheckoutStrategy(CheckoutStrategy):
+    def checkout(self, id):
+        subprocess.run(["git", "checkout", id], cwd=self.blender_repo_dir)
+
+
 
 
 class BlenderBuilder:
@@ -58,31 +122,24 @@ class BlenderBuilder:
         self.github = Github()
         self.github_repo = self.github.get_repo("blender/blender")
         self.root_dir.mkdir(parents=True, exist_ok=True)
-        self.build_dir = None
-        self.download_strategy: DownloadStrategy = None
+        # self.build_dir = None
+        self.version_strategy: VersionCycleStrategy = None
         self.major_version = None
         self.minor_version = None 
         self.release_cycle = None
-        self.build_strategy: BuildStrategy = None
+        self.checkout_strategy: CheckoutStrategy = None
+        self.os_strategy: OSStrategy = None
     
-    def set_download_strategy(self):
+    def set_version_strategy(self):
         if self.release_cycle == "release":
-            self.download_strategy = ReleaseDownloadStrategy()
+            self.version_strategy = ReleaseVersionCycleStrategy(self.major_version, self.minor_version, self.release_cycle)
         elif self.release_cycle == "candidate":
-            self.download_strategy = CandidateDownloadStrategy()
+            self.version_strategy = CandidateVersionCycleStrategy(self.major_version, self.minor_version, self.release_cycle)
         # Add conditions for other release cycles (alpha, beta)
         else:
             raise ValueError(f"Unsupported release cycle: {self.release_cycle}")
     
-    def set_build_strategy(self):
-        if self.release_cycle == "release":
-            self.download_strategy = ReleaseDownloadStrategy()
-        elif self.release_cycle == "candidate":
-            self.download_strategy = CandidateDownloadStrategy()
-        # Add conditions for other release cycles (alpha, beta)
-        else:
-            raise ValueError(f"Unsupported release cycle: {self.release_cycle}")
-
+  
 
 
     def get_valid_commits(self, commit_hash: str):
@@ -102,6 +159,7 @@ class BlenderBuilder:
         self.major_version = f"{version.version // 100}.{version.version % 100}"
         self.minor_version = f"{version.version // 100}.{version.version % 100}.{version.patch}"
         self.release_cycle = version.cycle
+        self.set_version_strategy()
 
     def download_blender(self, commit_hash: str):
         commit_hash_short = commit_hash[:12] if commit_hash else ""
@@ -148,17 +206,18 @@ class BlenderBuilder:
                 extractor.extractall(bin_dir)
 
     def generate_stubs(self, commit_hash):
-        self.download_blender(commit_hash)
-        if self.os_type == "Linux":
-            blender_dir = list(self.bin_dir.glob("blender*"))[0]
-            blender_binary = blender_dir / f"blender"
-        elif self.os_type == "Windows":
-            blender_dir = list(self.bin_dir.glob("blender*"))[0]
-            blender_binary = blender_dir / f"blender.exe"
-        elif self.os_type == "Darwin":
-            blender_binary = self.bin_dir / f"Blender.app/Contents/MacOS/Blender"
-        else:
-            raise Exception("Unsupported operating system")
+        # self.download_blender(commit_hash)
+        # if self.os_type == "Linux":
+        #     blender_dir = list(self.bin_dir.glob("blender*"))[0]
+        #     blender_binary = blender_dir / f"blender"
+        # elif self.os_type == "Windows":
+        #     blender_dir = list(self.bin_dir.glob("blender*"))[0]
+        #     blender_binary = blender_dir / f"blender.exe"
+        # elif self.os_type == "Darwin":
+        #     blender_binary = self.bin_dir / f"Blender.app/Contents/MacOS/Blender"
+        # else:
+        #     raise Exception("Unsupported operating system")
+        blender_binary = self.os_strategy.get_blender_binary()
 
         subprocess.run([blender_binary, "--background", "--factory-startup", "-noaudio", "--python", self.blender_repo_dir / "doc/python_api/sphinx_doc_gen.py", "--", f"--output={self.python_api_dir}"])
         subprocess.run(["python", "-m", "bpystubgen", self.python_api_dir / "sphinx-in", self.build_dir / "bin"])
@@ -167,21 +226,22 @@ class BlenderBuilder:
         response = httpx.get(f"https://api.github.com/repos/blender/blender/tags")
         tags = response.json()
         selected_tag = tag if tag and any(t['name'] == tag for t in tags) else tags[0]['name'] if tags else None
-        data_file_path = self.root_dir / "data.json"
 
-        if data_file_path.exists():
-            with open(data_file_path, 'r') as file:
-                tag_data = json.load(file)
-                current_tag = tag_data.get("latest_tag", "")
-        else:
-            current_tag = ""
-            tag_data = {}
+        # data_file_path = self.root_dir / "data.json"
 
-        if selected_tag == current_tag and not tag:
-            print(f"Tag '{selected_tag}' has already been built. Specify a tag if you want to build it again.")
-            return None, tag_data, data_file_path
+        # if data_file_path.exists():
+        #     with open(data_file_path, 'r') as file:
+        #         tag_data = json.load(file)
+        #         current_tag = tag_data.get("latest_tag", "")
+        # else:
+        #     current_tag = ""
+        #     tag_data = {}
 
-        return selected_tag, tag_data, data_file_path
+        # if selected_tag == current_tag and not tag:
+        #     print(f"Tag '{selected_tag}' has already been built. Specify a tag if you want to build it again.")
+        #     return None, tag_data, data_file_path
+
+        return selected_tag
     
     def build_and_manage_wheel(self, bin_path: Path, install: bool, publish: bool, publish_repo: str, selected_tag: str):
         # Remove existing wheel files
@@ -206,18 +266,21 @@ class BlenderBuilder:
     
     def setup_build_environment(self, make_command: Path):
         # Determine the appropriate build directory and library path based on the OS
-        if self.os_type == "Linux":
-            self.build_dir = self.root_dir / "build_linux_bpy"
-            lib_path = f"https://svn.blender.org/svnroot/bf-blender/tags/blender-{self.major_version}-release/lib/linux_x86_64_glibc_228/"
-        elif self.os_type == "Windows":
-            self.build_dir = self.root_dir / "build_windows_Bpy_x64_vc17_Release/bin/"
-            lib_path = f"https://svn.blender.org/svnroot/bf-blender/tags/blender-{self.major_version}-release/lib/win64_vc15/"
-        elif self.os_type == "Darwin":  # MacOS
-            self.build_dir = self.root_dir / "build_darwin_bpy"
-            lib_path = f"https://svn.blender.org/svnroot/bf-blender/tags/blender-{self.major_version}-release/lib/macos/"
-        else:
-            raise Exception("Unsupported operating system for library setup")
+        # if self.os_type == "Linux":
+        #     self.build_dir = self.root_dir / "build_linux_bpy"
+        #     lib_path = f"https://svn.blender.org/svnroot/bf-blender/tags/blender-{self.major_version}-release/lib/linux_x86_64_glibc_228/"
+        # elif self.os_type == "Windows":
+        #     self.build_dir = self.root_dir / "build_windows_Bpy_x64_vc17_Release/bin/"
+        #     lib_path = f"https://svn.blender.org/svnroot/bf-blender/tags/blender-{self.major_version}-release/lib/win64_vc15/"
+        # elif self.os_type == "Darwin":  # MacOS
+        #     self.build_dir = self.root_dir / "build_darwin_bpy"
+        #     lib_path = f"https://svn.blender.org/svnroot/bf-blender/tags/blender-{self.major_version}-release/lib/macos/"
+        # else:
+        #     raise Exception("Unsupported operating system for library setup")
 
+        self.build_dir = self.os_strategy.build_dir
+        lib_path = self.os_strategy.lib_path
+        
         # Checkout libraries if not present
         if not self.lib_dir.exists():
             print(f"Installing libraries to: {self.lib_dir}")
@@ -236,32 +299,34 @@ class BlenderBuilder:
         is_valid_commit = False
 
         if tag:
-            selected_tag, tag_data, data_file_path = self.get_valid_tag(tag)
+            selected_tag = self.get_valid_tag(tag)
 
-        if branch:
-            is_valid_branch = self.get_valid_branch(branch)
-            commit_hash = is_valid_branch if is_valid_branch else None
+        # if branch:
+        #     is_valid_branch = self.get_valid_branch(branch)
+        #     commit_hash = is_valid_branch if is_valid_branch else None
 
         if commit:
             is_valid_commit = self.get_valid_commits(commit)
             commit_hash = is_valid_commit if is_valid_commit else None
 
-        if not selected_tag and not is_valid_branch and not is_valid_commit:
+        if not selected_tag and not is_valid_commit:
             return False
 
         # Setup blender_repo_dir
         blender_repo_dir = Path(blender_source_dir) if blender_source_dir else self.blender_repo_dir
-        if not blender_repo_dir.exists():
-            subprocess.run(["git", "clone", "--recursive", "https://github.com/blender/blender.git"], cwd=self.root_dir)
-        subprocess.run(["git", "fetch", "--all"], cwd=blender_repo_dir)
 
         # Checkout the correct state in the repo
         if selected_tag:
-            subprocess.run(["git", "checkout", f"tags/{selected_tag}"], cwd=blender_repo_dir)
-        elif branch:
-            subprocess.run(["git", "checkout", branch], cwd=blender_repo_dir)
+            self.checkout_strategy = TagCheckoutStrategy(blender_repo_dir)
+            self.checkout_strategy.checkout(selected_tag)
+
+        # elif branch:
+        #     subprocess.run(["git", "checkout", branch], cwd=blender_repo_dir)
+
         elif commit:
-            subprocess.run(["git", "checkout", commit], cwd=blender_repo_dir)
+            self.checkout_strategy = CommitCheckoutStrategy(blender_repo_dir)
+            self.checkout_strategy.checkout(commit)
+            
 
         # Clear cache and library if requested
         if clear_cache and self.build_dir.exists():
@@ -271,6 +336,15 @@ class BlenderBuilder:
 
         # Get Blender version and setup build
         self.set_version(blender_repo_dir)
+        if self.os_type == "Linux":
+            self.os_strategy = LinuxOSStrategy(self.version_strategy, self.root_dir)
+        elif self.os_type == "Windows":
+            self.os_strategy = WindowsOSStrategy(self.version_strategy, self.root_dir)
+        elif self.os_type == "Darwin":
+            self.os_strategy = MacOSStrategy(self.version_strategy, self.root_dir)
+        else:
+            raise Exception("Unsupported operating system")
+        
         make_command = blender_repo_dir / "make.bat" if self.os_type == "Windows" else "make"
         self.setup_build_environment(make_command)
 
@@ -283,11 +357,11 @@ class BlenderBuilder:
         bin_path = self.build_dir / "bin"
         self.build_and_manage_wheel(bin_path, install, publish, publish_repo, selected_tag)
 
-        # Update the data file if needed
-        if tag and data_file_path:
-            tag_data["latest_tag"] = selected_tag
-            with open(data_file_path, 'w') as file:
-                json.dump(tag_data, file)
+        # # Update the data file if needed
+        # if tag and data_file_path:
+        #     tag_data["latest_tag"] = selected_tag
+        #     with open(data_file_path, 'w') as file:
+        #         json.dump(tag_data, file)
         
         return True
     
