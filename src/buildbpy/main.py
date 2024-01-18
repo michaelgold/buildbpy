@@ -168,7 +168,7 @@ class BlenderBuilder:
     def download_blender(self, commit_hash: str):
         commit_hash_short = commit_hash[:12] if commit_hash else ""
         url_root = f"https://mirrors.ocf.berkeley.edu/blender/release/Blender{self.major_version}" if self.release_cycle == "release" else "https://builder.blender.org/download/daily"
-        release_suffix = f"-{self.release_cycle}+main.{commit_hash_short}" if self.release_cycle in ["alpha", "beta"] else f"-candidatie+{self.major_version.replace('.', '')}.{commit_hash_short}" if self.release_cycle == "rc" else ""
+        release_suffix = f"-{self.release_cycle}+main.{commit_hash_short}" if self.release_cycle in ["alpha", "beta"] else f"-candidate+{self.major_version.replace('.', '')}.{commit_hash_short}" if self.release_cycle == "rc" else ""
         file_suffix = "" if self.release_cycle == "release" else "-release"
         
         system_type = "linux-" if self.os_type == "Linux" else "windows-" if self.os_type == "Windows" else "macos-" if self.os_type == "Darwin" else ""
