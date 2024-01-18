@@ -12,8 +12,39 @@ import zipfile
 import shutil
 from github import Github
 from .utils import dmgextractor, make_utils
+from abc import ABC, abstractmethod
 
 dotenv.load_dotenv()
+
+# Strategy Interface for Download
+class DownloadStrategy(ABC):
+    @abstractmethod
+    def download(self, major_version, minor_version, release_cycle):
+        pass
+
+class ReleaseDownloadStrategy(DownloadStrategy):
+    def download(self, major_version, minor_version, release_cycle):
+        # Implement download logic for release version
+        pass
+
+class CandidateDownloadStrategy(DownloadStrategy):
+    def download(self, major_version, minor_version, release_cycle):
+        # Implement download logic for candidate version
+        pass
+
+class BuildStrategy(ABC):
+    @abstractmethod
+    def build(self, id):
+        pass
+
+class TagBuildStrategy(BuildStrategy):
+    def build(self, id):
+        pass
+
+class CommitBuildStrategy(BuildStrategy):
+    def build(self, id):
+        pass
+
 
 class BlenderBuilder:
     def __init__(self):
@@ -28,6 +59,31 @@ class BlenderBuilder:
         self.github_repo = self.github.get_repo("blender/blender")
         self.root_dir.mkdir(parents=True, exist_ok=True)
         self.build_dir = None
+        self.download_strategy: DownloadStrategy = None
+        self.major_version = None
+        self.minor_version = None 
+        self.release_cycle = None
+        self.build_strategy: BuildStrategy = None
+    
+    def set_download_strategy(self):
+        if self.release_cycle == "release":
+            self.download_strategy = ReleaseDownloadStrategy()
+        elif self.release_cycle == "candidate":
+            self.download_strategy = CandidateDownloadStrategy()
+        # Add conditions for other release cycles (alpha, beta)
+        else:
+            raise ValueError(f"Unsupported release cycle: {self.release_cycle}")
+    
+    def set_build_strategy(self):
+        if self.release_cycle == "release":
+            self.download_strategy = ReleaseDownloadStrategy()
+        elif self.release_cycle == "candidate":
+            self.download_strategy = CandidateDownloadStrategy()
+        # Add conditions for other release cycles (alpha, beta)
+        else:
+            raise ValueError(f"Unsupported release cycle: {self.release_cycle}")
+
+
 
     def get_valid_commits(self, commit_hash: str):
         commit = self.github_repo.get_commit(commit_hash)
@@ -41,24 +97,23 @@ class BlenderBuilder:
                 return b.commit.sha
         return None
 
-    def get_version(self, blender_source_dir: Path = None):
+    def set_version(self, blender_source_dir: Path = None):
         version = make_utils.parse_blender_version(blender_source_dir)
-        major_version = f"{version.version // 100}.{version.version % 100}"
-        minor_version = f"{version.version // 100}.{version.version % 100}.{version.patch}"
-        version_cycle = version.cycle
-        return major_version, minor_version, version_cycle
+        self.major_version = f"{version.version // 100}.{version.version % 100}"
+        self.minor_version = f"{version.version // 100}.{version.version % 100}.{version.patch}"
+        self.release_cycle = version.cycle
 
-    def download_blender(self, major_version: str, minor_version: str, release_cycle: str, commit_hash: str):
+    def download_blender(self, commit_hash: str):
         commit_hash_short = commit_hash[:12] if commit_hash else ""
-        url_root = f"https://mirrors.ocf.berkeley.edu/blender/release/Blender{major_version}" if release_cycle == "release" else "https://builder.blender.org/download/daily"
-        release_suffix = f"-{release_cycle}+main.{commit_hash_short}" if release_cycle in ["alpha", "beta"] else f"-candidatie+{major_version.replace('.', '')}.{commit_hash_short}" if release_cycle == "rc" else ""
-        file_suffix = "" if release_cycle == "release" else "-release"
+        url_root = f"https://mirrors.ocf.berkeley.edu/blender/release/Blender{self.major_version}" if self.release_cycle == "release" else "https://builder.blender.org/download/daily"
+        release_suffix = f"-{self.release_cycle}+main.{commit_hash_short}" if self.release_cycle in ["alpha", "beta"] else f"-candidatie+{self.major_version.replace('.', '')}.{commit_hash_short}" if self.release_cycle == "rc" else ""
+        file_suffix = "" if self.release_cycle == "release" else "-release"
         
         system_type = "linux-" if self.os_type == "Linux" else "windows-" if self.os_type == "Windows" else "macos-" if self.os_type == "Darwin" else ""
-        arch = "x64" if release_cycle == "release" else "x86_64" if self.os_type == "Linux" else "amd64" if self.os_type == "Windows" else "arm64" if platform.machine() == "arm64" else "x64"
+        arch = "x64" if self.release_cycle == "release" else "x86_64" if self.os_type == "Linux" else "amd64" if self.os_type == "Windows" else "arm64" if platform.machine() == "arm64" else "x64"
         file_ext = "tar.xz" if self.os_type == "Linux" else "zip" if self.os_type == "Windows" else "dmg"
 
-        filename = f"blender-{minor_version}{release_suffix}-{system_type}{arch}{file_suffix}.{file_ext}"
+        filename = f"blender-{self.minor_version}{release_suffix}-{system_type}{arch}{file_suffix}.{file_ext}"
         url = f"{url_root}/{filename}"
         
         download_dir = self.download_dir
@@ -92,8 +147,8 @@ class BlenderBuilder:
             with dmgextractor.DMGExtractor(download_dir / filename) as extractor:
                 extractor.extractall(bin_dir)
 
-    def generate_stubs(self, major_version: str, minor_version: str, release_cycle, commit_hash):
-        self.download_blender(major_version, minor_version, release_cycle, commit_hash)
+    def generate_stubs(self, commit_hash):
+        self.download_blender(commit_hash)
         if self.os_type == "Linux":
             blender_dir = list(self.bin_dir.glob("blender*"))[0]
             blender_binary = blender_dir / f"blender"
@@ -149,17 +204,17 @@ class BlenderBuilder:
             print("Publishing to GitHub Releases")
             self.publish_github(selected_tag, bin_path, publish_repo)
     
-    def setup_build_environment(self, major_version: str, make_command: Path):
+    def setup_build_environment(self, make_command: Path):
         # Determine the appropriate build directory and library path based on the OS
         if self.os_type == "Linux":
             self.build_dir = self.root_dir / "build_linux_bpy"
-            lib_path = f"https://svn.blender.org/svnroot/bf-blender/tags/blender-{major_version}-release/lib/linux_x86_64_glibc_228/"
+            lib_path = f"https://svn.blender.org/svnroot/bf-blender/tags/blender-{self.major_version}-release/lib/linux_x86_64_glibc_228/"
         elif self.os_type == "Windows":
             self.build_dir = self.root_dir / "build_windows_Bpy_x64_vc17_Release/bin/"
-            lib_path = f"https://svn.blender.org/svnroot/bf-blender/tags/blender-{major_version}-release/lib/win64_vc15/"
+            lib_path = f"https://svn.blender.org/svnroot/bf-blender/tags/blender-{self.major_version}-release/lib/win64_vc15/"
         elif self.os_type == "Darwin":  # MacOS
             self.build_dir = self.root_dir / "build_darwin_bpy"
-            lib_path = f"https://svn.blender.org/svnroot/bf-blender/tags/blender-{major_version}-release/lib/macos/"
+            lib_path = f"https://svn.blender.org/svnroot/bf-blender/tags/blender-{self.major_version}-release/lib/macos/"
         else:
             raise Exception("Unsupported operating system for library setup")
 
@@ -215,12 +270,12 @@ class BlenderBuilder:
             shutil.rmtree(self.lib_dir)
 
         # Get Blender version and setup build
-        major_version, minor_version, release_cycle = self.get_version(blender_repo_dir)
+        self.set_version(blender_repo_dir)
         make_command = blender_repo_dir / "make.bat" if self.os_type == "Windows" else "make"
-        self.setup_build_environment(major_version, make_command)
+        self.setup_build_environment(make_command)
 
         # Generate stubs and build Blender
-        self.generate_stubs(major_version, minor_version, release_cycle, commit_hash)
+        self.generate_stubs( commit_hash)
         subprocess.run([make_command, "update"], cwd=blender_repo_dir)
         subprocess.run([make_command, "bpy"], cwd=blender_repo_dir)
 
