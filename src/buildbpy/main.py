@@ -47,7 +47,7 @@ class CandidateVersionCycleStrategy(VersionCycleStrategy):
 
 
 class OSStrategy(ABC):
-    def __init__(self, version_strategy: VersionCycleStrategy,  root_dir: Path):
+    def __init__(self, version_strategy: VersionCycleStrategy,  root_dir: Path, blender_repo_dir: Path):
         self.build_dir: Path = None
         self.lib_path: Path = None
         self.root_dir = root_dir
@@ -59,29 +59,32 @@ class OSStrategy(ABC):
         pass
 
 class WindowsOSStrategy(OSStrategy):
-    def __init__(self, version_strategy: VersionCycleStrategy,  root_dir: Path):
-        super().__init__(version_strategy, root_dir)
+    def __init__(self, version_strategy: VersionCycleStrategy, root_dir: Path, blender_repo_dir: Path):
+        super().__init__(version_strategy, root_dir, blender_repo_dir)
         self.lib_path = f"{self.version_strategy.get_svn_root()}win64_vc15"
         self.build_dir = self.root_dir / "build_windows_Bpy_x64_vc17_Release/bin/"
+        self.make_command = blender_repo_dir / "make.bat"
     
     def get_blender_binary(self):
         blender_dir = list(self.bin_dir.glob("blender*"))[0]
         return blender_dir / f"blender.exe"
 
 class MacOSStrategy(OSStrategy):
-    def __init__(self, version_strategy: VersionCycleStrategy,  root_dir: Path):
-        super().__init__(version_strategy, root_dir)
+    def __init__(self, version_strategy: VersionCycleStrategy, root_dir: Path, blender_repo_dir: Path):
+        super().__init__(version_strategy, root_dir, blender_repo_dir)
         self.lib_path = f"{self.version_strategy.get_svn_root()}macos"
         self.build_dir = self.root_dir / "build_darwin_bpy"
+        self.make_command = "make"
 
     def get_blender_binary(self):
         return self.bin_dir / f"Blender.app/Contents/MacOS/Blender"
     
 class LinuxOSStrategy(OSStrategy):
-    def __init__(self, version_strategy: VersionCycleStrategy,  root_dir: Path):
-        super().__init__(version_strategy, root_dir)
+    def __init__(self, version_strategy: VersionCycleStrategy, root_dir: Path, blender_repo_dir: Path):
+        super().__init__(version_strategy, root_dir, blender_repo_dir)
         self.lib_path = f"{self.version_strategy.get_svn_root()}build_linux_bpy"
         self.build_dir = self.root_dir / "linux_x86_64_glibc_228"
+        self.make_command = "make"
     
     def get_blender_binary(self):
         blender_dir = list(self.bin_dir.glob("blender*"))[0]
@@ -111,9 +114,10 @@ class CommitCheckoutStrategy(CheckoutStrategy):
 
 
 class BlenderBuilder:
-    def __init__(self):
+    def __init__(self, blender_repo_dir: Path):
         self.root_dir = Path.home() / ".buildbpy"
-        self.blender_repo_dir = self.root_dir / "blender"
+
+        self.blender_repo_dir = blender_repo_dir if blender_repo_dir is not None else self.root_dir / "blender"
         self.lib_dir = self.root_dir / "lib"
         self.bin_dir = self.root_dir / "blender-bin"
         self.download_dir = self.root_dir / "downloads"
@@ -264,7 +268,7 @@ class BlenderBuilder:
             print("Publishing to GitHub Releases")
             self.publish_github(selected_tag, bin_path, publish_repo)
     
-    def setup_build_environment(self, make_command: Path):
+    def setup_build_environment(self):
         # Determine the appropriate build directory and library path based on the OS
         # if self.os_type == "Linux":
         #     self.build_dir = self.root_dir / "build_linux_bpy"
@@ -292,7 +296,7 @@ class BlenderBuilder:
 
 
         
-    def main(self, tag: str, commit: str, branch: str, clear_lib: bool, clear_cache: bool, publish: bool, install: bool, publish_repo: str, blender_source_dir: str):
+    def main(self, tag: str, commit: str, branch: str, clear_lib: bool, clear_cache: bool, publish: bool, install: bool, publish_repo: str):
         selected_tag = None
         commit_hash = None
         is_valid_branch = False
@@ -312,8 +316,8 @@ class BlenderBuilder:
         if not selected_tag and not is_valid_commit:
             return False
 
-        # Setup blender_repo_dir
-        blender_repo_dir = Path(blender_source_dir) if blender_source_dir else self.blender_repo_dir
+       
+        blender_repo_dir = self.blender_repo_dir
 
         # Checkout the correct state in the repo
         if selected_tag:
@@ -337,16 +341,16 @@ class BlenderBuilder:
         # Get Blender version and setup build
         self.set_version(blender_repo_dir)
         if self.os_type == "Linux":
-            self.os_strategy = LinuxOSStrategy(self.version_strategy, self.root_dir)
+            self.os_strategy = LinuxOSStrategy(self.version_strategy, self.root_dir, self.blender_repo_dir)
         elif self.os_type == "Windows":
-            self.os_strategy = WindowsOSStrategy(self.version_strategy, self.root_dir)
+            self.os_strategy = WindowsOSStrategy(self.version_strategy, self.root_dir, self.blender_repo_dir)
         elif self.os_type == "Darwin":
-            self.os_strategy = MacOSStrategy(self.version_strategy, self.root_dir)
+            self.os_strategy = MacOSStrategy(self.version_strategy, self.root_dir, self.blender_repo_dir)
         else:
             raise Exception("Unsupported operating system")
         
-        make_command = blender_repo_dir / "make.bat" if self.os_type == "Windows" else "make"
-        self.setup_build_environment(make_command)
+        make_command = self.os_strategy.make_command
+        self.setup_build_environment()
 
         # Generate stubs and build Blender
         self.generate_stubs( commit_hash)
@@ -420,11 +424,12 @@ class BlenderBuilder:
 
 
 app = typer.Typer()
-builder = BlenderBuilder()
+
 
 @app.command()
 def main(tag: str = typer.Option(None), commit: str = typer.Option(None), branch: str = typer.Option(None), clear_lib: bool = typer.Option(False), clear_cache: bool = typer.Option(False), publish: bool = typer.Option(False), install: bool = typer.Option(False), publish_repo: str = typer.Option("michaelgold/buildbpy"), blender_source_dir: str = typer.Option(None)):
-    return builder.main(tag, commit, branch, clear_lib, clear_cache, publish, install, publish_repo, blender_source_dir)
+    builder = BlenderBuilder(blender_source_dir)
+    return builder.main(tag, commit, branch, clear_lib, clear_cache, publish, install, publish_repo)
 
 if __name__ == "__main__":
     app()
