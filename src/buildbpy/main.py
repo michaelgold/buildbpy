@@ -165,6 +165,7 @@ class BlenderBuilder:
         self.release_cycle = version.cycle
         self.set_version_strategy()
 
+
     def download_blender(self, commit_hash: str):
         commit_hash_short = commit_hash[:12] if commit_hash else ""
         url_root = f"https://mirrors.ocf.berkeley.edu/blender/release/Blender{self.major_version}" if self.release_cycle == "release" else "https://builder.blender.org/download/daily"
@@ -210,7 +211,8 @@ class BlenderBuilder:
                 extractor.extractall(bin_dir)
 
     def generate_stubs(self, commit_hash):
-        # self.download_blender(commit_hash)
+        #TODO refactor Download to OS Strategy
+        self.download_blender(commit_hash)
         # if self.os_type == "Linux":
         #     blender_dir = list(self.bin_dir.glob("blender*"))[0]
         #     blender_binary = blender_dir / f"blender"
