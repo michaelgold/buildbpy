@@ -41,13 +41,13 @@ jobs:
           echo "TAG=$TAG" >> $GITHUB_ENV
           echo "PYTHON_VERSION=$PYTHON_VERSION" >> $GITHUB_ENV
 
-      - name: Checkout Blender repository recursively
-        uses: actions/checkout@v2
-        with:
-          repository: blender/blender
-          ref:  ${{ env.TAG }} # Checkout the tag specified in the workflow dispatch
-          submodules: 'recursive' # Recursively checkout submodules
-          path: blender 
+      # - name: Checkout Blender repository recursively
+      #   uses: actions/checkout@v2
+      #   with:
+      #     repository: blender/blender
+      #     ref:  ${{ env.TAG }} # Checkout the tag specified in the workflow dispatch
+      #     submodules: 'recursive' # Recursively checkout submodules
+      #     path: blender 
 
       # - name: Set up Conda
       #   uses: conda-incubator/setup-miniconda@v2

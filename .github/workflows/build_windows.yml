@@ -228,13 +228,13 @@ jobs:
           echo "PYTHON_VERSION=$PYTHON_VERSION" >> $GITHUB_ENV
         shell: bash
                     
-      - name: Checkout Blender repository recursively
-        uses: actions/checkout@v2
-        with:
-          repository: blender/blender
-          ref: ${{ env.TAG }}
-          submodules: 'recursive' 
-          path: blender 
+      # - name: Checkout Blender repository recursively
+      #   uses: actions/checkout@v2
+      #   with:
+      #     repository: blender/blender
+      #     ref: ${{ env.TAG }}
+      #     submodules: 'recursive' 
+      #     path: blender 
 
       # - name: Install Chocolatey
       #   run: |
