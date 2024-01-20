@@ -29,8 +29,8 @@ class DMGExtractor:
         result = subprocess.run(mount_cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         
         # Print debugging information
-        print(f"Mount Command Output: {result.stdout.decode()}")
-        print(f"Mount Command Error: {result.stderr.decode()}")
+        # print(f"Mount Command Output: {result.stdout.decode()}")
+        # print(f"Mount Command Error: {result.stderr.decode()}")
 
         if result.returncode != 0:
             raise Exception(f"Failed to mount dmg: {result.stderr.decode()}")
