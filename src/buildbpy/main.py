@@ -226,7 +226,7 @@ class WindowsOSStrategy(OSStrategy):
     def __init__(self, version_strategy: VersionCycleStrategy, root_dir: Path, blender_repo_dir: Path, http_client: httpx.Client):
         super().__init__(version_strategy, root_dir, blender_repo_dir, http_client)
         self.lib_path = f"{self.version_strategy.get_svn_root()}win64_vc15"
-        self.build_dir = self.root_dir / "build_windows_Bpy_x64_vc17_Release/bin/"
+        self.build_dir = self.root_dir / "build_windows_Bpy_x64_vc17_Release"
         self.make_command = blender_repo_dir / "make.bat"
     
     def get_blender_binary(self):
@@ -453,7 +453,7 @@ class BlenderBuilder:
         # Get Blender version and setup build
         self.set_version(commit_hash, blender_repo_dir)
         self.setup_strategies(self.os_type, self.major_version, self.minor_version, self.release_cycle, commit_hash, self.root_dir, blender_repo_dir)
-        self.build_dir = self.os_strategy.build_dir.parent
+        self.build_dir = self.os_strategy.build_dir
         
         # Clear cache and library if requested
         if clear_cache and self.build_dir.exists():
