@@ -25,15 +25,29 @@ def del_readonly(action, name, exc):
     os.chmod(name, stat.S_IWRITE)
     os.remove(name)
 
-def fetch_latest_build_info(self, http_client: httpx.Client, preferred_version=None):
+def fetch_latest_build_info(http_client: httpx.Client, preferred_version=None):
     url = "https://builder.blender.org/download/daily/?format=json&v=1"
     try:
         response = http_client.get(url)
         response.raise_for_status()
         builds = response.json()
 
+        arch = platform.machine().lower()
+        system = platform.system().lower()
+
+        if system == "windows":
+            file_extension = "zip"
+        elif system == "darwin":
+            file_extension = "dmg"    
+        elif system == "linux":
+            file_extension = "xz"
+
+        # print(f"builds \n{builds}")
+
+        print(f"filtering for arch = {arch} and system = {system}")
+
         # Filter builds based on platform and architecture
-        filtered_builds = [build for build in builds if build['platform'] == platform.system() and build['architecture'] == platform.machine()]
+        filtered_builds = [build for build in builds if build['platform'] == system and build['architecture'] == arch and build['file_extension'] == file_extension]
         
         # Sort builds by version, descending
         sorted_builds = sorted(filtered_builds, key=lambda x: x['version'], reverse=True)
@@ -42,7 +56,11 @@ def fetch_latest_build_info(self, http_client: httpx.Client, preferred_version=N
         if preferred_version:
             for build in sorted_builds:
                 if build['version'].startswith(preferred_version):
+                    print(f"found version build: \n{build}")
                     return build
+        
+        print(f"found build: \n{sorted_builds[0]}")
+        
         return sorted_builds[0] if sorted_builds else None
 
     except httpx.HTTPError as e:
@@ -239,8 +257,8 @@ class OSStrategy(ABC):
 
     @abstractmethod
     def set_cuda_cmake_directives(self):
-        command = ["echo", "'set(WITH_CYCLES_CUDA_BINARIES   ON  CACHE BOOL \"\" FORCE)'", ">>", self.blender_repo_dir / "build_files/cmake/config/bpy_module.cmake"]
-        subprocess.run(command)
+        pass
+
    
     def _prepare_bin_dir(self):
         bin_dir = self.bin_dir
@@ -298,8 +316,11 @@ class WindowsOSStrategy(OSStrategy):
         return "zip"
 
     def set_cuda_cmake_directives(self):
-        command = ["echo", "'set(WITH_CYCLES_CUDA_BINARIES   ON  CACHE BOOL \"\" FORCE)'", "Out-File", "-Append", "-FilePath", self.blender_repo_dir / "build_files/cmake/config/bpy_module.cmake"]
-        subprocess.run(command)
+        cmake_file_path = self.blender_repo_dir / "build_files/cmake/config/bpy_module.cmake"
+        directive = 'set(WITH_CYCLES_CUDA_BINARIES ON CACHE BOOL "" FORCE)'
+        command = f'echo {directive} >> {cmake_file_path}'
+        subprocess.run(command, shell=True)
+
     
 class MacOSStrategy(OSStrategy):
     def __init__(self, version_strategy: VersionCycleStrategy, root_dir: Path, blender_repo_dir: Path, http_client: httpx.Client):
@@ -395,7 +416,7 @@ class CommitCheckoutStrategy(CheckoutStrategy):
 
 class DailyCheckoutStrategy(CheckoutStrategy):
     def __init__(self, blender_repo_dir: Path, http_client: httpx.Client = None, preferred_version: str = None):
-        super.__init__(blender_repo_dir, http_client)
+        super().__init__(blender_repo_dir, http_client)
         self.build_info = fetch_latest_build_info(self.http_client, preferred_version)
 
 
@@ -522,7 +543,7 @@ class BlenderBuilder:
             is_valid_commit = self.get_valid_commits(commit)
             commit_hash = is_valid_commit if is_valid_commit else None
 
-        if not selected_tag and not is_valid_commit:
+        if not selected_tag and not is_valid_commit and not daily and not daily_version == "":
             return False
 
        
