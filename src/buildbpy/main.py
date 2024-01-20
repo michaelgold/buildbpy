@@ -525,7 +525,7 @@ class BlenderBuilder:
                         print(f"Deleting existing asset {asset.name}")
                         asset.delete_asset()
                 print(f"Uploading asset {wheel_file}")
-                release.upload_asset(path=wheel_file, label=wheel_file.name, content_type='application/octet-stream')
+                release.upload_asset(path=str(wheel_file), label=wheel_file.name, content_type='application/octet-stream')
 
 
 app = typer.Typer()
