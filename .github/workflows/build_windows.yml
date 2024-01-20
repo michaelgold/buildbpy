@@ -285,6 +285,9 @@ jobs:
         run: |
           pip install -r ./requirements.txt
 
+      - name: Update Python
+        run: |
+          pip install -U pip setuptools wheel
 
       - name: Build Blender
         run: |

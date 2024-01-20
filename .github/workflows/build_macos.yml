@@ -70,6 +70,10 @@ jobs:
           python -m pip install --upgrade pip requests urllib3 ndg-httpsclient pyopenssl pyasn1
           pip install -r ./requirements.txt
 
+      - name: Update Python
+        run: |
+          pip install -U pip setuptools wheel
+
 
       # - name: Install Conda Dependencies
       #   run: |
