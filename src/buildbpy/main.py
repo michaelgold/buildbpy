@@ -373,25 +373,10 @@ class BlenderBuilder:
         subprocess.run(["python", "-m", "bpystubgen", self.python_api_dir / "sphinx-in", self.build_dir / "bin"])
 
     def get_valid_tag(self, tag: str = None):
-        response = httpx.get(f"https://api.github.com/repos/blender/blender/tags")
-        tags = response.json()
-        selected_tag = tag if tag and any(t['name'] == tag for t in tags) else tags[0]['name'] if tags else None
-
-        # data_file_path = self.root_dir / "data.json"
-
-        # if data_file_path.exists():
-        #     with open(data_file_path, 'r') as file:
-        #         tag_data = json.load(file)
-        #         current_tag = tag_data.get("latest_tag", "")
-        # else:
-        #     current_tag = ""
-        #     tag_data = {}
-
-        # if selected_tag == current_tag and not tag:
-        #     print(f"Tag '{selected_tag}' has already been built. Specify a tag if you want to build it again.")
-        #     return None, tag_data, data_file_path
-
+        tags = self.blender_repo.get_tags()
+        selected_tag = next((t.name for t in tags if t.name == tag), None) if tag else next((t.name for t in tags), None) if tags else None
         return selected_tag
+
     
     def build_and_manage_wheel(self, bin_path: Path, install: bool, publish: bool, publish_repo: str, selected_tag: str):
         # Remove existing wheel files
@@ -498,64 +483,25 @@ class BlenderBuilder:
         
         return True
     
-    def publish_github(self, tag: str, wheel_dir: Path, repo: str):
-        github_token = self._get_github_token()
-        headers = self._get_github_headers(github_token)
-        ssl_context = self._get_ssl_context()
+    def publish_github(self, tag: str, wheel_dir: Path, repo_name: str):
+        # Use GitHub client to access the repository
+        repo = self.github_client.get_repo(repo_name)
+        release = next((r for r in repo.get_releases() if r.tag_name == tag), None)
 
-        with httpx.Client(headers=headers, verify=ssl_context) as client:
-            release_id = self._get_or_create_release(client, tag, repo)
-            self._upload_assets_to_release(client, tag, wheel_dir, release_id, repo)
+        if not release:
+            release = repo.create_git_release(tag=tag, name=f"Release {tag}", message=f"Release for Blender {tag}", draft=False, prerelease=False)
 
-    def _get_github_token(self):
-        github_token = os.getenv("GITHUB_TOKEN")
-        if not github_token:
-            raise ValueError("GitHub token not found in environment variables.")
-        return github_token
-
-    def _get_github_headers(self, github_token):
-        return {
-            "Authorization": f"Bearer {github_token}",
-            "Accept": "application/vnd.github.v3+json"
-        }
-
-    def _get_ssl_context(self):
-        return ssl.create_default_context()
-
-    def _get_or_create_release(self, client, tag, repo):
-        release_url = f"https://api.github.com/repos/{repo}/releases/tags/{tag}"
-        response = client.get(release_url)
-        if response.status_code in [200, 201]:
-            return response.json()['id']
-        
-        # Create a new release if not exists
-        return self._create_new_release(client, tag, repo)
-
-    def _create_new_release(self, client, tag, repo):
-        release_data = {
-            "tag_name": tag,
-            "target_commitish": "main",
-            "name": f"Release {tag}",
-            "body": f"Release for Blender {tag}",
-            "draft": False,
-            "prerelease": False
-        }
-        response = client.post(f"https://api.github.com/repos/{repo}/releases", json=release_data)
-        response.raise_for_status()  # Will raise an exception for HTTP error responses
-        return response.json()['id']
-
-    def _upload_assets_to_release(self, client, tag, wheel_dir, release_id, repo):
+        # Upload wheel files to the release
         for wheel_file in wheel_dir.glob("*.whl"):
-            upload_url = f"https://uploads.github.com/repos/{repo}/releases/{release_id}/assets?name={wheel_file.name}"
             with open(wheel_file, 'rb') as file:
-                response = client.post(upload_url, content=file.read(), headers={"Content-Type": "application/octet-stream"})
-                response.raise_for_status()  # Will raise an exception for HTTP error responses
+                release.upload_asset(path=wheel_file, label=wheel_file.name, content_type='application/octet-stream')
 
 
 app = typer.Typer()
 http_client = httpx.Client()
 strategy_factory = ConcreteStrategyFactory()
-github_client = Github()
+github_token = os.getenv("GITHUB_TOKEN")
+github_client = Github(github_token)
         
 
 @app.command()
