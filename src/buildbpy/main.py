@@ -17,11 +17,50 @@ import stat
 
 dotenv.load_dotenv()
 
+
+
 from abc import ABC, abstractmethod
 
 def del_readonly(action, name, exc):
     os.chmod(name, stat.S_IWRITE)
     os.remove(name)
+
+def fetch_latest_build_info(self, http_client: httpx.Client, preferred_version=None):
+    url = "https://builder.blender.org/download/daily/?format=json&v=1"
+    try:
+        response = http_client.get(url)
+        response.raise_for_status()
+        builds = response.json()
+
+        # Filter builds based on platform and architecture
+        filtered_builds = [build for build in builds if build['platform'] == platform.system() and build['architecture'] == platform.machine()]
+        
+        # Sort builds by version, descending
+        sorted_builds = sorted(filtered_builds, key=lambda x: x['version'], reverse=True)
+
+        # Select the build for the preferred version or the latest one
+        if preferred_version:
+            for build in sorted_builds:
+                if build['version'].startswith(preferred_version):
+                    return build
+        return sorted_builds[0] if sorted_builds else None
+
+    except httpx.HTTPError as e:
+        # Handle HTTP errors
+        raise BlenderDownloadError("Failed to fetch Blender build information") from e
+     
+
+class BlenderDownloadError(Exception):
+    """Exception raised for errors in the download process.
+
+    Attributes:
+        message -- explanation of the error
+    """
+
+    def __init__(self, message):
+        self.message = message
+        super().__init__(self.message)
+
 
 # Abstract Factory for creating strategies
 class StrategyFactory(ABC):
@@ -129,7 +168,7 @@ class ReleaseVersionCycleStrategy(VersionCycleStrategy):
     
     def get_file_suffix(self):
         return ""
-
+    
 
 class CandidateVersionCycleStrategy(VersionCycleStrategy):
     def get_svn_root(self):
@@ -160,7 +199,7 @@ class AlphaBetaVersionCycleStrategy(VersionCycleStrategy):
 
 
 class OSStrategy(ABC):
-    def __init__(self, version_strategy: VersionCycleStrategy,  root_dir: Path, blender_repo_dir: Path, http_client: httpx.Client):
+    def __init__(self, version_strategy: VersionCycleStrategy,  root_dir: Path, blender_repo_dir: Path, http_client: httpx.Client, preferred_version: str = None):
         self.blender_repo_dir = blender_repo_dir
         self.build_dir: Path = None
         self.lib_path: Path = None
@@ -169,7 +208,14 @@ class OSStrategy(ABC):
         self.download_dir = self.root_dir / "downloads"
         self.version_strategy = version_strategy
         self.http_client = http_client
-        self.download_filename = f"blender-{self.version_strategy.minor_version}{self.version_strategy.get_download_url_suffix()}-{self.get_system_type()}{self.get_arch()}{self.version_strategy.get_file_suffix()}.{self.get_file_ext()}"
+        self.download_url = None
+        if self.version_strategy.release_cycle == "release":
+            self.download_filename = f"blender-{self.version_strategy.minor_version}{self.version_strategy.get_download_url_suffix()}-{self.get_system_type()}{self.get_arch()}{self.version_strategy.get_file_suffix()}.{self.get_file_ext()}"
+            self.download_url = f"{self.version_strategy.get_download_url_root()}/{self.download_filename}"
+        else:
+            build_info = fetch_latest_build_info(http_client, preferred_version)
+            self.download_url = build_info["url"]
+            self.download_filename = build_info["file_name"]
     
     @abstractmethod
     def get_blender_binary(self) -> Path:
@@ -195,7 +241,7 @@ class OSStrategy(ABC):
     def set_cuda_cmake_directives(self):
         command = ["echo", "'set(WITH_CYCLES_CUDA_BINARIES   ON  CACHE BOOL \"\" FORCE)'", ">>", self.blender_repo_dir / "build_files/cmake/config/bpy_module.cmake"]
         subprocess.run(command)
-        
+   
     def _prepare_bin_dir(self):
         bin_dir = self.bin_dir
         bin_dir.mkdir(parents=True, exist_ok=True)
@@ -207,12 +253,8 @@ class OSStrategy(ABC):
             else:
                 shutil.rmtree(file)
     
-    def get_download_url(self):
-        url = f"{self.version_strategy.get_download_url_root()}/{self.download_filename}"
-        return url
-    
     def download_file(self) -> Path:
-        url = self.get_download_url()
+        url = self.download_url
         download_dir = self.download_dir
         download_dir.mkdir(parents=True, exist_ok=True)
 
@@ -322,8 +364,9 @@ class LinuxOSStrategy(OSStrategy):
 
 
 class CheckoutStrategy(ABC):
-    def __init__(self, blender_repo_dir: Path):
+    def __init__(self, blender_repo_dir: Path, http_client: httpx.Client = None):
         self.blender_repo_dir = blender_repo_dir
+        self.http_client = http_client
         if not blender_repo_dir.exists():
             root_dir = blender_repo_dir.parent
             # make the root_dir if it doesn't exist
@@ -335,6 +378,13 @@ class CheckoutStrategy(ABC):
     def checkout(self, id: str):
         pass
 
+    def set_version(self, commit_hash: str):
+        blender_source_dir = self.blender_repo_dir
+        version = make_utils.parse_blender_version(blender_source_dir)
+        self.major_version = f"{version.version // 100}.{version.version % 100}"
+        self.minor_version = f"{version.version // 100}.{version.version % 100}.{version.patch}"
+        self.release_cycle = version.cycle
+
 class TagCheckoutStrategy(CheckoutStrategy):
     def checkout(self, id):
         subprocess.run(["git", "checkout", f"tags/{id}"], cwd=self.blender_repo_dir)
@@ -342,6 +392,31 @@ class TagCheckoutStrategy(CheckoutStrategy):
 class CommitCheckoutStrategy(CheckoutStrategy):
     def checkout(self, id):
         subprocess.run(["git", "checkout", id], cwd=self.blender_repo_dir)
+
+class DailyCheckoutStrategy(CheckoutStrategy):
+    def __init__(self, blender_repo_dir: Path, http_client: httpx.Client = None, preferred_version: str = None):
+        super.__init__(blender_repo_dir, http_client)
+        self.build_info = fetch_latest_build_info(self.http_client, preferred_version)
+
+
+    def set_version(self, commit_hash: str = None):
+        """ Override to use fetch_latest_build_info """
+
+        version_components = self.build_info["version"].split('.')
+        if len(version_components) >= 2:
+            self.major_version = f"{version_components[0]}.{version_components[1]}"
+        else:
+            raise BlenderDownloadError("Invalid version format in build info")
+
+        self.minor_version = self.build_info["version"]
+        self.release_cycle = self.build_info["release_cycle"]
+
+
+    def checkout(self, id = None):
+        """ Here we override the id and use the hash from self.build_info"""
+        commit = self.build_info["hash"]
+
+        subprocess.run(["git", "checkout", commit], cwd=self.blender_repo_dir)
 
 class BlenderBuilder:
     def __init__(self, blender_repo_dir: Path, http_client: httpx.Client, factory: StrategyFactory, github_client: Github):
@@ -365,12 +440,6 @@ class BlenderBuilder:
     def setup_strategies(self, os_type, major_version, minor_version, release_cycle, commit_hash, root_dir, blender_repo_dir):
         self.version_strategy = self.factory.create_version_strategy(major_version, minor_version, release_cycle, commit_hash)
         self.os_strategy = self.factory.create_os_strategy(os_type, self.version_strategy, root_dir, blender_repo_dir, self.http_client)
-
-    def set_version(self, commit_hash: str, blender_source_dir: Path = None):
-        version = make_utils.parse_blender_version(blender_source_dir)
-        self.major_version = f"{version.version // 100}.{version.version % 100}"
-        self.minor_version = f"{version.version // 100}.{version.version % 100}.{version.patch}"
-        self.release_cycle = version.cycle
 
     def get_valid_commits(self, commit_hash: str):
         commit = self.blender_repo.get_commit(commit_hash)
@@ -435,7 +504,7 @@ class BlenderBuilder:
 
 
         
-    def main(self, tag: str, commit: str, branch: str, clear_lib: bool, clear_cache: bool, publish: bool, install: bool, publish_repo: str):
+    def main(self, tag: str, commit: str, branch: str, clear_lib: bool, clear_cache: bool, publish: bool, install: bool, publish_repo: str, daily_version: str, daily: bool):
 
         selected_tag = None
         commit_hash = None
@@ -470,10 +539,17 @@ class BlenderBuilder:
         elif commit:
             self.checkout_strategy = CommitCheckoutStrategy(blender_repo_dir)
             self.checkout_strategy.checkout(commit)
-            
 
+        elif daily_version or daily:
+            self.checkout_strategy = DailyCheckoutStrategy(blender_repo_dir, http_client, daily_version)
+            self.checkout_strategy.checkout()
+            
         # Get Blender version and setup build
-        self.set_version(commit_hash, blender_repo_dir)
+        self.checkout_strategy.set_version(commit_hash)
+        self.major_version = self.checkout_strategy.major_version
+        self.minor_version = self.checkout_strategy.minor_version
+        self.release_cycle = self.checkout_strategy.release_cycle
+
         self.setup_strategies(self.os_type, self.major_version, self.minor_version, self.release_cycle, commit_hash, self.root_dir, blender_repo_dir)
         self.build_dir = self.os_strategy.build_dir
         
@@ -536,9 +612,9 @@ github_client = Github(github_token)
         
 
 @app.command()
-def main(tag: str = typer.Option(None), commit: str = typer.Option(None), branch: str = typer.Option(None), clear_lib: bool = typer.Option(False), clear_cache: bool = typer.Option(False), publish: bool = typer.Option(False), install: bool = typer.Option(False), publish_repo: str = typer.Option("michaelgold/buildbpy"), blender_source_dir: str = typer.Option(None)):
+def main(tag: str = typer.Option(None), commit: str = typer.Option(None), branch: str = typer.Option(None), clear_lib: bool = typer.Option(False), clear_cache: bool = typer.Option(False), publish: bool = typer.Option(False), install: bool = typer.Option(False), publish_repo: str = typer.Option("michaelgold/buildbpy"), blender_source_dir: str = typer.Option(None), daily_version: str = typer.Option(None), latest_daily: bool = typer.Option(False) ):
     builder = BlenderBuilder(blender_source_dir, http_client, strategy_factory, github_client)
-    return builder.main(tag, commit, branch, clear_lib, clear_cache, publish, install, publish_repo)
+    return builder.main(tag, commit, branch, clear_lib, clear_cache, publish, install, publish_repo, daily_version, latest_daily)
 
 if __name__ == "__main__":
     app()
