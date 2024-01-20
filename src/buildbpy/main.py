@@ -13,10 +13,15 @@ import shutil
 from github import Github
 from .utils import dmgextractor, make_utils
 from abc import ABC, abstractmethod
+import stat
 
 dotenv.load_dotenv()
 
 from abc import ABC, abstractmethod
+
+def del_readonly(action, name, exc):
+    os.chmod(name, stat.S_IWRITE)
+    os.remove(name)
 
 # Abstract Factory for creating strategies
 class StrategyFactory(ABC):
@@ -302,7 +307,7 @@ class CommitCheckoutStrategy(CheckoutStrategy):
 
 
 class BlenderBuilder:
-    def __init__(self, blender_repo_dir: Path, http_client: httpx.Client, factory: StrategyFactory):
+    def __init__(self, blender_repo_dir: Path, http_client: httpx.Client, factory: StrategyFactory, github_client: Github):
         self.http_client = http_client
         self.factory = factory
         self.root_dir = Path.home() / ".buildbpy"
@@ -316,6 +321,10 @@ class BlenderBuilder:
         self.os_strategy: OSStrategy = None
         self.checkout_strategy: CheckoutStrategy = None
         self.root_dir.mkdir(parents=True, exist_ok=True)
+        self.github_client = github_client
+        self.blender_repo = github_client.get_repo("blender/blender")
+        self.build_dir = None
+
 
     def setup_strategies(self, os_type, major_version, minor_version, release_cycle, commit_hash, root_dir, blender_repo_dir):
         self.version_strategy = self.factory.create_version_strategy(major_version, minor_version, release_cycle, commit_hash)
@@ -326,7 +335,7 @@ class BlenderBuilder:
         self.major_version = f"{version.version // 100}.{version.version % 100}"
         self.minor_version = f"{version.version // 100}.{version.version % 100}.{version.patch}"
         self.release_cycle = version.cycle
-        self.setup_strategies(self.os_type, self.major_version, self.minor_version, self.release_cycle, commit_hash, self.root_dir, blender_source_dir)
+
 
     
     # def set_version_strategy(self):
@@ -342,11 +351,11 @@ class BlenderBuilder:
 
 
     def get_valid_commits(self, commit_hash: str):
-        commit = self.github_repo.get_commit(commit_hash)
+        commit = self.blender_repo.get_commit(commit_hash)
         return commit.sha if commit_hash in commit.sha else None
 
     def get_valid_branch(self, branch: str):
-        branches = self.github_repo.get_branches()
+        branches = self.blender_repo.get_branches()
         for b in branches:
             if branch == b.name:
                 print(f"Found branch: {b}")
@@ -468,7 +477,6 @@ class BlenderBuilder:
             self.publish_github(selected_tag, bin_path, publish_repo)
     
     def setup_build_environment(self):
-        self.build_dir = self.os_strategy.build_dir
         lib_path = self.os_strategy.lib_path
         
         # Checkout libraries if not present
@@ -519,15 +527,18 @@ class BlenderBuilder:
             self.checkout_strategy.checkout(commit)
             
 
-        # Clear cache and library if requested
-        if clear_cache and self.build_dir.exists():
-            shutil.rmtree(self.build_dir)
-        if clear_lib and self.lib_dir.exists():
-            shutil.rmtree(self.lib_dir)
-
         # Get Blender version and setup build
         self.set_version(commit_hash, blender_repo_dir)
-   
+        self.setup_strategies(self.os_type, self.major_version, self.minor_version, self.release_cycle, commit_hash, self.root_dir, blender_repo_dir)
+        self.build_dir = self.os_strategy.build_dir
+        
+        # Clear cache and library if requested
+        if clear_cache and self.build_dir.exists():
+            print(f"Clearing build directory {self.build_dir}")
+            shutil.rmtree(self.build_dir, onerror=del_readonly)
+        if clear_lib and self.lib_dir.exists():
+            print(f"Clearing lib directory {self.lib_dir}")
+            shutil.rmtree(self.lib_dir, onerror=del_readonly)
         
         make_command = self.os_strategy.make_command
         self.setup_build_environment()
@@ -606,11 +617,12 @@ class BlenderBuilder:
 app = typer.Typer()
 http_client = httpx.Client()
 strategy_factory = ConcreteStrategyFactory()
-
+github_client = Github()
+        
 
 @app.command()
 def main(tag: str = typer.Option(None), commit: str = typer.Option(None), branch: str = typer.Option(None), clear_lib: bool = typer.Option(False), clear_cache: bool = typer.Option(False), publish: bool = typer.Option(False), install: bool = typer.Option(False), publish_repo: str = typer.Option("michaelgold/buildbpy"), blender_source_dir: str = typer.Option(None)):
-    builder = BlenderBuilder(blender_source_dir, http_client, strategy_factory)
+    builder = BlenderBuilder(blender_source_dir, http_client, strategy_factory, github_client)
     return builder.main(tag, commit, branch, clear_lib, clear_cache, publish, install, publish_repo)
 
 if __name__ == "__main__":
