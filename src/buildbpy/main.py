@@ -161,6 +161,7 @@ class AlphaBetaVersionCycleStrategy(VersionCycleStrategy):
 
 class OSStrategy(ABC):
     def __init__(self, version_strategy: VersionCycleStrategy,  root_dir: Path, blender_repo_dir: Path, http_client: httpx.Client):
+        self.blender_repo_dir = blender_repo_dir
         self.build_dir: Path = None
         self.lib_path: Path = None
         self.root_dir = root_dir
@@ -189,6 +190,11 @@ class OSStrategy(ABC):
     @abstractmethod
     def get_file_ext(self):
         pass
+
+    @abstractmethod
+    def set_cuda_cmake_directives(self):
+        command = ["echo", "'set(WITH_CYCLES_CUDA_BINARIES   ON  CACHE BOOL \"\" FORCE)'", ">>", self.blender_repo_dir / "build_files/cmake/config/bpy_module.cmake"]
+        subprocess.run(command)
         
     def _prepare_bin_dir(self):
         bin_dir = self.bin_dir
@@ -200,7 +206,7 @@ class OSStrategy(ABC):
                 file.unlink()
             else:
                 shutil.rmtree(file)
-        
+    
     def get_download_url(self):
         url = f"{self.version_strategy.get_download_url_root()}/{self.download_filename}"
         return url
@@ -249,7 +255,10 @@ class WindowsOSStrategy(OSStrategy):
     def get_file_ext(self):
         return "zip"
 
-
+    def set_cuda_cmake_directives(self):
+        command = ["echo", "'set(WITH_CYCLES_CUDA_BINARIES   ON  CACHE BOOL \"\" FORCE)'", "Out-File", "-Append", "-FilePath", self.blender_repo_dir / "build_files/cmake/config/bpy_module.cmake"]
+        subprocess.run(command)
+    
 class MacOSStrategy(OSStrategy):
     def __init__(self, version_strategy: VersionCycleStrategy, root_dir: Path, blender_repo_dir: Path, http_client: httpx.Client):
         super().__init__(version_strategy, root_dir, blender_repo_dir, http_client)
@@ -275,6 +284,10 @@ class MacOSStrategy(OSStrategy):
 
     def get_file_ext(self):
         return "dmg"
+    
+    def set_cuda_cmake_directives(self):
+        """ Override the cuda directives for MacOS"""
+        pass 
 
 class LinuxOSStrategy(OSStrategy):
     def __init__(self, version_strategy: VersionCycleStrategy, root_dir: Path, blender_repo_dir: Path, http_client: httpx.Client):
@@ -302,6 +315,10 @@ class LinuxOSStrategy(OSStrategy):
 
     def get_file_ext(self):
         return "tar.xz"
+    
+    def set_cuda_cmake_directives(self):
+        command = ["echo", "'set(WITH_CYCLES_CUDA_BINARIES   ON  CACHE BOOL \"\" FORCE)'", ">>", self.blender_repo_dir / "build_files/cmake/config/bpy_module.cmake"]
+        subprocess.run(command)
 
 
 class CheckoutStrategy(ABC):
@@ -473,6 +490,7 @@ class BlenderBuilder:
 
         # Generate stubs and build Blender
         self.generate_stubs( commit_hash)
+        self.os_strategy.set_cuda_cmake_directives()
         subprocess.run([make_command, "update"], cwd=blender_repo_dir)
         subprocess.run([make_command, "bpy"], cwd=blender_repo_dir)
 
@@ -506,7 +524,7 @@ class BlenderBuilder:
                     if asset.name == wheel_file.name:
                         print(f"Deleting existing asset {asset.name}")
                         asset.delete_asset()
-                print(f"Uploading asset {wheel_file.name}")
+                print(f"Uploading asset {wheel_file}")
                 release.upload_asset(path=wheel_file, label=wheel_file.name, content_type='application/octet-stream')
 
 
