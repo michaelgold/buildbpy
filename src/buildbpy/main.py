@@ -190,19 +190,9 @@ class OSStrategy(ABC):
         pass
 
     @abstractmethod
-    def download_and_extract(self):
+    def extract(self, downloaded_file: Path):
         pass
 
-
-    def _download_file(self, url: str) -> Path:
-        print(f"Downloading Blender from {url}")
-        response = self.http_client.get(url)
-        if response.status_code == 200:
-            download_path = self.bin_dir / url.split("/")[-1]
-            download_path.write_bytes(response.content)
-            return download_path
-        else:
-            raise Exception(f"Failed to download Blender from {url}")
         
     def _prepare_bin_dir(self):
         bin_dir = self.bin_dir
@@ -220,7 +210,8 @@ class OSStrategy(ABC):
         url = f"{self.version_strategy.get_download_url_root()}/{self.download_filename}"
         return url
     
-    def _download_file(self, url: str) -> Path:
+    def download_file(self) -> Path:
+        url = self.get_download_url()
         download_dir = self.download_dir
         download_dir.mkdir(parents=True, exist_ok=True)
 
@@ -247,9 +238,7 @@ class WindowsOSStrategy(OSStrategy):
         blender_dir = list(self.bin_dir.glob("blender*"))[0]
         return blender_dir / f"blender.exe"
     
-    def download_and_extract(self):
-        download_url = self.get_download_url()
-        downloaded_file = self._download_file(download_url)
+    def extract(self, downloaded_file: Path):
         self._prepare_bin_dir()
         with zipfile.ZipFile(downloaded_file, 'r') as zip_ref:
                 zip_ref.extractall(self.bin_dir)
@@ -266,12 +255,10 @@ class MacOSStrategy(OSStrategy):
     def get_blender_binary(self):
         return self.bin_dir / f"Blender.app/Contents/MacOS/Blender"
     
-    def download_and_extract(self):
-        download_url = self.get_download_url()
-        downloaded_file = self._download_file(download_url)
+    def extract(self, downloaded_file: Path):
         self._prepare_bin_dir()
         with dmgextractor.DMGExtractor(downloaded_file) as extractor:
-                extractor.extractall(self.bin_dir)
+            extractor.extractall(self.bin_dir)
 
     
 class LinuxOSStrategy(OSStrategy):
@@ -285,9 +272,7 @@ class LinuxOSStrategy(OSStrategy):
         blender_dir = list(self.bin_dir.glob("blender*"))[0]
         return blender_dir / f"blender"
     
-    def download_and_extract(self):
-        download_url = self.get_download_url()
-        downloaded_file = self._download_file(download_url)
+    def extract(self, downloaded_file: Path):
         self._prepare_bin_dir()
         with tarfile.open(downloaded_file, "r:xz") as tar:
                 tar.extractall(self.bin_dir)
@@ -433,7 +418,8 @@ class BlenderBuilder:
         #     blender_binary = self.bin_dir / f"Blender.app/Contents/MacOS/Blender"
         # else:
         #     raise Exception("Unsupported operating system")
-        self.os_strategy.download_and_extract()
+        downloaded_file = self.os_strategy.download_file()
+        self.os_strategy.extract(downloaded_file)
         blender_binary = self.os_strategy.get_blender_binary()
 
         subprocess.run([blender_binary, "--background", "--factory-startup", "-noaudio", "--python", self.blender_repo_dir / "doc/python_api/sphinx_doc_gen.py", "--", f"--output={self.python_api_dir}"])
