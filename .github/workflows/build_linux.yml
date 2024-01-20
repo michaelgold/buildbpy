@@ -133,8 +133,8 @@ jobs:
           sudo apt-get install -y build-essential git subversion cmake libx11-dev libxxf86vm-dev libxcursor-dev libxi-dev libxrandr-dev libxinerama-dev libegl-dev
           sudo apt-get install -y libwayland-dev wayland-protocols libxkbcommon-dev libdbus-1-dev linux-libc-dev
           echo "Running install_linux_packages.py"
-          cd ./blender
-          sudo python ./build_files/build_environment/install_linux_packages.py
+          # cd ./blender
+          # sudo python ./build_files/build_environment/install_linux_packages.py
       
       # - name: Verify X11 Installation
       #   run: |
