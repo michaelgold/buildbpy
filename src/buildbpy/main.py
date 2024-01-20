@@ -308,7 +308,10 @@ class CheckoutStrategy(ABC):
     def __init__(self, blender_repo_dir: Path):
         self.blender_repo_dir = blender_repo_dir
         if not blender_repo_dir.exists():
-            subprocess.run(["git", "clone", "--recursive", "https://github.com/blender/blender.git"], cwd=self.root_dir)
+            root_dir = blender_repo_dir.parent
+            # make the root_dir if it doesn't exist
+            root_dir.mkdir(parents=True, exist_ok=True)
+            subprocess.run(["git", "clone", "--recursive", "https://github.com/blender/blender.git"], cwd=root_dir)
         subprocess.run(["git", "fetch", "--all"], cwd=blender_repo_dir)
     
     @abstractmethod
