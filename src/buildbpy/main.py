@@ -64,7 +64,7 @@ class ConcreteStrategyFactory(StrategyFactory):
             return WindowsOSStrategy(version_strategy, root_dir, blender_repo_dir, http_client)
         elif os_type == "Linux":
             return LinuxOSStrategy(version_strategy, root_dir, blender_repo_dir, http_client)
-        elif os_type == "MacOS":
+        elif os_type == "Darwin":
             return MacOSStrategy(version_strategy, root_dir, blender_repo_dir, http_client)
         else:
             raise ValueError(f"Unsupported OS type: {os_type}")
