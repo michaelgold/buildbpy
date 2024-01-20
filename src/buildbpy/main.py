@@ -453,7 +453,7 @@ class BlenderBuilder:
         # Get Blender version and setup build
         self.set_version(commit_hash, blender_repo_dir)
         self.setup_strategies(self.os_type, self.major_version, self.minor_version, self.release_cycle, commit_hash, self.root_dir, blender_repo_dir)
-        self.build_dir = self.os_strategy.build_dir
+        self.build_dir = self.os_strategy.build_dir.parent
         
         # Clear cache and library if requested
         if clear_cache and self.build_dir.exists():
