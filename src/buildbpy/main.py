@@ -490,6 +490,9 @@ class BlenderBuilder:
     
     def publish_github(self, tag: str, wheel_dir: Path, repo_name: str):
         # Use GitHub client to access the repository
+        if not tag:
+            # for commit builds we'll need to generate a tag
+            tag = f"v{self.major_version}.{self.version_strategy.release_cycle}"
         repo = self.github_client.get_repo(repo_name)
         release = next((r for r in repo.get_releases() if r.tag_name == tag), None)
 
