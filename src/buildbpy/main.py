@@ -102,7 +102,7 @@ class VersionCycleStrategy(ABC):
 
         #TODO move these to the OS subclasses
         self.os_type = platform.system()
-        self.system_type = "linux-" if self.os_type == "Linux" else "windows-" if self.os_type == "Windows" else "macos-" if self.os_type == "Darwin" else ""
+        self.system_type = "linux-" if self.os_type == "Linux" else "windows." if self.os_type == "Windows" else "macos-" if self.os_type == "Darwin" else ""
 
         self.arch = "x64" if self.release_cycle == "release" else "x86_64" if self.os_type == "Linux" else "amd64" if self.os_type == "Windows" else "arm64" if platform.machine() == "arm64" else "x64"
         self.file_ext = "tar.xz" if self.os_type == "Linux" else "zip" if self.os_type == "Windows" else "dmg"
@@ -188,7 +188,7 @@ class OSStrategy(ABC):
         self.download_dir = self.root_dir / "downloads"
         self.version_strategy = version_strategy
         self.http_client = http_client
-        self.download_filename = f"blender-{self.version_strategy.minor_version}{self.version_strategy.get_download_url_suffix()}-{self.version_strategy.system_type}{self.version_strategy.arch}{self.version_strategy.get_file_suffix()}.{self.version_strategy.file_ext}"
+        self.download_filename = f"blender-{self.version_strategy.minor_version}{self.version_strategy.get_download_url_suffix()}-{self.get_system_type()}{self.get_arch()}{self.version_strategy.get_file_suffix()}.{self.get_file_ext()}"
     
     @abstractmethod
     def get_blender_binary(self) -> Path:
@@ -198,6 +198,17 @@ class OSStrategy(ABC):
     def extract(self, downloaded_file: Path):
         pass
 
+    @abstractmethod
+    def get_system_type(self):
+        pass
+
+    @abstractmethod
+    def get_arch(self):
+        pass
+
+    @abstractmethod
+    def get_file_ext(self):
+        pass
         
     def _prepare_bin_dir(self):
         bin_dir = self.bin_dir
@@ -248,6 +259,18 @@ class WindowsOSStrategy(OSStrategy):
         with zipfile.ZipFile(downloaded_file, 'r') as zip_ref:
                 zip_ref.extractall(self.bin_dir)
 
+    def get_system_type(self):
+        system_type = "windows-" if self.version_strategy.release_cycle == "release" else "windows."
+        return system_type
+
+    def get_arch(self):
+        arch = "x64" if self.version_strategy.release_cycle == "release" else "amd64"
+        return arch
+
+    def get_file_ext(self):
+        return "zip"
+
+
 
 
 class MacOSStrategy(OSStrategy):
@@ -265,7 +288,17 @@ class MacOSStrategy(OSStrategy):
         with dmgextractor.DMGExtractor(downloaded_file) as extractor:
             extractor.extractall(self.bin_dir)
 
-    
+    def get_system_type(self):
+        system_type = "macos-" if self.version_strategy.release_cycle == "release" else "darwin."
+        return system_type
+
+    def get_arch(self):
+        arch = "arm64" if platform.machine() == "arm64" else "x64"
+        return arch
+
+    def get_file_ext(self):
+        return "dmg"
+
 class LinuxOSStrategy(OSStrategy):
     def __init__(self, version_strategy: VersionCycleStrategy, root_dir: Path, blender_repo_dir: Path, http_client: httpx.Client):
         super().__init__(version_strategy, root_dir, blender_repo_dir, http_client)
@@ -281,6 +314,17 @@ class LinuxOSStrategy(OSStrategy):
         self._prepare_bin_dir()
         with tarfile.open(downloaded_file, "r:xz") as tar:
                 tar.extractall(self.bin_dir)
+
+    def get_system_type(self):
+        system_type = "linux-" if self.version_strategy.release_cycle == "release" else "linux."
+        return system_type
+
+    def get_arch(self):
+        arch = "x64" if self.version_strategy.release_cycle == "release" else "x86_64"
+        return arch
+
+    def get_file_ext(self):
+        return "tar.xz"
 
 
 
