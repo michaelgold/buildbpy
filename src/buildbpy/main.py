@@ -499,6 +499,11 @@ class BlenderBuilder:
         # Upload wheel files to the release
         for wheel_file in wheel_dir.glob("*.whl"):
             with open(wheel_file, 'rb') as file:
+                for asset in release.get_assets():
+                    if asset.name == wheel_file.name:
+                        print(f"Deleting existing asset {asset.name}")
+                        asset.delete_asset()
+                print(f"Uploading asset {wheel_file.name}")
                 release.upload_asset(path=wheel_file, label=wheel_file.name, content_type='application/octet-stream')
 
 
