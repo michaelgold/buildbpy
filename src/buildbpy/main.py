@@ -279,8 +279,8 @@ class MacOSStrategy(OSStrategy):
 class LinuxOSStrategy(OSStrategy):
     def __init__(self, version_strategy: VersionCycleStrategy, root_dir: Path, blender_repo_dir: Path, http_client: httpx.Client):
         super().__init__(version_strategy, root_dir, blender_repo_dir, http_client)
-        self.lib_path = f"{self.version_strategy.get_svn_root()}build_linux_bpy"
-        self.build_dir = self.root_dir / "build_linux_bpy"
+        self.lib_path = f"{self.version_strategy.get_svn_root()}linux_x86_64_glibc_228"
+        self.build_dir = self.root_dir / "build_linux_bpy" 
         self.make_command = "make"
     
     def get_blender_binary(self):
