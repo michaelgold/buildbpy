@@ -388,6 +388,7 @@ class BlenderBuilder:
         # subprocess.run(["pip", "install", "-U", "pip", "setuptools", "wheel"])
         
         make_script = self.blender_repo_dir / "build_files/utils/make_bpy_wheel.py"
+        print(f"Running python {make_script} {bin_path}")
         subprocess.run(["python", make_script, bin_path])
 
         if install:
