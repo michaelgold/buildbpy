@@ -100,13 +100,6 @@ class VersionCycleStrategy(ABC):
         self.commit_hash = commit_hash
         self.commit_hash_short = commit_hash[:12] if commit_hash else ""
 
-        #TODO move these to the OS subclasses
-        self.os_type = platform.system()
-        self.system_type = "linux-" if self.os_type == "Linux" else "windows." if self.os_type == "Windows" else "macos-" if self.os_type == "Darwin" else ""
-
-        self.arch = "x64" if self.release_cycle == "release" else "x86_64" if self.os_type == "Linux" else "amd64" if self.os_type == "Windows" else "arm64" if platform.machine() == "arm64" else "x64"
-        self.file_ext = "tar.xz" if self.os_type == "Linux" else "zip" if self.os_type == "Windows" else "dmg"
-
     @abstractmethod
     def get_svn_root(self) -> Path:
         pass
@@ -123,9 +116,6 @@ class VersionCycleStrategy(ABC):
     def get_file_suffix(self) -> str:
         pass
 
-    @abstractmethod
-    def download(self, major_version, minor_version, release_cycle):
-        pass
 
 class ReleaseVersionCycleStrategy(VersionCycleStrategy):
     def get_svn_root(self):
@@ -139,10 +129,6 @@ class ReleaseVersionCycleStrategy(VersionCycleStrategy):
     
     def get_file_suffix(self):
         return ""
-
-    def download(self, major_version, minor_version, release_cycle):
-        # Implement download logic for release version
-        pass
 
 
 class CandidateVersionCycleStrategy(VersionCycleStrategy):
@@ -158,9 +144,6 @@ class CandidateVersionCycleStrategy(VersionCycleStrategy):
     def get_file_suffix(self):
         return "-release"
 
-    def download(self, major_version, minor_version, release_cycle):
-        # Implement download logic for candidate version
-        pass
 
 class AlphaBetaVersionCycleStrategy(VersionCycleStrategy):
     def get_svn_root(self):
@@ -175,9 +158,6 @@ class AlphaBetaVersionCycleStrategy(VersionCycleStrategy):
     def get_file_suffix(self):
         return "-release" 
 
-    def download(self, major_version, minor_version, release_cycle):
-        # Implement download logic for candidate version
-        pass
 
 class OSStrategy(ABC):
     def __init__(self, version_strategy: VersionCycleStrategy,  root_dir: Path, blender_repo_dir: Path, http_client: httpx.Client):
@@ -220,7 +200,6 @@ class OSStrategy(ABC):
                 file.unlink()
             else:
                 shutil.rmtree(file)
-
         
     def get_download_url(self):
         url = f"{self.version_strategy.get_download_url_root()}/{self.download_filename}"
@@ -269,8 +248,6 @@ class WindowsOSStrategy(OSStrategy):
 
     def get_file_ext(self):
         return "zip"
-
-
 
 
 class MacOSStrategy(OSStrategy):
@@ -327,7 +304,6 @@ class LinuxOSStrategy(OSStrategy):
         return "tar.xz"
 
 
-
 class CheckoutStrategy(ABC):
     def __init__(self, blender_repo_dir: Path):
         self.blender_repo_dir = blender_repo_dir
@@ -346,9 +322,6 @@ class TagCheckoutStrategy(CheckoutStrategy):
 class CommitCheckoutStrategy(CheckoutStrategy):
     def checkout(self, id):
         subprocess.run(["git", "checkout", id], cwd=self.blender_repo_dir)
-
-
-
 
 class BlenderBuilder:
     def __init__(self, blender_repo_dir: Path, http_client: httpx.Client, factory: StrategyFactory, github_client: Github):
@@ -369,7 +342,6 @@ class BlenderBuilder:
         self.blender_repo = github_client.get_repo("blender/blender")
         self.build_dir = None
 
-
     def setup_strategies(self, os_type, major_version, minor_version, release_cycle, commit_hash, root_dir, blender_repo_dir):
         self.version_strategy = self.factory.create_version_strategy(major_version, minor_version, release_cycle, commit_hash)
         self.os_strategy = self.factory.create_os_strategy(os_type, self.version_strategy, root_dir, blender_repo_dir, self.http_client)
@@ -379,20 +351,6 @@ class BlenderBuilder:
         self.major_version = f"{version.version // 100}.{version.version % 100}"
         self.minor_version = f"{version.version // 100}.{version.version % 100}.{version.patch}"
         self.release_cycle = version.cycle
-
-
-    
-    # def set_version_strategy(self):
-    #     if self.release_cycle == "release":
-    #         self.version_strategy = ReleaseVersionCycleStrategy(self.major_version, self.minor_version, self.release_cycle)
-    #     elif self.release_cycle == "candidate":
-    #         self.version_strategy = CandidateVersionCycleStrategy(self.major_version, self.minor_version, self.release_cycle)
-    #     # Add conditions for other release cycles (alpha, beta)
-    #     else:
-    #         raise ValueError(f"Unsupported release cycle: {self.release_cycle}")
-    
-  
-
 
     def get_valid_commits(self, commit_hash: str):
         commit = self.blender_repo.get_commit(commit_hash)
@@ -406,71 +364,7 @@ class BlenderBuilder:
                 return b.commit.sha
         return None
 
-    # def set_version(self, blender_source_dir: Path = None):
-    #     version = make_utils.parse_blender_version(blender_source_dir)
-    #     self.major_version = f"{version.version // 100}.{version.version % 100}"
-    #     self.minor_version = f"{version.version // 100}.{version.version % 100}.{version.patch}"
-    #     self.release_cycle = version.cycle
-    #     self.set_version_strategy()
-
-
-    # def download_blender(self, commit_hash: str):
-    #     commit_hash_short = commit_hash[:12] if commit_hash else ""
-    #     url_root = f"https://mirrors.ocf.berkeley.edu/blender/release/Blender{self.major_version}" if self.release_cycle == "release" else "https://builder.blender.org/download/daily"
-    #     release_suffix = f"-{self.release_cycle}+main.{commit_hash_short}" if self.release_cycle in ["alpha", "beta"] else f"-candidate+{self.major_version.replace('.', '')}.{commit_hash_short}" if self.release_cycle == "rc" else ""
-    #     file_suffix = "" if self.release_cycle == "release" else "-release"
-        
-    #     system_type = "linux-" if self.os_type == "Linux" else "windows-" if self.os_type == "Windows" else "macos-" if self.os_type == "Darwin" else ""
-    #     arch = "x64" if self.release_cycle == "release" else "x86_64" if self.os_type == "Linux" else "amd64" if self.os_type == "Windows" else "arm64" if platform.machine() == "arm64" else "x64"
-    #     file_ext = "tar.xz" if self.os_type == "Linux" else "zip" if self.os_type == "Windows" else "dmg"
-
-    #     filename = f"blender-{self.minor_version}{release_suffix}-{system_type}{arch}{file_suffix}.{file_ext}"
-    #     url = f"{url_root}/{filename}"
-        
-    #     download_dir = self.download_dir
-    #     download_dir.mkdir(parents=True, exist_ok=True)
-        
-    #     with httpx.Client() as client:
-    #         response = client.get(url)
-    #         if response.status_code == 200:
-    #             with open(download_dir / filename, 'wb') as file:
-    #                 file.write(response.content)
-    #         else:
-    #             raise Exception(f"Failed to download Blender. Status code: {response.status_code}")
-
-    #     bin_dir = self.bin_dir
-    #     bin_dir.mkdir(parents=True, exist_ok=True)
-
-    #     # Empty and extract the bin directory
-    #     for file in bin_dir.glob("*"):
-    #         if file.is_file():
-    #             file.unlink()
-    #         else:
-    #             shutil.rmtree(file)
-
-    #     if file_ext == "tar.xz":
-    #         with tarfile.open(download_dir / filename, "r:xz") as tar:
-    #             tar.extractall(bin_dir)
-    #     elif file_ext == "zip":
-    #         with zipfile.ZipFile(download_dir / filename, 'r') as zip_ref:
-    #             zip_ref.extractall(bin_dir)
-    #     elif file_ext == "dmg":
-    #         with dmgextractor.DMGExtractor(download_dir / filename) as extractor:
-    #             extractor.extractall(bin_dir)
-
     def generate_stubs(self, commit_hash):
-        #TODO refactor Download to OS Strategy
-        # self.download_blender(commit_hash)
-        # if self.os_type == "Linux":
-        #     blender_dir = list(self.bin_dir.glob("blender*"))[0]
-        #     blender_binary = blender_dir / f"blender"
-        # elif self.os_type == "Windows":
-        #     blender_dir = list(self.bin_dir.glob("blender*"))[0]
-        #     blender_binary = blender_dir / f"blender.exe"
-        # elif self.os_type == "Darwin":
-        #     blender_binary = self.bin_dir / f"Blender.app/Contents/MacOS/Blender"
-        # else:
-        #     raise Exception("Unsupported operating system")
         downloaded_file = self.os_strategy.download_file()
         self.os_strategy.extract(downloaded_file)
         blender_binary = self.os_strategy.get_blender_binary()
