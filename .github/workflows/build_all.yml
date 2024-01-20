@@ -118,3 +118,5 @@ jobs:
           git add version_info.json
           git commit -m "Update version info with latest tag and commit"
           git push
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
