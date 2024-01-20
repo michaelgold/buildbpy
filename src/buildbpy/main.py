@@ -515,7 +515,7 @@ class BlenderBuilder:
         release = next((r for r in repo.get_releases() if r.tag_name == tag), None)
 
         if not release:
-            release = repo.create_git_release(tag=tag, name=f"Release {tag}", message=f"Release for Blender {tag}", draft=False, prerelease=False)
+            release = repo.create_git_release(tag=tag, name=f"bpy-{tag}", message=f"Blender Python Module for Blender {tag}", draft=False, prerelease=False)
 
         # Upload wheel files to the release
         for wheel_file in wheel_dir.glob("*.whl"):
