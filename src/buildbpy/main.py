@@ -294,6 +294,7 @@ class WindowsOSStrategy(OSStrategy):
         self.lib_path = f"{self.version_strategy.get_svn_root()}win64_vc15"
         self.build_dir = self.root_dir / "build_windows_Bpy_x64_vc17_Release"
         self.make_command = blender_repo_dir / "make.bat"
+        self.make_command = "echo y |make.bat"
     
     def get_blender_binary(self):
         blender_dir = list(self.bin_dir.glob("blender*"))[0]
@@ -512,13 +513,14 @@ class BlenderBuilder:
             self.publish_github(selected_tag, bin_path, publish_repo)
     
     def setup_build_environment(self):
+        #Todo move ot osstrategy
         lib_path = self.os_strategy.lib_path
         
         # Checkout libraries if not present
         if not self.lib_dir.exists():
             print(f"Installing libraries to: {self.lib_dir}")
             self.lib_dir.mkdir(parents=True, exist_ok=True)
-            if self.os_type != "Darwin":
+            if self.os_type == "Linux":
                 subprocess.run(["svn", "checkout", lib_path], cwd=self.lib_dir)
         else:
             print(f"Libraries already installed in {self.lib_dir}")
@@ -588,9 +590,9 @@ class BlenderBuilder:
         # Generate stubs and build Blender
         self.generate_stubs( commit_hash)
         self.os_strategy.set_cuda_cmake_directives()
-        subprocess.run([make_command, "update"], cwd=blender_repo_dir)
-        subprocess.run([make_command, "bpy"], cwd=blender_repo_dir)
-
+        subprocess.run(f"{make_command} update", cwd=blender_repo_dir, shell=True)
+        subprocess.run(f"{make_command} bpy", cwd=blender_repo_dir, shell=True)
+   
         # Build and install or publish the wheel
         bin_path = self.build_dir / "bin"
         self.build_and_manage_wheel(bin_path, install, publish, publish_repo, selected_tag)
