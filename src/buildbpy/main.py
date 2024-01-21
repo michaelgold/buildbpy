@@ -292,7 +292,7 @@ class WindowsOSStrategy(OSStrategy):
     def __init__(self, version_strategy: VersionCycleStrategy, root_dir: Path, blender_repo_dir: Path, http_client: httpx.Client):
         super().__init__(version_strategy, root_dir, blender_repo_dir, http_client)
         self.lib_path = f"{self.version_strategy.get_svn_root()}win64_vc15"
-        self.build_dir = self.root_dir / "build_windows_Bpy_x64_vc17_Release"
+        self.build_dir = self.root_dir / "build_windows_Bpy_x64_vc16_Release"
         self.make_command = blender_repo_dir / "make.bat"
         self.make_command = "echo y |make.bat"
     
@@ -590,6 +590,7 @@ class BlenderBuilder:
         # Generate stubs and build Blender
         self.generate_stubs( commit_hash)
         self.os_strategy.set_cuda_cmake_directives()
+        os.chdir(blender_repo_dir)
         subprocess.run(f"{make_command} update", cwd=blender_repo_dir, shell=True)
         subprocess.run(f"{make_command} bpy", cwd=blender_repo_dir, shell=True)
    
