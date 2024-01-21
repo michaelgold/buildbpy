@@ -295,6 +295,7 @@ class WindowsOSStrategy(OSStrategy):
         self.build_dir = self.root_dir / "build_windows_Bpy_x64_vc16_Release"
         self.make_command = blender_repo_dir / "make.bat"
         self.make_command = "echo y |make.bat"
+        self.build_wheel_dir = self.build_dir / "bin/Release"
     
     def get_blender_binary(self):
         blender_dir = list(self.bin_dir.glob("blender*"))[0]
@@ -328,6 +329,7 @@ class MacOSStrategy(OSStrategy):
         super().__init__(version_strategy, root_dir, blender_repo_dir, http_client)
         self.lib_path = f"{self.version_strategy.get_svn_root()}macos"
         self.build_dir = self.root_dir / "build_darwin_bpy"
+        self.build_wheel_dir = self.build_dir / "bin"
         self.make_command = "make"
 
     def get_blender_binary(self):
@@ -357,6 +359,7 @@ class LinuxOSStrategy(OSStrategy):
     def __init__(self, version_strategy: VersionCycleStrategy, root_dir: Path, blender_repo_dir: Path, http_client: httpx.Client):
         super().__init__(version_strategy, root_dir, blender_repo_dir, http_client)
         self.lib_path = f"{self.version_strategy.get_svn_root()}linux_x86_64_glibc_228"
+        self.build_wheel_dir = self.build_dir / "bin"
         self.build_dir = self.root_dir / "build_linux_bpy" 
         self.make_command = "make"
     
@@ -479,9 +482,10 @@ class BlenderBuilder:
         downloaded_file = self.os_strategy.download_file()
         self.os_strategy.extract(downloaded_file)
         blender_binary = self.os_strategy.get_blender_binary()
+        output_dir = self.os_strategy.build_wheel_dir
 
         subprocess.run([blender_binary, "--background", "--factory-startup", "-noaudio", "--python", self.blender_repo_dir / "doc/python_api/sphinx_doc_gen.py", "--", f"--output={self.python_api_dir}"])
-        subprocess.run(["python", "-m", "bpystubgen", self.python_api_dir / "sphinx-in", self.build_dir / "bin"])
+        subprocess.run(["python", "-m", "bpystubgen", self.python_api_dir / "sphinx-in", output_dir])
 
     def get_valid_tag(self, tag: str = None):
         tags = self.blender_repo.get_tags()
@@ -595,8 +599,8 @@ class BlenderBuilder:
         subprocess.run(f"{make_command} bpy", cwd=blender_repo_dir, shell=True)
    
         # Build and install or publish the wheel
-        bin_path = self.build_dir / "bin"
-        self.build_and_manage_wheel(bin_path, install, publish, publish_repo, selected_tag)
+        wheel_path = self.os_strategy.build_wheel_dir
+        self.build_and_manage_wheel(wheel_path, install, publish, publish_repo, selected_tag)
 
         # # Update the data file if needed
         # if tag and data_file_path:
