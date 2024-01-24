@@ -35,7 +35,7 @@ jobs:
       - name: Generate Repository Index on Main
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: python ./workspace/generate_package_index.py ${{ secrets.GITHUB_TOKEN }} ${{ github.repository }} bpygold
+        run: python ./workspace/generate_package_index.py ${{ secrets.GITHUB_TOKEN }} ${{ github.repository }} bpy
 
       - name: Move docs up one level
         run: |
