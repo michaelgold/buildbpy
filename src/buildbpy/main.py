@@ -540,6 +540,8 @@ class DailyCheckoutStrategy(CheckoutStrategy):
 
 
 class BlenderBuilder:
+    """Main class for building the Blender Python Module"""
+
     def __init__(
         self,
         blender_repo_dir: Path,
@@ -578,6 +580,21 @@ class BlenderBuilder:
         root_dir,
         blender_repo_dir,
     ):
+        """
+        Set up the version and OS strategies for the build process.
+
+        Args:
+            os_type (str): The type of operating system.
+            major_version (int): The major version of Blender.
+            minor_version (int): The minor version of Blender.
+            release_cycle (str): The release cycle of Blender.
+            commit_hash (str): The commit hash of the Blender repository.
+            root_dir (str): The root directory of the build process.
+            blender_repo_dir (str): The directory of the Blender repository.
+
+        Returns:
+            None
+        """
         self.version_strategy = self.factory.create_version_strategy(
             major_version, minor_version, release_cycle, commit_hash
         )
@@ -598,6 +615,15 @@ class BlenderBuilder:
         return None
 
     def generate_stubs(self, commit_hash):
+        """
+        Generate stubs for the Blender Python API.
+
+        Args:
+            commit_hash (str): The commit hash of the Blender version to generate stubs for.
+
+        Returns:
+            None
+        """
         downloaded_file = self.os_strategy.download_file()
         self.os_strategy.extract(downloaded_file)
         blender_binary = self.os_strategy.get_blender_binary()
@@ -626,6 +652,15 @@ class BlenderBuilder:
         )
 
     def get_valid_tag(self, tag: str = None):
+        """
+        Retrieves a valid tag from the Blender repository.
+
+        Args:
+            tag (str, optional): The specific tag to retrieve. If not provided, the first available tag will be returned.
+
+        Returns:
+            str: The selected tag, or None if no valid tag is found.
+        """
         tags = self.blender_repo.get_tags()
         selected_tag = (
             next((t.name for t in tags if t.name == tag), None)
@@ -644,6 +679,16 @@ class BlenderBuilder:
         publish_repo: str,
         selected_tag: str,
     ):
+        """
+        Build and manage the bpy wheel.
+
+        Args:
+            bin_path (Path): The path to the directory where the wheel will be built.
+            install (bool): Flag indicating whether to install the wheel after building.
+            publish (bool): Flag indicating whether to publish the wheel to GitHub Releases.
+            publish_repo (str): The repository to publish the wheel to.
+            selected_tag (str): The tag to associate with the published wheel.
+        """
         # Remove existing wheel files
         for file in bin_path.glob("*.whl"):
             file.unlink()
