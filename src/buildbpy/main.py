@@ -270,6 +270,7 @@ class OSStrategy(ABC):
         self.root_dir = root_dir
         self.bin_dir = self.root_dir / "blender-bin"
         self.download_dir = self.root_dir / "downloads"
+        self.lib_dir = self.root_dir / "lib"
         self.version_strategy = version_strategy
         self.http_client = http_client
         self.download_url = None
@@ -280,6 +281,18 @@ class OSStrategy(ABC):
             build_info = fetch_latest_build_info(http_client, preferred_version)
             self.download_url = build_info["url"]
             self.download_filename = build_info["file_name"]
+
+    def setup_build_environment(self):
+        # Checkout libraries if not present
+        if not self.lib_dir.exists():
+            self.lib_dir.mkdir(parents=True, exist_ok=True)
+            self.run_svn_checkout()
+        else:
+            print(f"Libraries already installed in {self.lib_dir}")
+
+    def run_svn_checkout(self):
+        print(f"Installing libraries to: {self.lib_dir}")
+        subprocess.run(["svn", "checkout", self.lib_path], cwd=self.lib_dir)
 
     @abstractmethod
     def get_blender_binary(self) -> Path:
@@ -418,6 +431,10 @@ class MacOSStrategy(OSStrategy):
 
     def set_cuda_cmake_directives(self):
         """Override the cuda directives for MacOS"""
+        pass
+
+    def run_svn_checkout(self):
+        """Override the svn checkout command for MacOS"""
         pass
 
 
@@ -713,19 +730,6 @@ class BlenderBuilder:
             print("Publishing to GitHub Releases")
             self.publish_github(selected_tag, bin_path, publish_repo)
 
-    def setup_build_environment(self):
-        # Todo move ot osstrategy
-        lib_path = self.os_strategy.lib_path
-
-        # Checkout libraries if not present
-        if not self.lib_dir.exists():
-            print(f"Installing libraries to: {self.lib_dir}")
-            self.lib_dir.mkdir(parents=True, exist_ok=True)
-            if self.os_type == "Linux":
-                subprocess.run(["svn", "checkout", lib_path], cwd=self.lib_dir)
-        else:
-            print(f"Libraries already installed in {self.lib_dir}")
-
     def main(
         self,
         tag: str,
@@ -807,7 +811,7 @@ class BlenderBuilder:
             shutil.rmtree(self.lib_dir, onerror=del_readonly)
 
         make_command = self.os_strategy.make_command
-        self.setup_build_environment()
+        self.os_strategy.setup_build_environment()
 
         # Generate stubs and build Blender
         self.generate_stubs(commit_hash)
