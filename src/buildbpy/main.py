@@ -682,9 +682,7 @@ class BlenderBuilder:
         selected_tag = (
             next((t.name for t in tags if t.name == tag), None)
             if tag
-            else next((t.name for t in tags), None)
-            if tags
-            else None
+            else next((t.name for t in tags), None) if tags else None
         )
         return selected_tag
 
@@ -761,8 +759,9 @@ class BlenderBuilder:
             not selected_tag
             and not is_valid_commit
             and not daily
-            and not daily_version == ""
+            and daily_version == ""
         ):
+            print("No valid tag, commit or daily version found")
             return False
 
         blender_repo_dir = self.blender_repo_dir
@@ -783,6 +782,7 @@ class BlenderBuilder:
             self.checkout_strategy = DailyCheckoutStrategy(
                 blender_repo_dir, http_client, daily_version
             )
+            print(f"Checking out daily version {daily_version}")
             self.checkout_strategy.checkout()
 
         # Get Blender version and setup build
