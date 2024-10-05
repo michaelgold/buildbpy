@@ -315,7 +315,7 @@ class OSStrategy(ABC):
         pass
 
     @abstractmethod
-    def set_cuda_cmake_directives(self):
+    def set_cmake_directives(self):
         pass
 
     def _prepare_bin_dir(self):
@@ -385,13 +385,19 @@ class WindowsOSStrategy(OSStrategy):
     def get_file_ext(self):
         return "zip"
 
-    def set_cuda_cmake_directives(self):
+    def set_cmake_directives(self):
         cmake_file_path = (
             self.blender_repo_dir / "build_files/cmake/config/bpy_module.cmake"
         )
-        directive = 'set(WITH_CYCLES_CUDA_BINARIES ON CACHE BOOL "" FORCE)'
-        command = f"echo {directive} >> {cmake_file_path}"
-        subprocess.run(command, shell=True)
+        print(f"Setting CMake directives in {cmake_file_path}")
+        directives = [
+            'set(WITH_CYCLES_CUDA_BINARIES ON CACHE BOOL "" FORCE)',
+            'set(WITH_AUDASPACE ON CACHE BOOL "" FORCE)'
+        ]
+        
+        with open(cmake_file_path, 'a') as file:
+            for directive in directives:
+                file.write(f"{directive}\n")
 
 
 class MacOSStrategy(OSStrategy):
@@ -429,9 +435,26 @@ class MacOSStrategy(OSStrategy):
     def get_file_ext(self):
         return "dmg"
 
-    def set_cuda_cmake_directives(self):
-        """Override the cuda directives for MacOS"""
-        pass
+    def set_cmake_directives(self):
+        cmake_file_path = (
+            self.blender_repo_dir / "build_files/cmake/config/bpy_module.cmake"
+        )
+        print(f"Setting CMake directives in {cmake_file_path}")
+        directives = [
+            'set(WITH_AUDASPACE ON CACHE BOOL "" FORCE)',
+            'set(WITH_CODEC_FFMPEG ON CACHE BOOL "" FORCE)',
+            'set(WITH_CODEC_SNDFILE ON CACHE BOOL "" FORCE)',
+            'set(WITH_COREAUDIO ON CACHE BOOL "" FORCE)',
+            'set(WITH_JACK ON CACHE BOOL "" FORCE)',
+            'set(WITH_OPENAL ON CACHE BOOL "" FORCE)',
+            'set(WITH_PULSEAUDIO ON CACHE BOOL "" FORCE)',
+            'set(WITH_SDL ON CACHE BOOL "" FORCE)',
+            'set(WITH_WASAPI ON CACHE BOOL "" FORCE)'
+        ]
+        
+        with open(cmake_file_path, 'a') as file:
+            for directive in directives:
+                file.write(f"{directive}\n")
 
     def run_svn_checkout(self):
         """Override the svn checkout command for MacOS"""
@@ -474,14 +497,19 @@ class LinuxOSStrategy(OSStrategy):
     def get_file_ext(self):
         return "tar.xz"
 
-    def set_cuda_cmake_directives(self):
-        command = [
-            "echo",
-            "'set(WITH_CYCLES_CUDA_BINARIES   ON  CACHE BOOL \"\" FORCE)'",
-            ">>",
-            self.blender_repo_dir / "build_files/cmake/config/bpy_module.cmake",
+    def set_cmake_directives(self):
+        cmake_file_path = (
+            self.blender_repo_dir / "build_files/cmake/config/bpy_module.cmake"
+        )
+        print(f"Setting CMake directives in {cmake_file_path}")
+        directives = [
+            'set(WITH_CYCLES_CUDA_BINARIES ON CACHE BOOL "" FORCE)',
+            'set(WITH_AUDASPACE ON CACHE BOOL "" FORCE)'
         ]
-        subprocess.run(command)
+        
+        with open(cmake_file_path, 'a') as file:
+            for directive in directives:
+                file.write(f"{directive}\n")
 
 
 class CheckoutStrategy(ABC):
@@ -815,7 +843,7 @@ class BlenderBuilder:
 
         # Generate stubs and build Blender
         self.generate_stubs(commit_hash)
-        self.os_strategy.set_cuda_cmake_directives()
+        self.os_strategy.set_cmake_directives()
         os.chdir(blender_repo_dir)
         subprocess.run(f"{make_command} update", cwd=blender_repo_dir, shell=True)
         subprocess.run(f"{make_command} bpy", cwd=blender_repo_dir, shell=True)
