@@ -139,7 +139,7 @@ jobs:
           # Add libepoxy for OpenGL handling
           sudo apt-get install -y libepoxy-dev
           # Add Vulkan development packages
-          sudo apt-get install -y libvulkan-dev vulkan-headers vulkan-tools
+          sudo apt-get install -y libvulkan-dev
           echo "Running install_linux_packages.py"
       
       # - name: Verify X11 Installation
