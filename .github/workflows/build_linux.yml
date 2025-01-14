@@ -138,6 +138,8 @@ jobs:
           sudo apt-get install -y libglu1-mesa-dev libgl1-mesa-dev zlib1g-dev libxmu-dev libxi-dev libxxf86vm-dev
           # Add libepoxy for OpenGL handling
           sudo apt-get install -y libepoxy-dev
+          # Add Vulkan development packages
+          sudo apt-get install -y libvulkan-dev vulkan-headers vulkan-tools
           echo "Running install_linux_packages.py"
       
       # - name: Verify X11 Installation
