@@ -499,9 +499,9 @@ class LinuxOSStrategy(OSStrategy):
         """Override to use make_update.py instead of SVN for Linux"""
         if not self.lib_dir.exists():
             self.lib_dir.mkdir(parents=True, exist_ok=True)
-            print(f"Installing libraries using make_update.py")
+            print(f"Installing libraries using make_update.py in {self.lib_dir}")
             self.run_command(
-                f"python ./build_files/utils/make_update.py --use-linux-libraries",
+                f"./build_files/utils/make_update.py --use-linux-libraries",
                 self.blender_repo_dir
             )
         else:
