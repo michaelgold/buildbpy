@@ -495,6 +495,18 @@ class LinuxOSStrategy(OSStrategy):
         self.build_wheel_dir = self.build_dir / "bin"
         self.make_command = "make"
 
+    def setup_build_environment(self):
+        """Override to use make_update.py instead of SVN for Linux"""
+        if not self.lib_dir.exists():
+            self.lib_dir.mkdir(parents=True, exist_ok=True)
+            print(f"Installing libraries using make_update.py")
+            self.run_command(
+                f"python ./build_files/utils/make_update.py --use-linux-libraries",
+                self.blender_repo_dir
+            )
+        else:
+            print(f"Libraries already installed in {self.lib_dir}")
+
     def get_blender_binary(self):
         blender_dir = list(self.bin_dir.glob("blender*"))[0]
         return blender_dir / f"blender"
