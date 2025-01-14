@@ -504,6 +504,10 @@ class LinuxOSStrategy(OSStrategy):
         with tarfile.open(downloaded_file, "r:xz") as tar:
             tar.extractall(self.bin_dir)
 
+    def run_svn_checkout(self):
+        """Override the svn checkout command for Linux"""
+        self.run_command(f"python ./build_files/utils/make_update.py --use-linux-libraries", self.blender_repo_dir)
+
     def get_system_type(self):
         system_type = (
             "linux-" if self.version_strategy.release_cycle == "release" else "linux."
