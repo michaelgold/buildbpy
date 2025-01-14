@@ -491,8 +491,8 @@ class LinuxOSStrategy(OSStrategy):
     ):
         super().__init__(version_strategy, root_dir, blender_repo_dir, http_client)
         self.lib_path = f"{self.version_strategy.get_svn_root()}linux_x86_64_glibc_228"
-        self.build_wheel_dir = self.build_dir / "bin"
         self.build_dir = self.root_dir / "build_linux_bpy"
+        self.build_wheel_dir = self.build_dir / "bin"
         self.make_command = "make"
 
     def get_blender_binary(self):
