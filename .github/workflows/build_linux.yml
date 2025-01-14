@@ -83,8 +83,6 @@ jobs:
           wget https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2404/x86_64/cuda-keyring_1.1-1_all.deb
           sudo dpkg -i cuda-keyring_1.1-1_all.deb
           sudo apt-get update
-          # Install missing dependency
-          sudo apt-get install -y libtinfo5
           # Install CUDA toolkit
           sudo apt-get install -y cuda-toolkit-12-3
           echo "/usr/local/cuda-12.3/bin" >> $GITHUB_PATH
