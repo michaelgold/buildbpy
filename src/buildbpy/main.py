@@ -14,6 +14,7 @@ from github import Github
 from .utils import dmgextractor, make_utils
 from abc import ABC, abstractmethod
 import stat
+import requests
 
 dotenv.load_dotenv()
 
@@ -294,6 +295,14 @@ class OSStrategy(ABC):
         print(f"Installing libraries to: {self.lib_dir}")
         subprocess.run(["svn", "checkout", self.lib_path], cwd=self.lib_dir)
 
+    def run_command(self, command: str, cwd: Path):
+        """
+        Run a shell command with default behavior.
+        :param command: The command to run.
+        :param cwd: The working directory for the command.
+        """
+        subprocess.run(command, cwd=cwd, shell=True)
+
     @abstractmethod
     def get_blender_binary(self) -> Path:
         pass
@@ -358,7 +367,7 @@ class WindowsOSStrategy(OSStrategy):
         self.lib_path = f"{self.version_strategy.get_svn_root()}win64_vc15"
         self.build_dir = self.root_dir / "build_windows_Bpy_x64_vc16_Release"
         self.make_command = blender_repo_dir / "make.bat"
-        self.make_command = "echo y |make.bat"
+        self.make_command = "make.bat"
         self.build_wheel_dir = self.build_dir / "bin/Release"
 
     def get_blender_binary(self):
@@ -398,6 +407,17 @@ class WindowsOSStrategy(OSStrategy):
         with open(cmake_file_path, 'a') as file:
             for directive in directives:
                 file.write(f"{directive}\n")
+
+    def run_command(self, command: str, cwd: Path):
+        """
+        Run a shell command on Windows with special handling for piped input.
+        :param command: The command to run.
+        :param cwd: The working directory for the command.
+        """
+        if "update" in command:
+                subprocess.run(command, cwd=cwd, shell=True, input="y\n", text=True)
+        else:
+            subprocess.run(command, cwd=cwd, shell=True)
 
 
 class MacOSStrategy(OSStrategy):
@@ -535,7 +555,33 @@ class CheckoutStrategy(ABC):
     def checkout(self, id: str):
         pass
 
-    def set_version(self, commit_hash: str):
+    @abstractmethod
+    def set_version(self, commit_hash: str = None, tag: str = None):
+        pass
+
+
+        print(f"Setting Version: {self.major_version}.{self.minor_version}.{self.release_cycle}")
+
+
+class TagCheckoutStrategy(CheckoutStrategy):
+    def checkout(self, id):
+        # reset the repo to the tag
+        subprocess.run(["git", "reset", "--hard", f"tags/{id}"], cwd=self.blender_repo_dir)
+
+    def set_version(self, commit_hash: str = None, tag: str = None):
+        # parse a tag in the format of "v4.3.2" in to major_version 4.3 and minor_version 4.3.2 first remove the v and then split by .
+        tag_version = tag.replace("v", "")
+        version_components = tag_version.split(".")
+        self.major_version = f"{version_components[0]}.{version_components[1]}"
+        self.minor_version = tag_version
+        self.release_cycle = "release"
+
+
+class CommitCheckoutStrategy(CheckoutStrategy):
+    def checkout(self, id):
+        subprocess.run(["git", "checkout", id], cwd=self.blender_repo_dir)
+
+    def set_version(self, commit_hash: str = None, tag: str = None):
         blender_source_dir = self.blender_repo_dir
         version = make_utils.parse_blender_version(blender_source_dir)
         self.major_version = f"{version.version // 100}.{version.version % 100}"
@@ -543,16 +589,6 @@ class CheckoutStrategy(ABC):
             f"{version.version // 100}.{version.version % 100}.{version.patch}"
         )
         self.release_cycle = version.cycle
-
-
-class TagCheckoutStrategy(CheckoutStrategy):
-    def checkout(self, id):
-        subprocess.run(["git", "checkout", f"tags/{id}"], cwd=self.blender_repo_dir)
-
-
-class CommitCheckoutStrategy(CheckoutStrategy):
-    def checkout(self, id):
-        subprocess.run(["git", "checkout", id], cwd=self.blender_repo_dir)
 
 
 class DailyCheckoutStrategy(CheckoutStrategy):
@@ -565,7 +601,7 @@ class DailyCheckoutStrategy(CheckoutStrategy):
         super().__init__(blender_repo_dir, http_client)
         self.build_info = fetch_latest_build_info(self.http_client, preferred_version)
 
-    def set_version(self, commit_hash: str = None):
+    def set_version(self, commit_hash: str = None, tag: str = None):
         """Override to use fetch_latest_build_info"""
 
         version_components = self.build_info["version"].split(".")
@@ -814,10 +850,14 @@ class BlenderBuilder:
             self.checkout_strategy.checkout()
 
         # Get Blender version and setup build
-        self.checkout_strategy.set_version(commit_hash)
+        self.checkout_strategy.set_version(commit_hash, tag)
+
+        # print the version
+        
         self.major_version = self.checkout_strategy.major_version
         self.minor_version = self.checkout_strategy.minor_version
         self.release_cycle = self.checkout_strategy.release_cycle
+        print(f"Getting Version: {self.major_version}.{self.minor_version}.{self.release_cycle}")
 
         self.setup_strategies(
             self.os_type,
@@ -833,10 +873,10 @@ class BlenderBuilder:
         # Clear cache and library if requested
         if clear_cache and self.build_dir.exists():
             print(f"Clearing build directory {self.build_dir}")
-            shutil.rmtree(self.build_dir, onerror=del_readonly)
+            shutil.rmtree(self.build_dir)
         if clear_lib and self.lib_dir.exists():
             print(f"Clearing lib directory {self.lib_dir}")
-            shutil.rmtree(self.lib_dir, onerror=del_readonly)
+            shutil.rmtree(self.lib_dir)
 
         make_command = self.os_strategy.make_command
         self.os_strategy.setup_build_environment()
@@ -845,8 +885,12 @@ class BlenderBuilder:
         self.generate_stubs(commit_hash)
         self.os_strategy.set_cmake_directives()
         os.chdir(blender_repo_dir)
-        subprocess.run(f"{make_command} update", cwd=blender_repo_dir, shell=True)
-        subprocess.run(f"{make_command} bpy", cwd=blender_repo_dir, shell=True)
+        # subprocess.run(f"{make_command} update", cwd=blender_repo_dir, shell=True)
+        # subprocess.run(f"{make_command} bpy", cwd=blender_repo_dir, shell=True)
+                # Use the OS strategy to run the commands
+        self.os_strategy.run_command(f"{make_command} update", blender_repo_dir)
+        self.os_strategy.run_command(f"{make_command} bpy", blender_repo_dir)
+
 
         # Build and install or publish the wheel
         wheel_path = self.os_strategy.build_wheel_dir
@@ -863,9 +907,8 @@ class BlenderBuilder:
         return True
 
     def publish_github(self, tag: str, wheel_dir: Path, repo_name: str):
-        # Use GitHub client to access the repository
+        
         if not tag:
-            # for commit builds we'll need to generate a tag
             tag = f"v{self.major_version}.{self.version_strategy.release_cycle}"
         repo = self.github_client.get_repo(repo_name)
         release = next((r for r in repo.get_releases() if r.tag_name == tag), None)
@@ -881,17 +924,64 @@ class BlenderBuilder:
 
         # Upload wheel files to the release
         for wheel_file in wheel_dir.glob("*.whl"):
-            with open(wheel_file, "rb") as file:
-                for asset in release.get_assets():
-                    if asset.name == wheel_file.name:
-                        print(f"Deleting existing asset {asset.name}")
-                        asset.delete_asset()
-                print(f"Uploading asset {wheel_file}")
-                release.upload_asset(
-                    path=str(wheel_file),
-                    label=wheel_file.name,
-                    content_type="application/octet-stream",
+            for asset in release.get_assets():
+                if asset.name == wheel_file.name:
+                    print(f"Deleting existing asset {asset.name}")
+                    asset.delete_asset()
+            
+            print(f"Uploading asset {wheel_file}")
+            
+            # Set up the session with retries
+            session = requests.Session()
+            adapter = requests.adapters.HTTPAdapter(
+                max_retries=requests.urllib3.Retry(
+                    total=5,
+                    backoff_factor=1,
+                    status_forcelist=[500, 502, 503, 504]
                 )
+            )
+            session.mount('https://', adapter)
+            
+            # Verify token is being set correctly
+            headers = {
+                'Authorization': f'Bearer {github_token}',  # Changed from 'token' to 'Bearer'
+                'Content-Type': 'application/octet-stream',
+                'Accept': 'application/vnd.github.v3+json'
+            }
+            
+            print("Authorization header set:", bool(headers['Authorization'] != 'Bearer None'))
+            
+            # Get upload URL
+            upload_url = release.upload_url.split('{')[0]
+            params = {'name': wheel_file.name}
+            
+            # Upload with progress
+            try:
+                file_size = os.path.getsize(wheel_file)
+                with open(wheel_file, 'rb') as f:
+                    print(f"Starting upload of {file_size/1024/1024:.1f}MB file")
+                    
+                    response = session.post(
+                        upload_url,
+                        headers=headers,
+                        params=params,
+                        data=f,
+                        stream=True
+                    )
+                    
+                    # Check if the upload was successful
+                    if response.status_code == 201:
+                        print(f"Successfully uploaded {wheel_file.name}")
+                    else:
+                        print(f"Upload failed with status code {response.status_code}")
+                        print(f"Response: {response.text}")
+                        response.raise_for_status()
+                    
+            except Exception as e:
+                print(f"Error uploading file: {e}")
+                raise
+            finally:
+                session.close()
 
 
 app = typer.Typer()
