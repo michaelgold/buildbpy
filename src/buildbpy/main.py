@@ -506,6 +506,7 @@ class LinuxOSStrategy(OSStrategy):
 
     def run_svn_checkout(self):
         """Override the svn checkout command for Linux"""
+        print(f"Running svn checkout for Linux")
         self.run_command(f"python ./build_files/utils/make_update.py --use-linux-libraries", self.blender_repo_dir)
 
     def get_system_type(self):
