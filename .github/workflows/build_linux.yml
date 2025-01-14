@@ -130,10 +130,12 @@ jobs:
 
       - name: Install Linux Dependencies
         run: |
-
           sudo apt update
           sudo apt-get install -y build-essential git subversion cmake libx11-dev libxxf86vm-dev libxcursor-dev libxi-dev libxrandr-dev libxinerama-dev libegl-dev
           sudo apt-get install -y libwayland-dev wayland-protocols libxkbcommon-dev libdbus-1-dev linux-libc-dev
+          # Add additional required development libraries
+          sudo apt-get install -y libjpeg-dev libpng-dev libtiff-dev libfreetype6-dev libboost-all-dev
+          sudo apt-get install -y libglu1-mesa-dev libgl1-mesa-dev zlib1g-dev libxmu-dev libxi-dev libxxf86vm-dev
           echo "Running install_linux_packages.py"
           # cd ./blender
           # sudo python ./build_files/build_environment/install_linux_packages.py
