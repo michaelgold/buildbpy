@@ -6,10 +6,11 @@ on:
       tag:
         description: 'Blender Tag to build'
         required: true
+        default: 'v4.3.2'
       python_version:
         description: 'Python version to use'
         required: true
-        default: '3.10.11'
+        default: '3.11.9'
   
   workflow_call:
     inputs:
@@ -82,7 +83,10 @@ jobs:
           wget https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2204/x86_64/cuda-keyring_1.1-1_all.deb
           sudo dpkg -i cuda-keyring_1.1-1_all.deb
           sudo apt-get update
-          sudo apt-get install cuda-toolkit-12-3
+          # Install missing dependency
+          sudo apt-get install -y libtinfo5
+          # Install CUDA toolkit
+          sudo apt-get install -y cuda-toolkit-12-3
           echo "/usr/local/cuda-12.3/bin" >> $GITHUB_PATH
 
       # - name: Setup terminal session
