@@ -582,8 +582,39 @@ class CheckoutStrategy(ABC):
 
 class TagCheckoutStrategy(CheckoutStrategy):
     def checkout(self, id):
-        # reset the repo to the tag
-        subprocess.run(["git", "reset", "--hard", f"tags/{id}"], cwd=self.blender_repo_dir)
+        # Reset to origin/main and clean the repo
+        subprocess.run(["git", "fetch", "origin"], cwd=self.blender_repo_dir)
+        subprocess.run(["git", "reset", "--hard", "origin/main"], cwd=self.blender_repo_dir)
+        subprocess.run(["git", "clean", "-fd"], cwd=self.blender_repo_dir)
+        
+        # Fetch tags explicitly
+        print(f"Fetching tags and checking out {id}")
+        subprocess.run(["git", "fetch", "--tags"], cwd=self.blender_repo_dir)
+        
+        # Checkout the specific tag
+        result = subprocess.run(
+            ["git", "checkout", f"tags/{id}", "-f"],
+            cwd=self.blender_repo_dir,
+            capture_output=True,
+            text=True
+        )
+        
+        if result.returncode != 0:
+            raise Exception(f"Failed to checkout tag {id}: {result.stderr}")
+            
+        # Verify we're on the right tag
+        result = subprocess.run(
+            ["git", "describe", "--tags"],
+            cwd=self.blender_repo_dir,
+            capture_output=True,
+            text=True
+        )
+        
+        if result.returncode == 0:
+            current_tag = result.stdout.strip()
+            print(f"Successfully checked out tag: {current_tag}")
+        else:
+            raise Exception(f"Failed to verify tag checkout: {result.stderr}")
 
     def set_version(self, commit_hash: str = None, tag: str = None):
         # parse a tag in the format of "v4.3.2" in to major_version 4.3 and minor_version 4.3.2 first remove the v and then split by .
