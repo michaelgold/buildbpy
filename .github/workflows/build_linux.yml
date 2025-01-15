@@ -254,10 +254,10 @@ jobs:
       #     cp -R ./python_api/output/*  ./build_linux_bpy/bin/
 
 
-      - name: Setup terminal session
-        uses: fawazahmed0/action-debug@main
-        with:
-            credentials: "user:p@ss!"
+      # - name: Setup terminal session
+      #   uses: fawazahmed0/action-debug@main
+      #   with:
+      #       credentials: "user:p@ss!"
 
 
       # - name: Make Wheel
