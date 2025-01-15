@@ -1,4 +1,4 @@
-name: Build bpy for macOS Silicon
+name: Build bpy for macOS Intel
 
 on:
   workflow_dispatch:
@@ -26,7 +26,7 @@ on:
 
 jobs:
   build:
-    runs-on: macos-15-arm64
+    runs-on: macos-15
     permissions:
       contents: write
     steps:
