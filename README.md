@@ -15,7 +15,7 @@ A comprehensive builder for Blender's bpy module that supports all minor version
 Install the bpy module using pip:
 
 ```bash
-pip install --index-url https://michaelgold.github.io/buildbpy/ bpy==4.3.2
+pip install --extra-index-url https://michaelgold.github.io/buildbpy/ bpy==4.3.2
 ```
 
 Replace `4.3.2` with your desired Blender version.
