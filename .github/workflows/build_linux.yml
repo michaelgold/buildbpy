@@ -73,6 +73,25 @@ jobs:
       #     # done
       #     echo "/usr/share/miniconda/bin" >> $GITHUB_PATH
 
+
+      - name: Check GCC version
+        run: gcc --version
+
+      - name: Install GCC 12
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gcc-12 g++-12
+          sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-12 100
+          sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-12 100
+
+      - name: Export GCC 12
+        run: |
+            echo "CC=/usr/bin/gcc-12" >> $GITHUB_ENV
+            echo "CXX=/usr/bin/g++-12" >> $GITHUB_ENV
+      
+      - name: Check GCC version
+        run: gcc --version
+
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
