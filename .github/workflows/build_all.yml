@@ -123,11 +123,11 @@ jobs:
         run: python ./workspace/check_latest.py  
 
       - name: Commit and push changes
-        run: |
-          git config --global user.name "GitHub Actions"
-          git config --global user.email 'actions@github.com'
-          git add version_info.json
-          git commit -m "Update version info with latest tag and commit"
-          git push
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        uses: EndBug/add-and-commit@v7
+        with:
+          default_author: github_actions
+          message: 'Update version info with latest tag and commit'
+          add: 'version_info.json'
+    
