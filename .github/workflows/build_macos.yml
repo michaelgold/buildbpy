@@ -54,10 +54,7 @@ jobs:
 
       - name: Install specific CMake version and build deps
         run: |
-          brew uninstall --ignore-dependencies cmake || true
-          brew install cmake@3.27
-          brew link cmake@3.27 --force
-          brew install subversion ffmpeg openimageio openexr
+          brew install cmake git git-lfs subversion ffmpeg openimageio openexr
           cmake --version
 
       - name: Build Blender and bpy wheel
