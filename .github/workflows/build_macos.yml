@@ -62,3 +62,4 @@ jobs:
           python -m src.buildbpy.main --tag ${{ env.TAG }} --install --publish
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          CMAKE_OSX_DEPLOYMENT_TARGET: "13.0"
