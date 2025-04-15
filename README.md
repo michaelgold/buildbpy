@@ -15,10 +15,10 @@ A comprehensive builder for Blender's bpy module that supports all minor version
 Install the bpy module using pip:
 
 ```bash
-pip install --extra-index-url https://michaelgold.github.io/buildbpy/ bpy==4.3.2
+pip install --extra-index-url https://michaelgold.github.io/buildbpy/ bpy==4.4.1
 ```
 
-Replace `4.3.2` with your desired Blender version.
+Replace `4.4.1` with your desired Blender version.
 
 ## CLI Usage
 
@@ -40,7 +40,7 @@ Key options:
 Example:
 ```bash
 # Build from specific version tag
-python -m src.buildbpy.main --tag v4.3.2
+python -m src.buildbpy.main --tag v4.4.1
 
 # Build from latest daily
 python -m src.buildbpy.main --latest-daily
