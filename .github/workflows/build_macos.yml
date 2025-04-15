@@ -11,7 +11,7 @@ on:
         description: 'Python version to use'
         required: true
         default: '3.11.9'
-  
+
   workflow_call:
     inputs:
       tag:
@@ -26,11 +26,12 @@ on:
 
 jobs:
   build:
-    runs-on: macos-15
+    runs-on: macos-15-arm64
     permissions:
       contents: write
+
     steps:
-      - name: checkout repo
+      - name: Checkout repo
         uses: actions/checkout@v2
 
       - name: Set environment variables
@@ -40,149 +41,27 @@ jobs:
           PYTHON_VERSION=${{ inputs.python_version || github.event.inputs.python_version }}
           echo "TAG=$TAG" >> $GITHUB_ENV
           echo "PYTHON_VERSION=$PYTHON_VERSION" >> $GITHUB_ENV
-          
-
-      # - name: Checkout Blender repository recursively
-      #   uses: actions/checkout@v2
-      #   with:
-      #     repository: blender/blender
-      #     ref: ${{ env.TAG}}
-      #     submodules: 'recursive'
-      #     path: blender 
-
-
-      # - name: Set up Conda
-      #   uses: conda-incubator/setup-miniconda@v2
-      #   with:
-      #     auto-update-conda: true
-      #     python-version: 3.10.13
-      #     activate-environment: bpy-env
-      #     channels: conda-forge
-      #     miniconda-version: "latest" 
 
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
           python-version: ${{ env.PYTHON_VERSION }}
 
-
-      - name: Install Python Dependencies
+      - name: Install Python dependencies
         run: |
-          python -m pip install --upgrade pip requests urllib3 ndg-httpsclient pyopenssl pyasn1
+          python -m pip install --upgrade pip setuptools wheel
           pip install -r ./requirements.txt
 
-      - name: Update Python
+      - name: Install specific CMake version and build deps
         run: |
-          pip install -U pip setuptools wheel
+          brew uninstall --ignore-dependencies cmake || true
+          brew install cmake@3.27
+          brew link cmake@3.27 --force
+          brew install subversion ffmpeg openimageio openexr
+          cmake --version
 
-
-      # - name: Install Conda Dependencies
-      #   run: |
-      #     conda install -y setuptools -c conda-forge
-
-      # - name: Add conda subdirectories to PATH
-      #   run: |
-      #     for dir in $(find /Users/runner/conda_pkgs_dir/ -mindepth 1 -type d); do
-      #       echo "$dir" >> $GITHUB_PATH
-      #     done
-
-
-      - name: Install  dependencies
-        run: |
-          brew install cmake subversion
-      
-      - name: Build Blender
+      - name: Build Blender and bpy wheel
         run: |
           python -m src.buildbpy.main --tag ${{ env.TAG }} --install --publish
         env:
-          GITHUB_TOKEN: ${{ github.token }}
-      
-
-
-      # - name: Cache Blender dependencies
-      #   uses: actions/cache@v2
-      #   with:
-      #     path: |
-      #       ./lib
-      #     key: ${{ runner.os }}-blender-deps-${{ github.sha }}
-      #     restore-keys: |
-      #       ${{ runner.os }}-blender-deps-
-
-          
-      # - name: Install Cuda Toolkit
-      #   uses: Jimver/cuda-toolkit@v0.2.11
-      #   id: cuda-toolkit
-      #   with:
-      #     cuda: '12.1.0'
-
-
-      # - name: Cache build files (for testing only)
-      #   uses: actions/cache@v2
-      #   with:
-      #     path: |
-      #       ./build_darwin_bpy
-      #     key: ${{ runner.os }}-blender-build-${{ github.sha }}
-      #     restore-keys: |
-      #       ${{ runner.os }}-blender-build-
-
-      # - name: Download Blender Python API Stubs
-      #   uses: actions/download-artifact@v2
-      #   with:
-      #     workflow: generate_stubs.yml
-      #     name: blender-python-api-stubs-${{ github.event.inputs.tag }}
-      #     path: ./build_darwin_bpy/bin/
-
-      
-      # - name: Download Blender Python API Stubs
-      #   id: download-artifact
-      #   uses: dawidd6/action-download-artifact@v2
-      #   with:
-      #     workflow: build_all.yml 
-      #     # github_token: ${{secrets.GITHUB_TOKEN}}
-      #     name: blender-python-api-stubs-${{ env.TAG }}
-      #     path: ./build_darwin_bpy/bin/
-
-      # - name: Download Blender Python API Stubs
-      #   id: download-artifact
-      #   uses: actions/download-artifact@v4
-      #   with:
-      #     name: blender-python-api-stubs-${{ env.TAG }}
-      #     path: ./build_darwin_bpy/bin/
-
-      
-      # - name: Build Blender
-      #   run: |
-      #     cd ./blender
-      #     make update
-      #     make bpy
-
-      # - name: Setup terminal session
-      #   uses: fawazahmed0/action-debug@main
-      #   with:
-      #       credentials: "user:p@ss!"
-
-
-
-      # - name: Make Wheel
-      #   run: |
-      #     pip install -U pip setuptools wheel
-      #     cp ./workspace/make_bpy_wheel.py ./blender/build_files/utils/
-      #     python ./blender/build_files/utils/make_bpy_wheel.py ./build_darwin_bpy/bin/
-
-      # # - name: Upload Wheel as Artifact
-      # #   uses: actions/upload-artifact@v2
-      # #   with:
-      # #     name: bpy-macos
-      # #     path: |
-      # #       ./build_darwin_bpy/bin/*.whl
-
-      # - name: Install Dependencies
-      #   run: |
-      #     python -m pip install --upgrade pip requests urllib3 ndg-httpsclient pyopenssl pyasn1
-      #     pip install -r requirements.txt
-      #     pip install ndg-httpsclient pyopenssl pyasn1
-
-      # - name: Publish Wheel
-      #   env:
-      #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      #   run: python workspace/build_blender.py publish-github ${{ env.TAG}} ./build_darwin_bpy/bin/
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
