@@ -275,6 +275,7 @@ class OSStrategy(ABC):
         self.version_strategy = version_strategy
         self.http_client = http_client
         self.download_url = None
+        self.make_command = "make"
         if self.version_strategy.release_cycle == "release":
             self.download_filename = f"blender-{self.version_strategy.minor_version}{self.version_strategy.get_download_url_suffix()}-{self.get_system_type()}{self.get_arch()}{self.version_strategy.get_file_suffix()}.{self.get_file_ext()}"
             self.download_url = f"{self.version_strategy.get_download_url_root()}/{self.download_filename}"
@@ -287,10 +288,9 @@ class OSStrategy(ABC):
         # Checkout libraries if not present
         if not self.lib_dir.exists():
             self.lib_dir.mkdir(parents=True, exist_ok=True)
-            # self.run_svn_checkout()
+        # self.run_svn_checkout()
+        self.run_command(f"{self.make_command} update", self.blender_repo_dir)
 
-        else:
-            print(f"Libraries already installed in {self.lib_dir}")
 
     def run_svn_checkout(self):
         print(f"Installing libraries to: {self.lib_dir}")
@@ -503,21 +503,21 @@ class LinuxOSStrategy(OSStrategy):
         """Override to use make_update.py instead of SVN for Linux"""
         if not self.lib_dir.exists():
             self.lib_dir.mkdir(parents=True, exist_ok=True)
-            print(f"Installing libraries using make_update.py in {self.lib_dir}")
-            self.run_command(
-                f"./build_files/utils/make_update.py --use-linux-libraries",
-                self.blender_repo_dir
-            )
-            # use self.run_command to remove lib/linux_x64/dpcpp/lib/libsycl.so
-            # TODO: this is a hack to remove the libsycl.so file - decide if we want to do this
-            libsycl_path = self.lib_dir / "linux_x64" / "dpcpp" / "lib" / "libsycl.so"
-            if libsycl_path.exists():
-                self.run_command(f"rm {libsycl_path}", self.lib_dir)
-                print(f"Removed libsycl.so from {libsycl_path}")
-            else:
-                print(f"libsycl.so not found in {libsycl_path}")
+        print(f"Installing libraries using make_update.py in {self.lib_dir}")
+        self.run_command(
+            f"./build_files/utils/make_update.py --use-linux-libraries",
+            self.blender_repo_dir
+        )
+        # use self.run_command to remove lib/linux_x64/dpcpp/lib/libsycl.so
+        # TODO: this is a hack to remove the libsycl.so file - decide if we want to do this
+        libsycl_path = self.lib_dir / "linux_x64" / "dpcpp" / "lib" / "libsycl.so"
+        if libsycl_path.exists():
+            self.run_command(f"rm {libsycl_path}", self.lib_dir)
+            print(f"Removed libsycl.so from {libsycl_path}")
         else:
-            print(f"Libraries already installed in {self.lib_dir}")
+            print(f"libsycl.so not found in {libsycl_path}")
+    else:
+        print(f"Libraries already installed in {self.lib_dir}")
 
     def get_blender_binary(self):
         blender_dir = list(self.bin_dir.glob("blender*"))[0]
@@ -943,9 +943,7 @@ class BlenderBuilder:
 
         make_command = self.os_strategy.make_command
         self.os_strategy.setup_build_environment()
-        # TODO: include make update in the setup build environment
-        self.os_strategy.run_command(f"{make_command} update", blender_repo_dir)
-
+     
         # Generate stubs and build Blender
         self.generate_stubs(commit_hash)
         self.os_strategy.set_cmake_directives()
