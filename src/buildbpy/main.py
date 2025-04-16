@@ -15,6 +15,18 @@ from .utils import dmgextractor, make_utils
 from abc import ABC, abstractmethod
 import stat
 import requests
+import logging
+
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.StreamHandler(),
+        logging.FileHandler('buildbpy.log')
+    ]
+)
+logger = logging.getLogger(__name__)
 
 dotenv.load_dotenv()
 
@@ -509,7 +521,7 @@ class LinuxOSStrategy(OSStrategy):
         """Override to use make_update.py instead of SVN for Linux"""
         if not self.lib_dir.exists():
             self.lib_dir.mkdir(parents=True, exist_ok=True)
-        print(f"Installing libraries using make_update.py in {self.lib_dir}")
+        logger.info(f"Installing libraries using make_update.py in {self.lib_dir}")
         self.run_command(
             f"./build_files/utils/make_update.py --use-linux-libraries",
             self.blender_repo_dir
@@ -519,9 +531,9 @@ class LinuxOSStrategy(OSStrategy):
         libsycl_path = self.lib_dir / "linux_x64" / "dpcpp" / "lib" / "libsycl.so"
         if libsycl_path.exists():
             self.run_command(f"rm {libsycl_path}", self.lib_dir)
-            print(f"Removed libsycl.so from {libsycl_path}")
+            logger.info(f"Removed libsycl.so from {libsycl_path}")
         else:
-            print(f"libsycl.so not found in {libsycl_path}")
+            logger.info(f"libsycl.so not found in {libsycl_path}")
     
 
     def get_blender_binary(self):
@@ -567,6 +579,21 @@ class LinuxOSStrategy(OSStrategy):
         with open(cmake_file_path, 'a') as file:
             for directive in directives:
                 file.write(f"{directive}\n")
+
+    def run_command(self, command: str, cwd: Path):
+        """
+        Run a shell command with default behavior.
+        :param command: The command to run.
+        :param cwd: The working directory for the command.
+        """
+        logger.info(f"Running command: {command} in {cwd}")
+        result = subprocess.run(command, cwd=cwd, shell=True, capture_output=True, text=True)
+        logger.info(result.stdout)
+        if result.stderr:
+            logger.warning(result.stderr)
+        if result.returncode != 0:
+            logger.error(f"Command failed with return code {result.returncode}")
+            raise subprocess.CalledProcessError(result.returncode, command, result.stdout, result.stderr)
 
 
 class CheckoutStrategy(ABC):
@@ -872,7 +899,7 @@ class BlenderBuilder:
         daily_version: str,
         daily: bool,
     ):
-        print("Starting BlenderBuilder.main()")
+        logger.info("Starting BlenderBuilder.main()")
         selected_tag = None
         commit_hash = None
         is_valid_commit = False
@@ -890,40 +917,40 @@ class BlenderBuilder:
             and not daily
             and daily_version == ""
         ):
-            print("No valid tag, commit or daily version found")
+            logger.error("No valid tag, commit or daily version found")
             return False
 
         blender_repo_dir = self.blender_repo_dir
 
         # Checkout the correct state in the repo
         if selected_tag:
-            print(f"Using tag checkout strategy for {selected_tag}")
+            logger.info(f"Using tag checkout strategy for {selected_tag}")
             self.checkout_strategy = TagCheckoutStrategy(blender_repo_dir)
             self.checkout_strategy.checkout(selected_tag)
 
         elif commit:
-            print(f"Using commit checkout strategy for {commit}")
+            logger.info(f"Using commit checkout strategy for {commit}")
             self.checkout_strategy = CommitCheckoutStrategy(blender_repo_dir)
             self.checkout_strategy.checkout(commit)
 
         elif daily_version or daily:
-            print(f"Using daily checkout strategy for {daily_version}")
+            logger.info(f"Using daily checkout strategy for {daily_version}")
             self.checkout_strategy = DailyCheckoutStrategy(
                 blender_repo_dir, http_client, daily_version
             )
-            print(f"Checking out daily version {daily_version}")
+            logger.info(f"Checking out daily version {daily_version}")
             self.checkout_strategy.checkout()
 
         # Get Blender version and setup build
-        print("Setting version from checkout strategy")
+        logger.info("Setting version from checkout strategy")
         self.checkout_strategy.set_version(commit_hash, tag)
 
         self.major_version = self.checkout_strategy.major_version
         self.minor_version = self.checkout_strategy.minor_version
         self.release_cycle = self.checkout_strategy.release_cycle
-        print(f"Getting Version: {self.major_version}.{self.minor_version}.{self.release_cycle}")
+        logger.info(f"Getting Version: {self.major_version}.{self.minor_version}.{self.release_cycle}")
 
-        print("Setting up strategies")
+        logger.info("Setting up strategies")
         self.setup_strategies(
             self.os_type,
             self.major_version,
@@ -937,29 +964,29 @@ class BlenderBuilder:
 
         # Clear cache and library if requested
         if clear_cache and self.build_dir.exists():
-            print(f"Clearing build directory {self.build_dir}")
+            logger.info(f"Clearing build directory {self.build_dir}")
             shutil.rmtree(self.build_dir)
         if clear_lib and self.lib_dir.exists():
-            print(f"Clearing lib directory {self.lib_dir}")
+            logger.info(f"Clearing lib directory {self.lib_dir}")
             shutil.rmtree(self.lib_dir)
 
         make_command = self.os_strategy.make_command
-        print("Calling setup_build_environment")
+        logger.info("Calling setup_build_environment")
         self.os_strategy.setup_build_environment()
      
         # Generate stubs and build Blender
-        print("Generating stubs")
+        logger.info("Generating stubs")
         self.generate_stubs(commit_hash)
-        print("Setting CMake directives")
+        logger.info("Setting CMake directives")
         self.os_strategy.set_cmake_directives()
         os.chdir(blender_repo_dir)
         
-        print(f"Running make command: {make_command} bpy")
+        logger.info(f"Running make command: {make_command} bpy")
         self.os_strategy.run_command(f"{make_command} bpy", blender_repo_dir)
 
         # Build and install or publish the wheel
         wheel_path = self.os_strategy.build_wheel_dir
-        print("Building and managing wheel")
+        logger.info("Building and managing wheel")
         self.build_and_manage_wheel(
             wheel_path, install, publish, publish_repo, selected_tag
         )
