@@ -150,17 +150,8 @@ jobs:
       - name: Install Linux Dependencies
         run: |
           sudo apt update
-          sudo apt-get install -y build-essential git subversion cmake libx11-dev libxxf86vm-dev libxcursor-dev libxi-dev libxrandr-dev libxinerama-dev libegl-dev
-          sudo apt-get install -y libwayland-dev wayland-protocols libxkbcommon-dev libdbus-1-dev linux-libc-dev
-          # Add additional required development libraries
-          sudo apt-get install -y libjpeg-dev libpng-dev libtiff-dev libfreetype6-dev libboost-all-dev
-          sudo apt-get install -y libglu1-mesa-dev libgl1-mesa-dev zlib1g-dev libxmu-dev libxi-dev libxxf86vm-dev
-          # Add libepoxy for OpenGL handling
-          sudo apt-get install -y libepoxy-dev
-          # Add Vulkan development packages
-          sudo apt-get install -y libvulkan-dev
-          # Add shaderc compiler
-          sudo apt-get install -y libshaderc-dev
+          sudo apt install -y build-essential git git-lfs subversion cmake libx11-dev libxxf86vm-dev libxcursor-dev libxi-dev libxrandr-dev libxinerama-dev libegl-dev
+          sudo apt install -y libwayland-dev wayland-protocols libxkbcommon-dev libdbus-1-dev linux-libc-dev
           echo "Running install_linux_packages.py"
 
       
