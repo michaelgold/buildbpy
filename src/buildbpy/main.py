@@ -516,8 +516,7 @@ class LinuxOSStrategy(OSStrategy):
             print(f"Removed libsycl.so from {libsycl_path}")
         else:
             print(f"libsycl.so not found in {libsycl_path}")
-    else:
-        print(f"Libraries already installed in {self.lib_dir}")
+    
 
     def get_blender_binary(self):
         blender_dir = list(self.bin_dir.glob("blender*"))[0]
