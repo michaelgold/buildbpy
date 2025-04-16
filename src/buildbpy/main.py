@@ -302,7 +302,13 @@ class OSStrategy(ABC):
         :param command: The command to run.
         :param cwd: The working directory for the command.
         """
-        subprocess.run(command, cwd=cwd, shell=True)
+        print(f"Running command: {command} in {cwd}")
+        result = subprocess.run(command, cwd=cwd, shell=True, capture_output=True, text=True)
+        print(result.stdout)
+        if result.stderr:
+            print(result.stderr)
+        if result.returncode != 0:
+            raise subprocess.CalledProcessError(result.returncode, command, result.stdout, result.stderr)
 
     @abstractmethod
     def get_blender_binary(self) -> Path:
@@ -866,16 +872,13 @@ class BlenderBuilder:
         daily_version: str,
         daily: bool,
     ):
+        print("Starting BlenderBuilder.main()")
         selected_tag = None
         commit_hash = None
         is_valid_commit = False
 
         if tag:
             selected_tag = self.get_valid_tag(tag)
-
-        # if branch:
-        #     is_valid_branch = self.get_valid_branch(branch)
-        #     commit_hash = is_valid_branch if is_valid_branch else None
 
         if commit:
             is_valid_commit = self.get_valid_commits(commit)
@@ -894,17 +897,17 @@ class BlenderBuilder:
 
         # Checkout the correct state in the repo
         if selected_tag:
+            print(f"Using tag checkout strategy for {selected_tag}")
             self.checkout_strategy = TagCheckoutStrategy(blender_repo_dir)
             self.checkout_strategy.checkout(selected_tag)
 
-        # elif branch:
-        #     subprocess.run(["git", "checkout", branch], cwd=blender_repo_dir)
-
         elif commit:
+            print(f"Using commit checkout strategy for {commit}")
             self.checkout_strategy = CommitCheckoutStrategy(blender_repo_dir)
             self.checkout_strategy.checkout(commit)
 
         elif daily_version or daily:
+            print(f"Using daily checkout strategy for {daily_version}")
             self.checkout_strategy = DailyCheckoutStrategy(
                 blender_repo_dir, http_client, daily_version
             )
@@ -912,15 +915,15 @@ class BlenderBuilder:
             self.checkout_strategy.checkout()
 
         # Get Blender version and setup build
+        print("Setting version from checkout strategy")
         self.checkout_strategy.set_version(commit_hash, tag)
 
-        # print the version
-        
         self.major_version = self.checkout_strategy.major_version
         self.minor_version = self.checkout_strategy.minor_version
         self.release_cycle = self.checkout_strategy.release_cycle
         print(f"Getting Version: {self.major_version}.{self.minor_version}.{self.release_cycle}")
 
+        print("Setting up strategies")
         self.setup_strategies(
             self.os_type,
             self.major_version,
@@ -941,30 +944,25 @@ class BlenderBuilder:
             shutil.rmtree(self.lib_dir)
 
         make_command = self.os_strategy.make_command
+        print("Calling setup_build_environment")
         self.os_strategy.setup_build_environment()
      
         # Generate stubs and build Blender
+        print("Generating stubs")
         self.generate_stubs(commit_hash)
+        print("Setting CMake directives")
         self.os_strategy.set_cmake_directives()
         os.chdir(blender_repo_dir)
-        # subprocess.run(f"{make_command} update", cwd=blender_repo_dir, shell=True)
-        # subprocess.run(f"{make_command} bpy", cwd=blender_repo_dir, shell=True)
-                # Use the OS strategy to run the commands
         
+        print(f"Running make command: {make_command} bpy")
         self.os_strategy.run_command(f"{make_command} bpy", blender_repo_dir)
-
 
         # Build and install or publish the wheel
         wheel_path = self.os_strategy.build_wheel_dir
+        print("Building and managing wheel")
         self.build_and_manage_wheel(
             wheel_path, install, publish, publish_repo, selected_tag
         )
-
-        # # Update the data file if needed
-        # if tag and data_file_path:
-        #     tag_data["latest_tag"] = selected_tag
-        #     with open(data_file_path, 'w') as file:
-        #         json.dump(tag_data, file)
 
         return True
 
