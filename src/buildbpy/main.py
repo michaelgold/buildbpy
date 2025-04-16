@@ -287,7 +287,8 @@ class OSStrategy(ABC):
         # Checkout libraries if not present
         if not self.lib_dir.exists():
             self.lib_dir.mkdir(parents=True, exist_ok=True)
-            self.run_svn_checkout()
+            # self.run_svn_checkout()
+
         else:
             print(f"Libraries already installed in {self.lib_dir}")
 
@@ -931,6 +932,8 @@ class BlenderBuilder:
 
         make_command = self.os_strategy.make_command
         self.os_strategy.setup_build_environment()
+        # TODO: include make update in the setup build environment
+        self.os_strategy.run_command(f"{make_command} update", blender_repo_dir)
 
         # Generate stubs and build Blender
         self.generate_stubs(commit_hash)
@@ -939,7 +942,7 @@ class BlenderBuilder:
         # subprocess.run(f"{make_command} update", cwd=blender_repo_dir, shell=True)
         # subprocess.run(f"{make_command} bpy", cwd=blender_repo_dir, shell=True)
                 # Use the OS strategy to run the commands
-        self.os_strategy.run_command(f"{make_command} update", blender_repo_dir)
+        
         self.os_strategy.run_command(f"{make_command} bpy", blender_repo_dir)
 
 
