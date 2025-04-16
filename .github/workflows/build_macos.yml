@@ -65,6 +65,19 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       
-      - name: Test bpy installation
+      - name: Install compatible numpy version
         run: |
-          python -c "import bpy; print(bpy.app.version)"
+          pip install "numpy<2.0"
+
+      - name: Test bpy and numpy import
+        run: |
+          python -c '
+          import sys, traceback
+          try:
+              import numpy
+              import bpy
+              print("Imported bpy:", bpy.app.version)
+          except Exception:
+              traceback.print_exc()
+              sys.exit(1)
+          '
