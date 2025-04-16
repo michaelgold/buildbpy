@@ -59,6 +59,7 @@ jobs:
 
       - name: Build Blender and bpy wheel
         run: |
+          clang -dM -E - < /dev/null | grep MAC_OS_X_VERSION
           python -m src.buildbpy.main --tag ${{ env.TAG }} --install --publish
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
