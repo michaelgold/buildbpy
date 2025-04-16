@@ -268,8 +268,8 @@ jobs:
 
       - name: Install CUDA
         run: |
-          choco install cuda --version 12.2.0.53625 -y
-          Add-Content $env:GITHUB_PATH "C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v12.2\bin"
+          choco install cuda --version 12.8.1.572 -y
+          Add-Content $env:GITHUB_PATH "C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v12.8\bin"
           
       - name: Install TortoiseSVN and Command Line Client Tools
         run: |
