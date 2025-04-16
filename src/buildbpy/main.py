@@ -508,6 +508,14 @@ class LinuxOSStrategy(OSStrategy):
                 f"./build_files/utils/make_update.py --use-linux-libraries",
                 self.blender_repo_dir
             )
+            # use self.run_command to remove lib/linux_x64/dpcpp/lib/libsycl.so
+            # TODO: this is a hack to remove the libsycl.so file - decide if we want to do this
+            libsycl_path = self.lib_dir / "linux_x64" / "dpcpp" / "lib" / "libsycl.so"
+            if libsycl_path.exists():
+                self.run_command(f"rm {libsycl_path}", self.lib_dir)
+                print(f"Removed libsycl.so from {libsycl_path}")
+            else:
+                print(f"libsycl.so not found in {libsycl_path}")
         else:
             print(f"Libraries already installed in {self.lib_dir}")
 
@@ -545,9 +553,9 @@ class LinuxOSStrategy(OSStrategy):
         print(f"Setting CMake directives in {cmake_file_path}")
         directives = [
             'set(WITH_CYCLES_CUDA_BINARIES ON CACHE BOOL "" FORCE)',
-            'set(WITH_CYCLES_DEVICE_ONEAPI ON CACHE BOOL "" FORCE)',
-            'set(WITH_CYCLES_ONEAPI_BINARIES ON CACHE BOOL "" FORCE)',  #
-            'set(WITH_CYCLES_SYCL ON CACHE BOOL "" FORCE)',
+            'set(WITH_CYCLES_DEVICE_ONEAPI OFF CACHE BOOL "" FORCE)',
+            'set(WITH_CYCLES_ONEAPI_BINARIES OFF CACHE BOOL "" FORCE)',  #
+            'set(WITH_CYCLES_SYCL OFF CACHE BOOL "" FORCE)',
             'set(WITH_AUDASPACE ON CACHE BOOL "" FORCE)'
         ]
         
