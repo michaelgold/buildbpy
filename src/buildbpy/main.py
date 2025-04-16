@@ -461,6 +461,9 @@ class MacOSStrategy(OSStrategy):
         )
         print(f"Setting CMake directives in {cmake_file_path}")
         directives = [
+            'set(CMAKE_OSX_DEPLOYMENT_TARGET "13.0" CACHE STRING "" FORCE)',
+            'set(CMAKE_C_FLAGS "-mmacosx-version-min=13.0" CACHE STRING "" FORCE)',
+            'set(CMAKE_CXX_FLAGS "-mmacosx-version-min=13.0" CACHE STRING "" FORCE)',
             'set(WITH_AUDASPACE ON CACHE BOOL "" FORCE)',
             'set(WITH_CODEC_FFMPEG ON CACHE BOOL "" FORCE)',
             'set(WITH_CODEC_SNDFILE ON CACHE BOOL "" FORCE)',
