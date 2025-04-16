@@ -54,7 +54,7 @@ jobs:
 
       - name: Install specific CMake version and build deps
         run: |
-          brew install git git-lfs subversion ffmpeg openimageio openexr
+          brew install git git-lfs
           git lfs install
           cmake --version
 
