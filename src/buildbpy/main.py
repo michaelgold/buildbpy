@@ -545,6 +545,7 @@ class LinuxOSStrategy(OSStrategy):
         print(f"Setting CMake directives in {cmake_file_path}")
         directives = [
             'set(WITH_CYCLES_CUDA_BINARIES ON CACHE BOOL "" FORCE)',
+            'set(WITH_CYCLES_SYCL OFF CACHE BOOL "" FORCE)',
             'set(WITH_AUDASPACE ON CACHE BOOL "" FORCE)'
         ]
         
