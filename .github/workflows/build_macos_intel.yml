@@ -96,93 +96,20 @@ jobs:
           python -m src.buildbpy.main --tag ${{ env.TAG }} --install --publish
         env:
           GITHUB_TOKEN: ${{ github.token }}
-      
+        
+      - name: Install compatible numpy version
+        run: |
+          pip install "numpy<2.0"
 
-
-      # - name: Cache Blender dependencies
-      #   uses: actions/cache@v2
-      #   with:
-      #     path: |
-      #       ./lib
-      #     key: ${{ runner.os }}-blender-deps-${{ github.sha }}
-      #     restore-keys: |
-      #       ${{ runner.os }}-blender-deps-
-
-          
-      # - name: Install Cuda Toolkit
-      #   uses: Jimver/cuda-toolkit@v0.2.11
-      #   id: cuda-toolkit
-      #   with:
-      #     cuda: '12.1.0'
-
-
-      # - name: Cache build files (for testing only)
-      #   uses: actions/cache@v2
-      #   with:
-      #     path: |
-      #       ./build_darwin_bpy
-      #     key: ${{ runner.os }}-blender-build-${{ github.sha }}
-      #     restore-keys: |
-      #       ${{ runner.os }}-blender-build-
-
-      # - name: Download Blender Python API Stubs
-      #   uses: actions/download-artifact@v2
-      #   with:
-      #     workflow: generate_stubs.yml
-      #     name: blender-python-api-stubs-${{ github.event.inputs.tag }}
-      #     path: ./build_darwin_bpy/bin/
-
-      
-      # - name: Download Blender Python API Stubs
-      #   id: download-artifact
-      #   uses: dawidd6/action-download-artifact@v2
-      #   with:
-      #     workflow: build_all.yml 
-      #     # github_token: ${{secrets.GITHUB_TOKEN}}
-      #     name: blender-python-api-stubs-${{ env.TAG }}
-      #     path: ./build_darwin_bpy/bin/
-
-      # - name: Download Blender Python API Stubs
-      #   id: download-artifact
-      #   uses: actions/download-artifact@v4
-      #   with:
-      #     name: blender-python-api-stubs-${{ env.TAG }}
-      #     path: ./build_darwin_bpy/bin/
-
-      
-      # - name: Build Blender
-      #   run: |
-      #     cd ./blender
-      #     make update
-      #     make bpy
-
-      # - name: Setup terminal session
-      #   uses: fawazahmed0/action-debug@main
-      #   with:
-      #       credentials: "user:p@ss!"
-
-
-
-      # - name: Make Wheel
-      #   run: |
-      #     pip install -U pip setuptools wheel
-      #     cp ./workspace/make_bpy_wheel.py ./blender/build_files/utils/
-      #     python ./blender/build_files/utils/make_bpy_wheel.py ./build_darwin_bpy/bin/
-
-      # # - name: Upload Wheel as Artifact
-      # #   uses: actions/upload-artifact@v2
-      # #   with:
-      # #     name: bpy-macos
-      # #     path: |
-      # #       ./build_darwin_bpy/bin/*.whl
-
-      # - name: Install Dependencies
-      #   run: |
-      #     python -m pip install --upgrade pip requests urllib3 ndg-httpsclient pyopenssl pyasn1
-      #     pip install -r requirements.txt
-      #     pip install ndg-httpsclient pyopenssl pyasn1
-
-      # - name: Publish Wheel
-      #   env:
-      #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      #   run: python workspace/build_blender.py publish-github ${{ env.TAG}} ./build_darwin_bpy/bin/
+      - name: Test bpy and numpy import
+        run: |
+          python -c '
+          import sys, traceback
+          try:
+              import numpy
+              import bpy
+              print("Imported bpy:", bpy.app.version)
+          except Exception:
+              traceback.print_exc()
+              sys.exit(1)
+          '

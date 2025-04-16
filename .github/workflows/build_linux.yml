@@ -270,6 +270,23 @@ jobs:
           python -m src.buildbpy.main --tag ${{ env.TAG }} --install --publish
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      
+      - name: Install compatible numpy version
+        run: |
+          pip install "numpy<2.0"
+  
+      - name: Test bpy and numpy import
+        run: |
+          python -c '
+          import sys, traceback
+          try:
+              import numpy
+              import bpy
+              print("Imported bpy:", bpy.app.version)
+          except Exception:
+              traceback.print_exc()
+              sys.exit(1)
+          '
 
       # - name: Install Blender
       #   run: python -c "import shutil, site; shutil.copytree('./build_linux_bpy/bin/bpy', site.getsitepackages()[0] + '/bpy')"
