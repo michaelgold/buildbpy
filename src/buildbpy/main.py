@@ -283,7 +283,7 @@ class OSStrategy(ABC):
         self.root_dir = root_dir
         self.bin_dir = self.root_dir / "blender-bin"
         self.download_dir = self.root_dir / "downloads"
-        self.lib_dir = self.root_dir / "lib"
+        self.lib_dir = self.root_dir / "blender"/ "lib"
         self.version_strategy = version_strategy
         self.http_client = http_client
         self.download_url = None
