@@ -314,13 +314,38 @@ class OSStrategy(ABC):
         :param command: The command to run.
         :param cwd: The working directory for the command.
         """
-        print(f"Running command: {command} in {cwd}")
-        result = subprocess.run(command, cwd=cwd, shell=True, capture_output=True, text=True)
-        print(result.stdout)
-        if result.stderr:
-            print(result.stderr)
-        if result.returncode != 0:
-            raise subprocess.CalledProcessError(result.returncode, command, result.stdout, result.stderr)
+        logger.info(f"Running command: {command} in {cwd}")
+        
+        # Use Popen to stream output in real-time
+        process = subprocess.Popen(
+            command,
+            cwd=cwd,
+            shell=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+            bufsize=1,  # Line buffered
+            universal_newlines=True
+        )
+        
+        # Stream stdout and stderr
+        while True:
+            output = process.stdout.readline()
+            if output == '' and process.poll() is not None:
+                break
+            if output:
+                logger.info(output.strip())
+        
+        # Get any remaining stderr
+        stderr = process.stderr.read()
+        if stderr:
+            logger.warning(stderr.strip())
+        
+        # Check return code
+        return_code = process.wait()
+        if return_code != 0:
+            logger.error(f"Command failed with return code {return_code}")
+            raise subprocess.CalledProcessError(return_code, command, "", stderr)
 
     @abstractmethod
     def get_blender_binary(self) -> Path:
@@ -587,13 +612,37 @@ class LinuxOSStrategy(OSStrategy):
         :param cwd: The working directory for the command.
         """
         logger.info(f"Running command: {command} in {cwd}")
-        result = subprocess.run(command, cwd=cwd, shell=True, capture_output=True, text=True)
-        logger.info(result.stdout)
-        if result.stderr:
-            logger.warning(result.stderr)
-        if result.returncode != 0:
-            logger.error(f"Command failed with return code {result.returncode}")
-            raise subprocess.CalledProcessError(result.returncode, command, result.stdout, result.stderr)
+        
+        # Use Popen to stream output in real-time
+        process = subprocess.Popen(
+            command,
+            cwd=cwd,
+            shell=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+            bufsize=1,  # Line buffered
+            universal_newlines=True
+        )
+        
+        # Stream stdout and stderr
+        while True:
+            output = process.stdout.readline()
+            if output == '' and process.poll() is not None:
+                break
+            if output:
+                logger.info(output.strip())
+        
+        # Get any remaining stderr
+        stderr = process.stderr.read()
+        if stderr:
+            logger.warning(stderr.strip())
+        
+        # Check return code
+        return_code = process.wait()
+        if return_code != 0:
+            logger.error(f"Command failed with return code {return_code}")
+            raise subprocess.CalledProcessError(return_code, command, "", stderr)
 
 
 class CheckoutStrategy(ABC):
