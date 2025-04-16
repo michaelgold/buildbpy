@@ -244,11 +244,13 @@ jobs:
             echo "Freeing up disk space"
             echo "initial disk space"
             df -h
-            sudo apt-get remove -y '^dotnet.*' '^llvm-.*' 'php.*' 'mongodb.*' '^google.*' azure-cli \
+            # Only remove specific packages we know we don't need
+            sudo apt-get remove -y '^dotnet.*' 'php.*' 'mongodb.*' '^google.*' azure-cli \
               powershell 'mysql.*' 'postgres.*' 'ghc.*' '^mongodb.*' '^microsoft.*' \
               '^google-cloud.*' 'firefox' 'android.*' 'azure.*'
-            sudo apt-get autoremove -y
+            # Clean package cache but don't remove dependencies
             sudo apt-get clean
+            # Remove specific directories we know are safe to remove
             sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /usr/local/share/boost
             sudo rm -rf /usr/local/lib/node_modules
             rm -rf ~/.cache/pip
