@@ -552,15 +552,8 @@ class LinuxOSStrategy(OSStrategy):
             self.blender_repo_dir
         )
         self.run_command(f"{self.make_command} update", self.blender_repo_dir)
-        # use self.run_command to remove lib/linux_x64/dpcpp/lib/libsycl.so
-        # TODO: this is a hack to remove the libsycl.so file - decide if we want to do this
-        libsycl_path = self.lib_dir / "linux_x64" / "dpcpp" / "lib" / "libsycl.so"
-        if libsycl_path.exists():
-            self.run_command(f"rm {libsycl_path}", self.lib_dir)
-            logger.info(f"Removed libsycl.so from {libsycl_path}")
-        else:
-            logger.info(f"libsycl.so not found in {libsycl_path}")
-    
+        
+        
 
     def get_blender_binary(self):
         blender_dir = list(self.bin_dir.glob("blender*"))[0]
@@ -595,10 +588,14 @@ class LinuxOSStrategy(OSStrategy):
         )
         print(f"Setting CMake directives in {cmake_file_path}")
         directives = [
-            'set(WITH_CYCLES_CUDA_BINARIES ON CACHE BOOL "" FORCE)',
-            'set(WITH_CYCLES_DEVICE_ONEAPI OFF CACHE BOOL "" FORCE)',
-            'set(WITH_CYCLES_ONEAPI_BINARIES OFF CACHE BOOL "" FORCE)',  #
+            'set(WITH_CYCLES ON CACHE BOOL "" FORCE)',
+            'set(WITH_CYCLES_EMBREE OFF CACHE BOOL "" FORCE)',
             'set(WITH_CYCLES_SYCL OFF CACHE BOOL "" FORCE)',
+            'set(WITH_CYCLES_DEVICE_ONEAPI OFF CACHE BOOL "" FORCE)',
+            'set(WITH_CYCLES_ONEAPI_BINARIES OFF CACHE BOOL "" FORCE)',
+            'unset(EMBREE_ROOT_DIR CACHE)',
+            'unset(SYCL_ROOT_DIR CACHE)',
+            'unset(CYCLES_SYCL CACHE)',
             'set(WITH_AUDASPACE ON CACHE BOOL "" FORCE)'
         ]
         
