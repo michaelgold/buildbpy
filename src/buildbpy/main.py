@@ -551,6 +551,7 @@ class LinuxOSStrategy(OSStrategy):
             f"./build_files/utils/make_update.py --use-linux-libraries",
             self.blender_repo_dir
         )
+        self.run_command(f"{self.make_command} update", self.blender_repo_dir)
         # use self.run_command to remove lib/linux_x64/dpcpp/lib/libsycl.so
         # TODO: this is a hack to remove the libsycl.so file - decide if we want to do this
         libsycl_path = self.lib_dir / "linux_x64" / "dpcpp" / "lib" / "libsycl.so"
