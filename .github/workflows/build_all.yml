@@ -132,4 +132,11 @@ jobs:
           default_author: github_actions
           message: 'Update version info with latest tag and commit'
           add: 'workspace/version_info.json'
+
+  update-repository-index:
+    needs: [update-versions]
+    if: ${{ needs.update-versions.result == 'success' }}
+    uses: ./.github/workflows/update_repository.yml
+    permissions:
+      contents: write
     
