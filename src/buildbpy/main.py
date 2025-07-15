@@ -651,12 +651,17 @@ class CheckoutStrategy(ABC):
             root_dir = blender_repo_dir.parent
             # make the root_dir if it doesn't exist
             root_dir.mkdir(parents=True, exist_ok=True)
+            # git_repo = "https://github.com/blender/blender.git"
+
+            git_repo = "https://projects.blender.org/blender/blender.git"
+
+
             subprocess.run(
                 [
                     "git",
                     "clone",
                     "--recursive",
-                    "https://github.com/blender/blender.git",
+                    git_repo,
                 ],
                 cwd=root_dir,
             )
@@ -694,7 +699,7 @@ class TagCheckoutStrategy(CheckoutStrategy):
         )
         
         if result.returncode != 0:
-            logger.warning(f"Failed to checkout tag {id}: {result.stderr}")
+            raise Exception(f"Failed to checkout tag {id}: {result.stderr}")
             
         # Verify we're on the right tag
         result = subprocess.run(
