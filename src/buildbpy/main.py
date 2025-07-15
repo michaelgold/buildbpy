@@ -694,7 +694,7 @@ class TagCheckoutStrategy(CheckoutStrategy):
         )
         
         if result.returncode != 0:
-            raise Exception(f"Failed to checkout tag {id}: {result.stderr}")
+            logger.warning(f"Failed to checkout tag {id}: {result.stderr}")
             
         # Verify we're on the right tag
         result = subprocess.run(
