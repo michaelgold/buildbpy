@@ -1,9 +1,10 @@
 # buildbpy
 
+A comprehensive builder for Blender's bpy module that supports all minor versions with CUDA GPU acceleration (for Linux and Windows), Apple Silicon GPU acceleration, and IDE autocomplete functionality.
+
 ![bpy](.github/images/bpy.jpg)
 
 ---
-A comprehensive builder for Blender's bpy module that supports all minor versions with CUDA GPU acceleration (for Linux and Windows), Apple Silicon GPU acceleration, and IDE autocomplete functionality.
 
 ## Features
 
