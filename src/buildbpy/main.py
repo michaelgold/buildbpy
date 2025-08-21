@@ -20,11 +20,8 @@ import logging
 # Configure logging
 logging.basicConfig(
     level=logging.INFO,
-    format='%(asctime)s - %(levelname)s - %(message)s',
-    handlers=[
-        logging.StreamHandler(),
-        logging.FileHandler('buildbpy.log')
-    ]
+    format="%(asctime)s - %(levelname)s - %(message)s",
+    handlers=[logging.StreamHandler(), logging.FileHandler("buildbpy.log")],
 )
 logger = logging.getLogger(__name__)
 
@@ -283,7 +280,7 @@ class OSStrategy(ABC):
         self.root_dir = root_dir
         self.bin_dir = self.root_dir / "blender-bin"
         self.download_dir = self.root_dir / "downloads"
-        self.lib_dir = self.root_dir / "blender"/ "lib"
+        self.lib_dir = self.root_dir / "blender" / "lib"
         self.version_strategy = version_strategy
         self.http_client = http_client
         self.download_url = None
@@ -303,7 +300,6 @@ class OSStrategy(ABC):
         # self.run_svn_checkout()
         self.run_command(f"{self.make_command} update", self.blender_repo_dir)
 
-
     def run_svn_checkout(self):
         print(f"Installing libraries to: {self.lib_dir}")
         subprocess.run(["svn", "checkout", self.lib_path], cwd=self.lib_dir)
@@ -315,7 +311,7 @@ class OSStrategy(ABC):
         :param cwd: The working directory for the command.
         """
         logger.info(f"Running command: {command} in {cwd}")
-        
+
         # Use Popen to stream output in real-time
         process = subprocess.Popen(
             command,
@@ -325,22 +321,22 @@ class OSStrategy(ABC):
             stderr=subprocess.PIPE,
             text=True,
             bufsize=1,  # Line buffered
-            universal_newlines=True
+            universal_newlines=True,
         )
-        
+
         # Stream stdout and stderr
         while True:
             output = process.stdout.readline()
-            if output == '' and process.poll() is not None:
+            if output == "" and process.poll() is not None:
                 break
             if output:
                 logger.info(output.strip())
-        
+
         # Get any remaining stderr
         stderr = process.stderr.read()
         if stderr:
             logger.warning(stderr.strip())
-        
+
         # Check return code
         return_code = process.wait()
         if return_code != 0:
@@ -445,10 +441,10 @@ class WindowsOSStrategy(OSStrategy):
         print(f"Setting CMake directives in {cmake_file_path}")
         directives = [
             'set(WITH_CYCLES_CUDA_BINARIES ON CACHE BOOL "" FORCE)',
-            'set(WITH_AUDASPACE ON CACHE BOOL "" FORCE)'
+            'set(WITH_AUDASPACE ON CACHE BOOL "" FORCE)',
         ]
-        
-        with open(cmake_file_path, 'a') as file:
+
+        with open(cmake_file_path, "a") as file:
             for directive in directives:
                 file.write(f"{directive}\n")
 
@@ -459,7 +455,7 @@ class WindowsOSStrategy(OSStrategy):
         :param cwd: The working directory for the command.
         """
         if "update" in command:
-                subprocess.run(command, cwd=cwd, shell=True, input="y\n", text=True)
+            subprocess.run(command, cwd=cwd, shell=True, input="y\n", text=True)
         else:
             subprocess.run(command, cwd=cwd, shell=True)
 
@@ -516,10 +512,10 @@ class MacOSStrategy(OSStrategy):
             'set(WITH_OPENAL ON CACHE BOOL "" FORCE)',
             'set(WITH_PULSEAUDIO ON CACHE BOOL "" FORCE)',
             'set(WITH_SDL ON CACHE BOOL "" FORCE)',
-            'set(WITH_WASAPI ON CACHE BOOL "" FORCE)'
+            'set(WITH_WASAPI ON CACHE BOOL "" FORCE)',
         ]
-        
-        with open(cmake_file_path, 'a') as file:
+
+        with open(cmake_file_path, "a") as file:
             for directive in directives:
                 file.write(f"{directive}\n")
 
@@ -549,11 +545,9 @@ class LinuxOSStrategy(OSStrategy):
         logger.info(f"Installing libraries using make_update.py in {self.lib_dir}")
         self.run_command(
             f"./build_files/utils/make_update.py --use-linux-libraries",
-            self.blender_repo_dir
+            self.blender_repo_dir,
         )
         self.run_command(f"{self.make_command} update", self.blender_repo_dir)
-        
-        
 
     def get_blender_binary(self):
         blender_dir = list(self.bin_dir.glob("blender*"))[0]
@@ -567,7 +561,10 @@ class LinuxOSStrategy(OSStrategy):
     def run_svn_checkout(self):
         """Override the svn checkout command for Linux"""
         print(f"Running svn checkout for Linux")
-        self.run_command(f"python ./build_files/utils/make_update.py --use-linux-libraries", self.blender_repo_dir)
+        self.run_command(
+            f"python ./build_files/utils/make_update.py --use-linux-libraries",
+            self.blender_repo_dir,
+        )
 
     def get_system_type(self):
         system_type = (
@@ -593,13 +590,13 @@ class LinuxOSStrategy(OSStrategy):
             'set(WITH_CYCLES_SYCL OFF CACHE BOOL "" FORCE)',
             'set(WITH_CYCLES_DEVICE_ONEAPI OFF CACHE BOOL "" FORCE)',
             'set(WITH_CYCLES_ONEAPI_BINARIES OFF CACHE BOOL "" FORCE)',
-            'unset(EMBREE_ROOT_DIR CACHE)',
-            'unset(SYCL_ROOT_DIR CACHE)',
-            'unset(CYCLES_SYCL CACHE)',
-            'set(WITH_AUDASPACE ON CACHE BOOL "" FORCE)'
+            "unset(EMBREE_ROOT_DIR CACHE)",
+            "unset(SYCL_ROOT_DIR CACHE)",
+            "unset(CYCLES_SYCL CACHE)",
+            'set(WITH_AUDASPACE ON CACHE BOOL "" FORCE)',
         ]
-        
-        with open(cmake_file_path, 'a') as file:
+
+        with open(cmake_file_path, "a") as file:
             for directive in directives:
                 file.write(f"{directive}\n")
 
@@ -610,7 +607,7 @@ class LinuxOSStrategy(OSStrategy):
         :param cwd: The working directory for the command.
         """
         logger.info(f"Running command: {command} in {cwd}")
-        
+
         # Use Popen to stream output in real-time
         process = subprocess.Popen(
             command,
@@ -620,22 +617,22 @@ class LinuxOSStrategy(OSStrategy):
             stderr=subprocess.PIPE,
             text=True,
             bufsize=1,  # Line buffered
-            universal_newlines=True
+            universal_newlines=True,
         )
-        
+
         # Stream stdout and stderr
         while True:
             output = process.stdout.readline()
-            if output == '' and process.poll() is not None:
+            if output == "" and process.poll() is not None:
                 break
             if output:
                 logger.info(output.strip())
-        
+
         # Get any remaining stderr
         stderr = process.stderr.read()
         if stderr:
             logger.warning(stderr.strip())
-        
+
         # Check return code
         return_code = process.wait()
         if return_code != 0:
@@ -654,7 +651,6 @@ class CheckoutStrategy(ABC):
             # git_repo = "https://github.com/blender/blender.git"
 
             git_repo = "https://projects.blender.org/blender/blender.git"
-
 
             subprocess.run(
                 [
@@ -675,40 +671,43 @@ class CheckoutStrategy(ABC):
     def set_version(self, commit_hash: str = None, tag: str = None):
         pass
 
-
-        print(f"Setting Version: {self.major_version}.{self.minor_version}.{self.release_cycle}")
+        print(
+            f"Setting Version: {self.major_version}.{self.minor_version}.{self.release_cycle}"
+        )
 
 
 class TagCheckoutStrategy(CheckoutStrategy):
     def checkout(self, id):
         # Reset to origin/main and clean the repo
         subprocess.run(["git", "fetch", "origin"], cwd=self.blender_repo_dir)
-        subprocess.run(["git", "reset", "--hard", "origin/main"], cwd=self.blender_repo_dir)
+        subprocess.run(
+            ["git", "reset", "--hard", "origin/main"], cwd=self.blender_repo_dir
+        )
         subprocess.run(["git", "clean", "-fd"], cwd=self.blender_repo_dir)
-        
+
         # Fetch tags explicitly
         print(f"Fetching tags and checking out {id}")
         subprocess.run(["git", "fetch", "--tags"], cwd=self.blender_repo_dir)
-        
+
         # Checkout the specific tag
         result = subprocess.run(
             ["git", "checkout", f"tags/{id}", "-f"],
             cwd=self.blender_repo_dir,
             capture_output=True,
-            text=True
+            text=True,
         )
-        
+
         if result.returncode != 0:
             raise Exception(f"Failed to checkout tag {id}: {result.stderr}")
-            
+
         # Verify we're on the right tag
         result = subprocess.run(
             ["git", "describe", "--tags"],
             cwd=self.blender_repo_dir,
             capture_output=True,
-            text=True
+            text=True,
         )
-        
+
         if result.returncode == 0:
             current_tag = result.stdout.strip()
             print(f"Successfully checked out tag: {current_tag}")
@@ -954,22 +953,18 @@ class BlenderBuilder:
         logger.info("Starting BlenderBuilder.main()")
         selected_tag = None
         commit_hash = None
-        is_valid_commit = False
+        # is_valid_commit = False
 
-        if tag:
-            selected_tag = self.get_valid_tag(tag)
+        # if tag:
+        #     selected_tag = self.get_valid_tag(tag)
 
-        if commit:
-            is_valid_commit = self.get_valid_commits(commit)
-            commit_hash = is_valid_commit if is_valid_commit else None
+        # if commit:
+        #     # is_valid_commit = self.get_valid_commits(commit)
+        #     # commit_hash = is_valid_commit if is_valid_commit else None
+        #     is_valid_commit = True
 
-        if (
-            not selected_tag
-            and not is_valid_commit
-            and not daily
-            and daily_version == ""
-        ):
-            logger.error("No valid tag, commit or daily version found")
+        if not tag and not commit and not daily and daily_version == "":
+            logger.error("No tag, commit or daily version found")
             return False
 
         blender_repo_dir = self.blender_repo_dir
@@ -1000,7 +995,9 @@ class BlenderBuilder:
         self.major_version = self.checkout_strategy.major_version
         self.minor_version = self.checkout_strategy.minor_version
         self.release_cycle = self.checkout_strategy.release_cycle
-        logger.info(f"Getting Version: {self.major_version}.{self.minor_version}.{self.release_cycle}")
+        logger.info(
+            f"Getting Version: {self.major_version}.{self.minor_version}.{self.release_cycle}"
+        )
 
         logger.info("Setting up strategies")
         self.setup_strategies(
@@ -1025,14 +1022,14 @@ class BlenderBuilder:
         make_command = self.os_strategy.make_command
         logger.info("Calling setup_build_environment")
         self.os_strategy.setup_build_environment()
-     
+
         # Generate stubs and build Blender
         logger.info("Generating stubs")
         self.generate_stubs(commit_hash)
         logger.info("Setting CMake directives")
         self.os_strategy.set_cmake_directives()
         os.chdir(blender_repo_dir)
-        
+
         logger.info(f"Running make command: {make_command} bpy")
         self.os_strategy.run_command(f"{make_command} bpy", blender_repo_dir)
 
@@ -1046,7 +1043,7 @@ class BlenderBuilder:
         return True
 
     def publish_github(self, tag: str, wheel_dir: Path, repo_name: str):
-        
+
         if not tag:
             tag = f"v{self.major_version}.{self.version_strategy.release_cycle}"
         repo = self.github_client.get_repo(repo_name)
@@ -1067,47 +1064,44 @@ class BlenderBuilder:
                 if asset.name == wheel_file.name:
                     print(f"Deleting existing asset {asset.name}")
                     asset.delete_asset()
-            
+
             print(f"Uploading asset {wheel_file}")
-            
+
             # Set up the session with retries
             session = requests.Session()
             adapter = requests.adapters.HTTPAdapter(
                 max_retries=requests.urllib3.Retry(
-                    total=5,
-                    backoff_factor=1,
-                    status_forcelist=[500, 502, 503, 504]
+                    total=5, backoff_factor=1, status_forcelist=[500, 502, 503, 504]
                 )
             )
-            session.mount('https://', adapter)
-            
+            session.mount("https://", adapter)
+
             # Verify token is being set correctly
             headers = {
-                'Authorization': f'Bearer {github_token}',  # Changed from 'token' to 'Bearer'
-                'Content-Type': 'application/octet-stream',
-                'Accept': 'application/vnd.github.v3+json'
+                "Authorization": f"Bearer {github_token}",  # Changed from 'token' to 'Bearer'
+                "Content-Type": "application/octet-stream",
+                "Accept": "application/vnd.github.v3+json",
             }
-            
-            print("Authorization header set:", bool(headers['Authorization'] != 'Bearer None'))
-            
+
+            print(
+                "Authorization header set:",
+                bool(headers["Authorization"] != "Bearer None"),
+            )
+
             # Get upload URL
-            upload_url = release.upload_url.split('{')[0]
-            params = {'name': wheel_file.name}
-            
+            upload_url = release.upload_url.split("{")[0]
+            params = {"name": wheel_file.name}
+
             # Upload with progress
             try:
                 file_size = os.path.getsize(wheel_file)
-                with open(wheel_file, 'rb') as f:
+                with open(wheel_file, "rb") as f:
                     print(f"Starting upload of {file_size/1024/1024:.1f}MB file")
-                    
+
                     response = session.post(
-                        upload_url,
-                        headers=headers,
-                        params=params,
-                        data=f,
-                        stream=True
+                        upload_url, headers=headers, params=params, data=f, stream=True
                     )
-                    
+
                     # Check if the upload was successful
                     if response.status_code == 201:
                         print(f"Successfully uploaded {wheel_file.name}")
@@ -1115,7 +1109,7 @@ class BlenderBuilder:
                         print(f"Upload failed with status code {response.status_code}")
                         print(f"Response: {response.text}")
                         response.raise_for_status()
-                    
+
             except Exception as e:
                 print(f"Error uploading file: {e}")
                 raise
