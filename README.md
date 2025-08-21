@@ -8,7 +8,7 @@ A comprehensive builder for Blender's bpy module that supports all minor version
 
 ## Features
 
-- Builds bpy module for all minor versions of Blender
+- Builds bpy module for all minor versions and git commits of the Blender source code
 - Includes CUDA GPU acceleration support
 - Provides IDE autocomplete functionality
 - Automated builds via GitHub Actions
@@ -19,10 +19,10 @@ A comprehensive builder for Blender's bpy module that supports all minor version
 Install the bpy module using pip:
 
 ```bash
-pip install --extra-index-url https://michaelgold.github.io/buildbpy/ bpy==4.4.1
+pip install --extra-index-url https://michaelgold.github.io/buildbpy/ bpy==4.5.2
 ```
 
-Replace `4.4.1` with your desired Blender version.
+Replace `4.5.2` with your desired Blender version.
 
 ## CLI Usage
 
@@ -33,7 +33,7 @@ python -m src.buildbpy.main [OPTIONS]
 ```
 
 Key options:
-- `--tag TEXT`: Build from a specific Blender version tag (e.g., "v4.3.2")
+- `--tag TEXT`: Build from a specific Blender version tag (e.g., "v4.5.2")
 - `--commit TEXT`: Build from a specific Blender git commit
 - `--latest-daily`: Build from the latest daily build
 - `--publish`: Publish the built package (note that you must have write accesst to the repo for this to work)
@@ -44,18 +44,17 @@ Key options:
 Example:
 ```bash
 # Build from specific version tag
-python -m src.buildbpy.main --tag v4.4.1
+python -m src.buildbpy.main --tag v4.5.2
 
 # Build from latest daily
 python -m src.buildbpy.main --latest-daily
 ```
 
-## Differences from Official Builder
+## Differences from Official Blender PyPi
 
-Unlike the official Blender bpy builder, this project:
-1. Builds for all minor versions of Blender
-2. Includes CUDA GPU acceleration support out of the box
-3. Provides enhanced IDE support with autocomplete functionality
+Unlike the official Blender bpy builds, this project's releases:
+1. Includes CUDA GPU acceleration support out of the box (for Windows and Linux)
+2. Provides enhanced IDE support with autocomplete functionality
 
 ## Platform Support
 
