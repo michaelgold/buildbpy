@@ -951,17 +951,8 @@ class BlenderBuilder:
         daily: bool,
     ):
         logger.info("Starting BlenderBuilder.main()")
-        selected_tag = None
-        commit_hash = None
-        # is_valid_commit = False
-
-        # if tag:
-        #     selected_tag = self.get_valid_tag(tag)
-
-        # if commit:
-        #     # is_valid_commit = self.get_valid_commits(commit)
-        #     # commit_hash = is_valid_commit if is_valid_commit else None
-        #     is_valid_commit = True
+        selected_tag = tag  # Use the provided tag directly
+        commit_hash = commit  # Use the provided commit directly
 
         if not tag and not commit and not daily and daily_version == "":
             logger.error("No tag, commit or daily version found")
@@ -983,7 +974,7 @@ class BlenderBuilder:
         elif daily_version or daily:
             logger.info(f"Using daily checkout strategy for {daily_version}")
             self.checkout_strategy = DailyCheckoutStrategy(
-                blender_repo_dir, http_client, daily_version
+                blender_repo_dir, self.http_client, daily_version
             )
             logger.info(f"Checking out daily version {daily_version}")
             self.checkout_strategy.checkout()
