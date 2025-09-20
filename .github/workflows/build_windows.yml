@@ -30,17 +30,37 @@ jobs:
     permissions:
       contents: write
     steps:
-      # # - name: test batch file
-      # #   run: |
-      # #     # echo "PYTHON=C:\hostedtoolcache\windows\Python\3.10.11\x64\python.exe" | Out-File -Append -FilePath $env:GITHUB_ENV
-      # #     echo "echo %PYTHON%" >test.bat
-      # #     echo "set PYTHON=C:\hostedtoolcache\windows\Python\3.10.11\x64\python.exe" >test.new.bat
-      # #     type test.bat >>test.new.bat
-      # #     # move /y ./file.txt.new ./test.bat
-      # #     ./test.new.bat
-      # #     cat ./test.new.bat
-      # - name: checkout repo
-      #   uses: actions/checkout@v2
+      - name: Free up disk space
+        run: |
+          # Clean up Windows temp files
+          Get-ChildItem -Path $env:TEMP -Recurse | Remove-Item -Force -Recurse -ErrorAction SilentlyContinue
+          Get-ChildItem -Path "C:\Windows\Temp" -Recurse | Remove-Item -Force -Recurse -ErrorAction SilentlyContinue
+          
+          # Remove unused Windows features and packages
+          Get-WindowsOptionalFeature -Online | Where-Object {$_.State -eq "Enabled"} | Where-Object {$_.FeatureName -like "*MediaPlayer*" -or $_.FeatureName -like "*Internet-Explorer*"} | Disable-WindowsOptionalFeature -Online -NoRestart -ErrorAction SilentlyContinue
+          
+          # Clean package cache
+          dism /online /Cleanup-Image /StartComponentCleanup /ResetBase
+          
+          # Show disk space before cleanup
+          Get-WmiObject -Class Win32_LogicalDisk | Select-Object DeviceID, @{Name="Size(GB)";Expression={[math]::Round($_.Size/1GB,2)}}, @{Name="FreeSpace(GB)";Expression={[math]::Round($_.FreeSpace/1GB,2)}}
+
+      - name: Remove unnecessary software
+        run: |
+          # Remove large unused applications
+          choco uninstall docker-desktop -y --ignore-dependencies --force --skip-powershell
+          choco uninstall microsoft-edge -y --ignore-dependencies --force --skip-powershell
+          choco uninstall firefox -y --ignore-dependencies --force --skip-powershell
+          
+          # Clean chocolatey cache
+          choco clean all
+          
+          # Remove Visual Studio components we don't need
+          Remove-Item -Path "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise" -Recurse -Force -ErrorAction SilentlyContinue
+          Remove-Item -Path "C:\Program Files\Microsoft Visual Studio\2022\Enterprise" -Recurse -Force -ErrorAction SilentlyContinue
+
+      - name: checkout repo
+        uses: actions/checkout@v2
 
       # - name: Set environment variables
       #   id: set_env
@@ -260,16 +280,28 @@ jobs:
           # echo "Python=C:\hostedtoolcache\windows\Python\3.10.11\x64\python.exe" | Out-File -Append -FilePath $env:GITHUB_ENV
           Get-ChildItem Env:
       
-      - name: Install Visual Studio Community Edition
+      - name: Install Visual Studio Build Tools (optimized)
         run: |
-          choco install visualstudio2022-workload-nativedesktop
-          choco install visualstudio2019community
-          choco install visualstudio2019-workload-nativedesktop
+          # Install only VS2019 Community with C++ workload (lighter than having both 2019 and 2022)
+          choco install visualstudio2019community -y
+          choco install visualstudio2019-workload-nativedesktop -y
+
+      - name: Clean up after VS installation
+        run: |
+          # Clean VS installer cache
+          Remove-Item -Path "$env:ProgramData\Microsoft\VisualStudio\Packages" -Recurse -Force -ErrorAction SilentlyContinue
+          Remove-Item -Path "$env:TEMP\*" -Recurse -Force -ErrorAction SilentlyContinue
 
       - name: Install CUDA
         run: |
           choco install cuda --version 12.8.1.572 -y
           Add-Content $env:GITHUB_PATH "C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v12.8\bin"
+          
+      - name: Clean up after CUDA installation
+        run: |
+          # Remove CUDA installer files
+          Remove-Item -Path "$env:TEMP\*cuda*" -Recurse -Force -ErrorAction SilentlyContinue
+          Remove-Item -Path "C:\ProgramData\NVIDIA Corporation\CUDA Samples" -Recurse -Force -ErrorAction SilentlyContinue
           
       - name: Install TortoiseSVN and Command Line Client Tools
         run: |
@@ -277,7 +309,11 @@ jobs:
 
       - name: Install CMake
         run: |
-          choco install cmake --installargs 'ADD_CMAKE_TO_PATH=System'
+          choco install cmake --installargs 'ADD_CMAKE_TO_PATH=System' -y
+
+      - name: Clean chocolatey cache
+        run: |
+          choco clean all
 
       - name: Add CUDA compilation flags
         run: |
@@ -292,11 +328,31 @@ jobs:
         run: |
           pip install -U pip setuptools wheel
 
+      - name: Check disk space before build
+        run: |
+          Get-WmiObject -Class Win32_LogicalDisk | Select-Object DeviceID, @{Name="Size(GB)";Expression={[math]::Round($_.Size/1GB,2)}}, @{Name="FreeSpace(GB)";Expression={[math]::Round($_.FreeSpace/1GB,2)}}
+
       - name: Build Blender
         run: |
+          # Set compiler temp directory to a custom location
+          $env:TMP = "D:\temp"
+          $env:TEMP = "D:\temp"
+          New-Item -ItemType Directory -Path "D:\temp" -Force
+          
           python -m src.buildbpy.main --tag ${{ env.TAG }} --install --publish
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TMP: D:\temp
+          TEMP: D:\temp
+
+      - name: Clean up build intermediates
+        run: |
+          # Clean up build temp files
+          Remove-Item -Path "D:\temp\*" -Recurse -Force -ErrorAction SilentlyContinue
+          Remove-Item -Path "$env:USERPROFILE\.buildbpy\build_*\CMakeFiles" -Recurse -Force -ErrorAction SilentlyContinue
+          
+          # Clean up object files
+          Get-ChildItem -Path "$env:USERPROFILE\.buildbpy" -Include "*.obj", "*.pdb", "*.ilk" -Recurse | Remove-Item -Force -ErrorAction SilentlyContinue
 
       - name: Install compatible numpy version
         run: |
@@ -314,6 +370,15 @@ jobs:
               traceback.print_exc()
               sys.exit(1)
           '
+
+      - name: Final cleanup
+        run: |
+          # Final cleanup of temp files
+          Get-ChildItem -Path $env:TEMP -Recurse | Remove-Item -Force -Recurse -ErrorAction SilentlyContinue
+          Get-ChildItem -Path "C:\Windows\Temp" -Recurse | Remove-Item -Force -Recurse -ErrorAction SilentlyContinue
+          
+          # Show final disk space
+          Get-WmiObject -Class Win32_LogicalDisk | Select-Object DeviceID, @{Name="Size(GB)";Expression={[math]::Round($_.Size/1GB,2)}}, @{Name="FreeSpace(GB)";Expression={[math]::Round($_.FreeSpace/1GB,2)}}
 
       
       # - name: Set CUDA environment variables
