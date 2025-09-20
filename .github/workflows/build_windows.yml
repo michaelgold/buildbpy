@@ -36,28 +36,47 @@ jobs:
           Get-ChildItem -Path $env:TEMP -Recurse | Remove-Item -Force -Recurse -ErrorAction SilentlyContinue
           Get-ChildItem -Path "C:\Windows\Temp" -Recurse | Remove-Item -Force -Recurse -ErrorAction SilentlyContinue
           
-          # Remove unused Windows features and packages
-          Get-WindowsOptionalFeature -Online | Where-Object {$_.State -eq "Enabled"} | Where-Object {$_.FeatureName -like "*MediaPlayer*" -or $_.FeatureName -like "*Internet-Explorer*"} | Disable-WindowsOptionalFeature -Online -NoRestart -ErrorAction SilentlyContinue
+          # Remove unused Windows features and packages (with error handling)
+          try {
+            Get-WindowsOptionalFeature -Online | Where-Object {$_.State -eq "Enabled"} | Where-Object {$_.FeatureName -like "*MediaPlayer*" -or $_.FeatureName -like "*Internet-Explorer*"} | Disable-WindowsOptionalFeature -Online -NoRestart -ErrorAction SilentlyContinue
+          } catch {
+            Write-Host "Could not disable optional features: $($_.Exception.Message)"
+          }
           
-          # Clean package cache
-          dism /online /Cleanup-Image /StartComponentCleanup /ResetBase
+          # Clean package cache (with timeout)
+          try {
+            Start-Process -FilePath "dism" -ArgumentList "/online", "/Cleanup-Image", "/StartComponentCleanup", "/ResetBase" -Wait -TimeoutSec 300 -ErrorAction SilentlyContinue
+          } catch {
+            Write-Host "DISM cleanup timed out or failed: $($_.Exception.Message)"
+          }
           
           # Show disk space before cleanup
           Get-WmiObject -Class Win32_LogicalDisk | Select-Object DeviceID, @{Name="Size(GB)";Expression={[math]::Round($_.Size/1GB,2)}}, @{Name="FreeSpace(GB)";Expression={[math]::Round($_.FreeSpace/1GB,2)}}
 
       - name: Remove unnecessary software
         run: |
-          # Remove large unused applications
-          choco uninstall docker-desktop -y --ignore-dependencies --force --skip-powershell
-          choco uninstall microsoft-edge -y --ignore-dependencies --force --skip-powershell
-          choco uninstall firefox -y --ignore-dependencies --force --skip-powershell
+          # Remove large unused applications (only if they exist)
+          $packages = @('docker-desktop', 'microsoft-edge', 'firefox')
+          foreach ($package in $packages) {
+            $installed = choco list --local-only | Select-String $package
+            if ($installed) {
+              choco uninstall $package -y --ignore-dependencies --force --skip-powershell
+            }
+          }
           
-          # Clean chocolatey cache
-          choco clean all
+          # Remove large directories that may exist
+          $pathsToRemove = @(
+            "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise",
+            "C:\Program Files\Microsoft Visual Studio\2022\Enterprise",
+            "C:\Program Files\Docker",
+            "C:\ProgramData\Docker"
+          )
           
-          # Remove Visual Studio components we don't need
-          Remove-Item -Path "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise" -Recurse -Force -ErrorAction SilentlyContinue
-          Remove-Item -Path "C:\Program Files\Microsoft Visual Studio\2022\Enterprise" -Recurse -Force -ErrorAction SilentlyContinue
+          foreach ($path in $pathsToRemove) {
+            if (Test-Path $path) {
+              Remove-Item -Path $path -Recurse -Force -ErrorAction SilentlyContinue
+            }
+          }
 
       - name: checkout repo
         uses: actions/checkout@v2
@@ -313,7 +332,12 @@ jobs:
 
       - name: Clean chocolatey cache
         run: |
-          choco clean all
+          # Clean chocolatey cache and temp files
+          Remove-Item -Path "$env:ChocolateyInstall\temp\*" -Recurse -Force -ErrorAction SilentlyContinue
+          Remove-Item -Path "$env:ChocolateyInstall\logs\*" -Recurse -Force -ErrorAction SilentlyContinue
+          
+          # Clean up any remaining temp files
+          Get-ChildItem -Path $env:TEMP -Recurse | Remove-Item -Force -Recurse -ErrorAction SilentlyContinue
 
       - name: Add CUDA compilation flags
         run: |
