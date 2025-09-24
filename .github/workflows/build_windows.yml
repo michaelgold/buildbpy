@@ -54,7 +54,7 @@ jobs:
           Get-WmiObject -Class Win32_LogicalDisk | Select-Object DeviceID, @{Name="Size(GB)";Expression={[math]::Round($_.Size/1GB,2)}}, @{Name="FreeSpace(GB)";Expression={[math]::Round($_.FreeSpace/1GB,2)}}
 
       - name: checkout repo
-        uses: actions/checkout@v2
+        uses: actions /checkout@v2
 
       # - name: Set environment variables
       #   id: set_env
@@ -251,10 +251,24 @@ jobs:
       #     submodules: 'recursive' 
       #     path: blender 
 
-      # - name: Install Chocolatey
-      #   run: |
-      #     Set-ExecutionPolicy Bypass -Scope Process -Force
-      #     Invoke-Expression ((New-Object System.Net.WebClient).DownloadString('https://chocolatey.org/install.ps1'))
+      - name: Install Chocolatey to D Drive
+        run: |
+          # Set Chocolatey install location to D drive
+          [Environment]::SetEnvironmentVariable("ChocolateyInstall", "D:\choco", "Machine")
+          $env:ChocolateyInstall = "D:\choco"
+          
+          # Create the directory
+          New-Item -ItemType Directory -Path "D:\choco" -Force
+          
+          # Install Chocolatey
+          Set-ExecutionPolicy Bypass -Scope Process -Force
+          Invoke-Expression ((New-Object System.Net.WebClient).DownloadString('https://chocolatey.org/install.ps1'))
+          
+          # Add Chocolatey to PATH for this session
+          $env:PATH += ";D:\choco\bin"
+          
+          # Add to GitHub PATH for subsequent steps
+          Add-Content $env:GITHUB_PATH "D:\choco\bin"
 
       - name: Set up Python
         uses: actions/setup-python@v4
@@ -274,11 +288,15 @@ jobs:
           # echo "Python=C:\hostedtoolcache\windows\Python\3.10.11\x64\python.exe" | Out-File -Append -FilePath $env:GITHUB_ENV
           Get-ChildItem Env:
       
-      - name: Install Visual Studio Build Tools (optimized)
+      - name: Install Visual Studio Build Tools (optimized) to D Drive
         run: |
-          # Install only VS2019 Community with C++ workload (lighter than having both 2019 and 2022)
-          choco install visualstudio2019community -y
-          choco install visualstudio2019-workload-nativedesktop -y
+          # Set package cache to D drive to save C drive space
+          choco config set cacheLocation D:\choco-cache
+          
+          # Install VS2022 Community with C++ workload
+          choco install visualstudio2022community -y --install-directory="D:\VS2022"
+          choco install visualstudio2022-workload-nativedesktop -y
+
 
       - name: Clean up after VS installation
         run: |
@@ -286,10 +304,14 @@ jobs:
           Remove-Item -Path "$env:ProgramData\Microsoft\VisualStudio\Packages" -Recurse -Force -ErrorAction SilentlyContinue
           Remove-Item -Path "$env:TEMP\*" -Recurse -Force -ErrorAction SilentlyContinue
 
-      - name: Install CUDA
+      - name: Install CUDA to D Drive
         run: |
-          choco install cuda --version 12.8.1.572 -y
-          Add-Content $env:GITHUB_PATH "C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v12.8\bin"
+          # Install CUDA with custom install directory
+          choco install cuda --version 12.8.1.572 -y --params "'/InstallPath:D:\CUDA'"
+          
+          # Add CUDA to PATH
+          Add-Content $env:GITHUB_PATH "D:\CUDA\bin"
+          Add-Content $env:GITHUB_PATH "D:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v12.8\bin"
           
       - name: Clean up after CUDA installation
         run: |
@@ -307,9 +329,10 @@ jobs:
 
       - name: Clean chocolatey cache
         run: |
-          # Clean chocolatey cache and temp files
-          Remove-Item -Path "$env:ChocolateyInstall\temp\*" -Recurse -Force -ErrorAction SilentlyContinue
-          Remove-Item -Path "$env:ChocolateyInstall\logs\*" -Recurse -Force -ErrorAction SilentlyContinue
+          # Clean chocolatey cache and temp files from D drive
+          Remove-Item -Path "D:\choco-cache\*" -Recurse -Force -ErrorAction SilentlyContinue
+          Remove-Item -Path "D:\choco\temp\*" -Recurse -Force -ErrorAction SilentlyContinue
+          Remove-Item -Path "D:\choco\logs\*" -Recurse -Force -ErrorAction SilentlyContinue
           
           # Clean up any remaining temp files
           Get-ChildItem -Path $env:TEMP -Recurse | Remove-Item -Force -Recurse -ErrorAction SilentlyContinue
