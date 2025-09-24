@@ -293,10 +293,49 @@ jobs:
           # Set package cache to D drive to save C drive space
           choco config set cacheLocation D:\choco-cache
           
-          # Install VS2022 Community with C++ workload
-          choco install visualstudio2022community -y --install-directory="D:\VS2022"
+          # Install VS2022 Community (note: --install-directory may not work reliably with choco)
+          choco install visualstudio2022community -y
           choco install visualstudio2022-workload-nativedesktop -y
+          
+          # Also install the build tools package for better compatibility
+          choco install visualstudio2022buildtools -y
+          choco install visualstudio2022-workload-vctools -y
 
+
+      - name: Verify Visual Studio Installation
+        run: |
+          # Check if Visual Studio is properly installed
+          $vsPath = "${env:ProgramFiles}\Microsoft Visual Studio\2022\Community"
+          $vcvarsPath = "$vsPath\VC\Auxiliary\Build\vcvars64.bat"
+          
+          Write-Host "Checking Visual Studio installation..."
+          Write-Host "VS Path: $vsPath"
+          Write-Host "VCVars Path: $vcvarsPath"
+          
+          if (Test-Path $vsPath) {
+            Write-Host "✓ Visual Studio directory found"
+          } else {
+            Write-Host "✗ Visual Studio directory not found"
+          }
+          
+          if (Test-Path $vcvarsPath) {
+            Write-Host "✓ vcvars64.bat found"
+          } else {
+            Write-Host "✗ vcvars64.bat not found"
+            
+            # List what's actually in the VS directory
+            if (Test-Path $vsPath) {
+              Write-Host "Contents of VS directory:"
+              Get-ChildItem $vsPath -Recurse -Depth 2 | Select-Object FullName | Format-Table -AutoSize
+            }
+          }
+          
+          # Use vswhere to find installations
+          $vswhere = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe"
+          if (Test-Path $vswhere) {
+            Write-Host "Visual Studio installations found by vswhere:"
+            & $vswhere -products * -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath,productDisplayVersion
+          }
 
       - name: Clean up after VS installation
         run: |
@@ -410,12 +449,58 @@ jobs:
         run: |
           Get-WmiObject -Class Win32_LogicalDisk | Select-Object DeviceID, @{Name="Size(GB)";Expression={[math]::Round($_.Size/1GB,2)}}, @{Name="FreeSpace(GB)";Expression={[math]::Round($_.FreeSpace/1GB,2)}}
 
+      - name: Setup Visual Studio Environment
+        run: |
+          # Initialize Visual Studio Developer Command Prompt environment
+          $vsPath = "${env:ProgramFiles}\Microsoft Visual Studio\2022\Community"
+          $vcvarsPath = "$vsPath\VC\Auxiliary\Build\vcvars64.bat"
+          
+          if (Test-Path $vcvarsPath) {
+            Write-Host "Found Visual Studio at: $vsPath"
+            
+            # Run vcvars64.bat and capture environment variables
+            $tempFile = [System.IO.Path]::GetTempFileName()
+            cmd /c "`"$vcvarsPath`" && set" > $tempFile
+            
+            # Parse and set environment variables
+            Get-Content $tempFile | ForEach-Object {
+              if ($_ -match '^([^=]+)=(.*)$') {
+                $name = $matches[1]
+                $value = $matches[2]
+                [Environment]::SetEnvironmentVariable($name, $value, "Process")
+                
+                # Set key variables for GitHub Actions
+                if ($name -eq "VCINSTALLDIR" -or $name -eq "VSINSTALLDIR" -or $name -eq "WindowsSDKDir" -or $name -eq "INCLUDE" -or $name -eq "LIB" -or $name -eq "LIBPATH" -or $name -eq "PATH") {
+                  echo "$name=$value" >> $env:GITHUB_ENV
+                }
+              }
+            }
+            
+            Remove-Item $tempFile -ErrorAction SilentlyContinue
+            Write-Host "Visual Studio environment configured"
+          } else {
+            Write-Host "Visual Studio not found at expected location: $vcvarsPath"
+            
+            # Try to find Visual Studio installation
+            $vswhere = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe"
+            if (Test-Path $vswhere) {
+              $vsInstallations = & $vswhere -products * -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath
+              Write-Host "Found VS installations: $vsInstallations"
+            }
+            
+            exit 1
+          }
+
       - name: Build Blender
         run: |
           # Set compiler temp directory to a custom location
           $env:TMP = "D:\temp"
           $env:TEMP = "D:\temp"
           New-Item -ItemType Directory -Path "D:\temp" -Force
+          
+          # Verify Visual Studio environment
+          Write-Host "VCINSTALLDIR: $env:VCINSTALLDIR"
+          Write-Host "VSINSTALLDIR: $env:VSINSTALLDIR"
           
           python -m src.buildbpy.main --tag ${{ env.TAG }} --install --publish
         env:
