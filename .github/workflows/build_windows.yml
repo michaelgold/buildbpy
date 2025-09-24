@@ -467,17 +467,25 @@ jobs:
               if ($_ -match '^([^=]+)=(.*)$') {
                 $name = $matches[1]
                 $value = $matches[2]
-                [Environment]::SetEnvironmentVariable($name, $value, "Process")
                 
-                # Set key variables for GitHub Actions
-                if ($name -eq "VCINSTALLDIR" -or $name -eq "VSINSTALLDIR" -or $name -eq "WindowsSDKDir" -or $name -eq "INCLUDE" -or $name -eq "LIB" -or $name -eq "LIBPATH" -or $name -eq "PATH") {
-                  echo "$name=$value" >> $env:GITHUB_ENV
-                }
+                # Set ALL environment variables for GitHub Actions
+                echo "$name=$value" >> $env:GITHUB_ENV
+                
+                # Also set for current process
+                [Environment]::SetEnvironmentVariable($name, $value, "Process")
               }
             }
             
             Remove-Item $tempFile -ErrorAction SilentlyContinue
             Write-Host "Visual Studio environment configured"
+            
+            # Verify key variables are set
+            Write-Host "Key VS Environment Variables:"
+            Write-Host "VCINSTALLDIR: $env:VCINSTALLDIR"
+            Write-Host "VSINSTALLDIR: $env:VSINSTALLDIR" 
+            Write-Host "WindowsSDKDir: $env:WindowsSDKDir"
+            Write-Host "VCToolsVersion: $env:VCToolsVersion"
+            
           } else {
             Write-Host "Visual Studio not found at expected location: $vcvarsPath"
             
@@ -491,18 +499,55 @@ jobs:
             exit 1
           }
 
-      - name: Build Blender
+      - name: Build Blender with Visual Studio Environment
         run: |
           # Set compiler temp directory to a custom location
           $env:TMP = "D:\temp"
           $env:TEMP = "D:\temp"
           New-Item -ItemType Directory -Path "D:\temp" -Force
           
-          # Verify Visual Studio environment
-          Write-Host "VCINSTALLDIR: $env:VCINSTALLDIR"
-          Write-Host "VSINSTALLDIR: $env:VSINSTALLDIR"
+          # Initialize VS environment in this step as well (belt and suspenders approach)
+          $vcvarsPath = "${env:ProgramFiles}\Microsoft Visual Studio\2022\Community\VC\Auxiliary\Build\vcvars64.bat"
           
+          # Create a batch file that sets up VS environment and runs the build
+          $buildScript = @"
+          @echo off
+          echo Setting up Visual Studio environment...
+          call "$vcvarsPath"
+          if errorlevel 1 (
+              echo Failed to setup Visual Studio environment
+              exit /b 1
+          )
+          
+          echo Visual Studio environment setup complete
+          echo VCINSTALLDIR: %VCINSTALLDIR%
+          echo VSINSTALLDIR: %VSINSTALLDIR%
+          echo WindowsSDKDir: %WindowsSDKDir%
+          
+          echo Checking for cl.exe...
+          where cl.exe
+          if errorlevel 1 (
+              echo Visual Studio compiler not found in PATH
+              exit /b 1
+          )
+          
+          echo Running Python build...
           python -m src.buildbpy.main --tag ${{ env.TAG }} --install --publish
+          "@
+          
+          $buildScript | Out-File -FilePath "build_with_vs.bat" -Encoding ASCII
+          
+          # Run the build script
+          cmd /c "build_with_vs.bat"
+          $exitCode = $LASTEXITCODE
+          
+          # Clean up
+          Remove-Item "build_with_vs.bat" -ErrorAction SilentlyContinue
+          
+          if ($exitCode -ne 0) {
+            Write-Host "Build failed with exit code: $exitCode"
+            exit $exitCode
+          }
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TMP: D:\temp
