@@ -306,12 +306,27 @@ jobs:
 
       - name: Install CUDA to D Drive
         run: |
-          # Install CUDA with custom install directory
-          choco install cuda --version 12.8.1.572 -y --params "'/InstallPath:D:\CUDA'"
+          # Install CUDA - note: custom install path may not work with choco, so we'll use default location
+          # but configure the cache to use D drive
+          choco install cuda --version 12.8.1.572 -y
           
-          # Add CUDA to PATH
-          Add-Content $env:GITHUB_PATH "D:\CUDA\bin"
-          Add-Content $env:GITHUB_PATH "D:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v12.8\bin"
+          # Verify CUDA installation and add to PATH
+          $cudaPath = "C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v12.8\bin"
+          if (Test-Path $cudaPath) {
+            Add-Content $env:GITHUB_PATH $cudaPath
+            Write-Host "Added CUDA path: $cudaPath"
+          } else {
+            # Try alternative path
+            $altCudaPath = "C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v12.6\bin"
+            if (Test-Path $altCudaPath) {
+              Add-Content $env:GITHUB_PATH $altCudaPath
+              Write-Host "Added alternative CUDA path: $altCudaPath"
+            } else {
+              Write-Host "Warning: CUDA installation path not found"
+              # List CUDA directories to debug
+              Get-ChildItem "C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\" -ErrorAction SilentlyContinue | Select-Object Name
+            }
+          }
           
       - name: Clean up after CUDA installation
         run: |
@@ -327,6 +342,17 @@ jobs:
         run: |
           choco install cmake --installargs 'ADD_CMAKE_TO_PATH=System' -y
 
+      - name: Refresh Environment Variables
+        run: |
+          # Refresh environment variables to pick up all PATH changes
+          $env:PATH = [Environment]::GetEnvironmentVariable("PATH", "Machine") + ";" + [Environment]::GetEnvironmentVariable("PATH", "User")
+          Write-Host "Updated PATH: $env:PATH"
+          
+          # Verify key tools are available
+          Write-Host "Checking tool availability:"
+          try { cmake --version; Write-Host "✓ CMake found" } catch { Write-Host "✗ CMake not found" }
+          try { & "${env:ProgramFiles}\Microsoft Visual Studio\2022\Community\Common7\Tools\VsDevCmd.bat" -help 2>$null; Write-Host "✓ Visual Studio found" } catch { Write-Host "✗ Visual Studio tools not found" }
+
       - name: Clean chocolatey cache
         run: |
           # Clean chocolatey cache and temp files from D drive
@@ -339,8 +365,38 @@ jobs:
 
       - name: Add CUDA compilation flags
         run: |
-          nvcc --version
-          # "set(WITH_CYCLES_CUDA_BINARIES   ON  CACHE BOOL '' FORCE)" | Out-File -Append -FilePath ./blender/build_files/cmake/config/bpy_module.cmake
+          # Refresh environment and verify CUDA installation
+          $env:PATH = [Environment]::GetEnvironmentVariable("PATH", "Machine") + ";" + [Environment]::GetEnvironmentVariable("PATH", "User")
+          
+          # Check if nvcc is available
+          try {
+            nvcc --version
+          } catch {
+            Write-Host "CUDA not found in PATH, searching for installation..."
+            
+            # Search for CUDA installations
+            $cudaDirs = Get-ChildItem "C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\" -Directory -ErrorAction SilentlyContinue
+            if ($cudaDirs) {
+              Write-Host "Found CUDA directories:"
+              $cudaDirs | ForEach-Object { Write-Host $_.FullName }
+              
+              # Use the latest version found
+              $latestCuda = $cudaDirs | Sort-Object Name -Descending | Select-Object -First 1
+              $cudaBinPath = Join-Path $latestCuda.FullName "bin"
+              
+              if (Test-Path $cudaBinPath) {
+                Write-Host "Adding CUDA bin path: $cudaBinPath"
+                $env:PATH += ";$cudaBinPath"
+                Add-Content $env:GITHUB_PATH $cudaBinPath
+                
+                # Try nvcc again
+                & "$cudaBinPath\nvcc.exe" --version
+              }
+            } else {
+              Write-Host "No CUDA installation found"
+              exit 1
+            }
+          }
 
       - name: Install Python Dependencies
         run: |
