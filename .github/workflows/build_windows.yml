@@ -30,31 +30,17 @@ jobs:
     permissions:
       contents: write
     steps:
-      - name: Free up disk space
-        run: |
-          # Clean up Windows temp files
-          Get-ChildItem -Path $env:TEMP -Recurse | Remove-Item -Force -Recurse -ErrorAction SilentlyContinue
-          Get-ChildItem -Path "C:\Windows\Temp" -Recurse | Remove-Item -Force -Recurse -ErrorAction SilentlyContinue
-          
-          # Remove unused Windows features and packages (with error handling)
-          try {
-            Get-WindowsOptionalFeature -Online | Where-Object {$_.State -eq "Enabled"} | Where-Object {$_.FeatureName -like "*MediaPlayer*" -or $_.FeatureName -like "*Internet-Explorer*"} | Disable-WindowsOptionalFeature -Online -NoRestart -ErrorAction SilentlyContinue
-          } catch {
-            Write-Host "Could not disable optional features: $($_.Exception.Message)"
-          }
-          
-          # Clean package cache (with timeout)
-          try {
-            Start-Process -FilePath "dism" -ArgumentList "/online", "/Cleanup-Image", "/StartComponentCleanup", "/ResetBase" -Wait -TimeoutSec 300 -ErrorAction SilentlyContinue
-          } catch {
-            Write-Host "DISM cleanup timed out or failed: $($_.Exception.Message)"
-          }
-          
-          # Show disk space before cleanup
-          Get-WmiObject -Class Win32_LogicalDisk | Select-Object DeviceID, @{Name="Size(GB)";Expression={[math]::Round($_.Size/1GB,2)}}, @{Name="FreeSpace(GB)";Expression={[math]::Round($_.FreeSpace/1GB,2)}}
-
-      - name: checkout repo
-        uses: actions /checkout@v2
+      # # - name: test batch file
+      # #   run: |
+      # #     # echo "PYTHON=C:\hostedtoolcache\windows\Python\3.10.11\x64\python.exe" | Out-File -Append -FilePath $env:GITHUB_ENV
+      # #     echo "echo %PYTHON%" >test.bat
+      # #     echo "set PYTHON=C:\hostedtoolcache\windows\Python\3.10.11\x64\python.exe" >test.new.bat
+      # #     type test.bat >>test.new.bat
+      # #     # move /y ./file.txt.new ./test.bat
+      # #     ./test.new.bat
+      # #     cat ./test.new.bat
+      # - name: checkout repo
+      #   uses: actions/checkout@v2
 
       # - name: Set environment variables
       #   id: set_env
@@ -251,24 +237,10 @@ jobs:
       #     submodules: 'recursive' 
       #     path: blender 
 
-      - name: Install Chocolatey to D Drive
-        run: |
-          # Set Chocolatey install location to D drive
-          [Environment]::SetEnvironmentVariable("ChocolateyInstall", "D:\choco", "Machine")
-          $env:ChocolateyInstall = "D:\choco"
-          
-          # Create the directory
-          New-Item -ItemType Directory -Path "D:\choco" -Force
-          
-          # Install Chocolatey
-          Set-ExecutionPolicy Bypass -Scope Process -Force
-          Invoke-Expression ((New-Object System.Net.WebClient).DownloadString('https://chocolatey.org/install.ps1'))
-          
-          # Add Chocolatey to PATH for this session
-          $env:PATH += ";D:\choco\bin"
-          
-          # Add to GitHub PATH for subsequent steps
-          Add-Content $env:GITHUB_PATH "D:\choco\bin"
+      # - name: Install Chocolatey
+      #   run: |
+      #     Set-ExecutionPolicy Bypass -Scope Process -Force
+      #     Invoke-Expression ((New-Object System.Net.WebClient).DownloadString('https://chocolatey.org/install.ps1'))
 
       - name: Set up Python
         uses: actions/setup-python@v4
@@ -288,154 +260,29 @@ jobs:
           # echo "Python=C:\hostedtoolcache\windows\Python\3.10.11\x64\python.exe" | Out-File -Append -FilePath $env:GITHUB_ENV
           Get-ChildItem Env:
       
-      - name: Install Visual Studio Build Tools (optimized) to D Drive
+      - name: Install Visual Studio Community Edition
         run: |
-          # Set package cache to D drive to save C drive space
-          choco config set cacheLocation D:\choco-cache
-          
-          # Install VS2022 Community (note: --install-directory may not work reliably with choco)
-          choco install visualstudio2022community -y
-          choco install visualstudio2022-workload-nativedesktop -y
-          
-          # Also install the build tools package for better compatibility
-          choco install visualstudio2022buildtools -y
-          choco install visualstudio2022-workload-vctools -y
+          choco install visualstudio2022-workload-nativedesktop
+          choco install visualstudio2019community
+          choco install visualstudio2019-workload-nativedesktop
 
-
-      - name: Verify Visual Studio Installation
+      - name: Install CUDA
         run: |
-          # Check if Visual Studio is properly installed
-          $vsPath = "${env:ProgramFiles}\Microsoft Visual Studio\2022\Community"
-          $vcvarsPath = "$vsPath\VC\Auxiliary\Build\vcvars64.bat"
-          
-          Write-Host "Checking Visual Studio installation..."
-          Write-Host "VS Path: $vsPath"
-          Write-Host "VCVars Path: $vcvarsPath"
-          
-          if (Test-Path $vsPath) {
-            Write-Host "✓ Visual Studio directory found"
-          } else {
-            Write-Host "✗ Visual Studio directory not found"
-          }
-          
-          if (Test-Path $vcvarsPath) {
-            Write-Host "✓ vcvars64.bat found"
-          } else {
-            Write-Host "✗ vcvars64.bat not found"
-            
-            # List what's actually in the VS directory
-            if (Test-Path $vsPath) {
-              Write-Host "Contents of VS directory:"
-              Get-ChildItem $vsPath -Recurse -Depth 2 | Select-Object FullName | Format-Table -AutoSize
-            }
-          }
-          
-          # Use vswhere to find installations
-          $vswhere = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe"
-          if (Test-Path $vswhere) {
-            Write-Host "Visual Studio installations found by vswhere:"
-            & $vswhere -products * -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath,productDisplayVersion
-          }
-
-      - name: Clean up after VS installation
-        run: |
-          # Clean VS installer cache
-          Remove-Item -Path "$env:ProgramData\Microsoft\VisualStudio\Packages" -Recurse -Force -ErrorAction SilentlyContinue
-          Remove-Item -Path "$env:TEMP\*" -Recurse -Force -ErrorAction SilentlyContinue
-
-      - name: Install CUDA to D Drive
-        run: |
-          # Install CUDA - note: custom install path may not work with choco, so we'll use default location
-          # but configure the cache to use D drive
           choco install cuda --version 12.8.1.572 -y
+          Add-Content $env:GITHUB_PATH "C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v12.8\bin"
           
-          # Verify CUDA installation and add to PATH
-          $cudaPath = "C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v12.8\bin"
-          if (Test-Path $cudaPath) {
-            Add-Content $env:GITHUB_PATH $cudaPath
-            Write-Host "Added CUDA path: $cudaPath"
-          } else {
-            # Try alternative path
-            $altCudaPath = "C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v12.6\bin"
-            if (Test-Path $altCudaPath) {
-              Add-Content $env:GITHUB_PATH $altCudaPath
-              Write-Host "Added alternative CUDA path: $altCudaPath"
-            } else {
-              Write-Host "Warning: CUDA installation path not found"
-              # List CUDA directories to debug
-              Get-ChildItem "C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\" -ErrorAction SilentlyContinue | Select-Object Name
-            }
-          }
-          
-      - name: Clean up after CUDA installation
-        run: |
-          # Remove CUDA installer files
-          Remove-Item -Path "$env:TEMP\*cuda*" -Recurse -Force -ErrorAction SilentlyContinue
-          Remove-Item -Path "C:\ProgramData\NVIDIA Corporation\CUDA Samples" -Recurse -Force -ErrorAction SilentlyContinue
-          
-      - name: Install TortoiseSVN and Command Line Client Tools
-        run: |
-          choco install tortoisesvn
+      # - name: Install TortoiseSVN and Command Line Client Tools
+      #   run: |
+      #     choco install tortoisesvn
 
       - name: Install CMake
         run: |
-          choco install cmake --installargs 'ADD_CMAKE_TO_PATH=System' -y
-
-      - name: Refresh Environment Variables
-        run: |
-          # Refresh environment variables to pick up all PATH changes
-          $env:PATH = [Environment]::GetEnvironmentVariable("PATH", "Machine") + ";" + [Environment]::GetEnvironmentVariable("PATH", "User")
-          Write-Host "Updated PATH: $env:PATH"
-          
-          # Verify key tools are available
-          Write-Host "Checking tool availability:"
-          try { cmake --version; Write-Host "✓ CMake found" } catch { Write-Host "✗ CMake not found" }
-          try { & "${env:ProgramFiles}\Microsoft Visual Studio\2022\Community\Common7\Tools\VsDevCmd.bat" -help 2>$null; Write-Host "✓ Visual Studio found" } catch { Write-Host "✗ Visual Studio tools not found" }
-
-      - name: Clean chocolatey cache
-        run: |
-          # Clean chocolatey cache and temp files from D drive
-          Remove-Item -Path "D:\choco-cache\*" -Recurse -Force -ErrorAction SilentlyContinue
-          Remove-Item -Path "D:\choco\temp\*" -Recurse -Force -ErrorAction SilentlyContinue
-          Remove-Item -Path "D:\choco\logs\*" -Recurse -Force -ErrorAction SilentlyContinue
-          
-          # Clean up any remaining temp files
-          Get-ChildItem -Path $env:TEMP -Recurse | Remove-Item -Force -Recurse -ErrorAction SilentlyContinue
+          choco install cmake --installargs 'ADD_CMAKE_TO_PATH=System'
 
       - name: Add CUDA compilation flags
         run: |
-          # Refresh environment and verify CUDA installation
-          $env:PATH = [Environment]::GetEnvironmentVariable("PATH", "Machine") + ";" + [Environment]::GetEnvironmentVariable("PATH", "User")
-          
-          # Check if nvcc is available
-          try {
-            nvcc --version
-          } catch {
-            Write-Host "CUDA not found in PATH, searching for installation..."
-            
-            # Search for CUDA installations
-            $cudaDirs = Get-ChildItem "C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\" -Directory -ErrorAction SilentlyContinue
-            if ($cudaDirs) {
-              Write-Host "Found CUDA directories:"
-              $cudaDirs | ForEach-Object { Write-Host $_.FullName }
-              
-              # Use the latest version found
-              $latestCuda = $cudaDirs | Sort-Object Name -Descending | Select-Object -First 1
-              $cudaBinPath = Join-Path $latestCuda.FullName "bin"
-              
-              if (Test-Path $cudaBinPath) {
-                Write-Host "Adding CUDA bin path: $cudaBinPath"
-                $env:PATH += ";$cudaBinPath"
-                Add-Content $env:GITHUB_PATH $cudaBinPath
-                
-                # Try nvcc again
-                & "$cudaBinPath\nvcc.exe" --version
-              }
-            } else {
-              Write-Host "No CUDA installation found"
-              exit 1
-            }
-          }
+          nvcc --version
+          # "set(WITH_CYCLES_CUDA_BINARIES   ON  CACHE BOOL '' FORCE)" | Out-File -Append -FilePath ./blender/build_files/cmake/config/bpy_module.cmake
 
       - name: Install Python Dependencies
         run: |
@@ -445,122 +292,11 @@ jobs:
         run: |
           pip install -U pip setuptools wheel
 
-      - name: Check disk space before build
+      - name: Build Blender
         run: |
-          Get-WmiObject -Class Win32_LogicalDisk | Select-Object DeviceID, @{Name="Size(GB)";Expression={[math]::Round($_.Size/1GB,2)}}, @{Name="FreeSpace(GB)";Expression={[math]::Round($_.FreeSpace/1GB,2)}}
-
-      - name: Setup Visual Studio Environment
-        run: |
-          # Initialize Visual Studio Developer Command Prompt environment
-          $vsPath = "${env:ProgramFiles}\Microsoft Visual Studio\2022\Community"
-          $vcvarsPath = "$vsPath\VC\Auxiliary\Build\vcvars64.bat"
-          
-          if (Test-Path $vcvarsPath) {
-            Write-Host "Found Visual Studio at: $vsPath"
-            
-            # Run vcvars64.bat and capture environment variables
-            $tempFile = [System.IO.Path]::GetTempFileName()
-            cmd /c "`"$vcvarsPath`" && set" > $tempFile
-            
-            # Parse and set environment variables
-            Get-Content $tempFile | ForEach-Object {
-              if ($_ -match '^([^=]+)=(.*)$') {
-                $name = $matches[1]
-                $value = $matches[2]
-                
-                # Set ALL environment variables for GitHub Actions
-                echo "$name=$value" >> $env:GITHUB_ENV
-                
-                # Also set for current process
-                [Environment]::SetEnvironmentVariable($name, $value, "Process")
-              }
-            }
-            
-            Remove-Item $tempFile -ErrorAction SilentlyContinue
-            Write-Host "Visual Studio environment configured"
-            
-            # Verify key variables are set
-            Write-Host "Key VS Environment Variables:"
-            Write-Host "VCINSTALLDIR: $env:VCINSTALLDIR"
-            Write-Host "VSINSTALLDIR: $env:VSINSTALLDIR" 
-            Write-Host "WindowsSDKDir: $env:WindowsSDKDir"
-            Write-Host "VCToolsVersion: $env:VCToolsVersion"
-            
-          } else {
-            Write-Host "Visual Studio not found at expected location: $vcvarsPath"
-            
-            # Try to find Visual Studio installation
-            $vswhere = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe"
-            if (Test-Path $vswhere) {
-              $vsInstallations = & $vswhere -products * -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath
-              Write-Host "Found VS installations: $vsInstallations"
-            }
-            
-            exit 1
-          }
-
-      - name: Build Blender with Visual Studio Environment
-        run: |
-          # Set compiler temp directory to a custom location
-          $env:TMP = "D:\temp"
-          $env:TEMP = "D:\temp"
-          New-Item -ItemType Directory -Path "D:\temp" -Force
-          
-          # Initialize VS environment in this step as well (belt and suspenders approach)
-          $vcvarsPath = "${env:ProgramFiles}\Microsoft Visual Studio\2022\Community\VC\Auxiliary\Build\vcvars64.bat"
-          
-          # Create a batch file that sets up VS environment and runs the build
-          $buildScript = @"
-          @echo off
-          echo Setting up Visual Studio environment...
-          call "$vcvarsPath"
-          if errorlevel 1 (
-              echo Failed to setup Visual Studio environment
-              exit /b 1
-          )
-          
-          echo Visual Studio environment setup complete
-          echo VCINSTALLDIR: %VCINSTALLDIR%
-          echo VSINSTALLDIR: %VSINSTALLDIR%
-          echo WindowsSDKDir: %WindowsSDKDir%
-          
-          echo Checking for cl.exe...
-          where cl.exe
-          if errorlevel 1 (
-              echo Visual Studio compiler not found in PATH
-              exit /b 1
-          )
-          
-          echo Running Python build...
-          python -m src.buildbpy.main --tag ${{ env.TAG }} --install --publish
-          "@
-          
-          $buildScript | Out-File -FilePath "build_with_vs.bat" -Encoding ASCII
-          
-          # Run the build script
-          cmd /c "build_with_vs.bat"
-          $exitCode = $LASTEXITCODE
-          
-          # Clean up
-          Remove-Item "build_with_vs.bat" -ErrorAction SilentlyContinue
-          
-          if ($exitCode -ne 0) {
-            Write-Host "Build failed with exit code: $exitCode"
-            exit $exitCode
-          }
+          python -m src.buildbpy.main --tag ${{ env.TAG }} --install --publish --root-dir d:/.buildbpy
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          TMP: D:\temp
-          TEMP: D:\temp
-
-      - name: Clean up build intermediates
-        run: |
-          # Clean up build temp files
-          Remove-Item -Path "D:\temp\*" -Recurse -Force -ErrorAction SilentlyContinue
-          Remove-Item -Path "$env:USERPROFILE\.buildbpy\build_*\CMakeFiles" -Recurse -Force -ErrorAction SilentlyContinue
-          
-          # Clean up object files
-          Get-ChildItem -Path "$env:USERPROFILE\.buildbpy" -Include "*.obj", "*.pdb", "*.ilk" -Recurse | Remove-Item -Force -ErrorAction SilentlyContinue
 
       - name: Install compatible numpy version
         run: |
@@ -578,15 +314,6 @@ jobs:
               traceback.print_exc()
               sys.exit(1)
           '
-
-      - name: Final cleanup
-        run: |
-          # Final cleanup of temp files
-          Get-ChildItem -Path $env:TEMP -Recurse | Remove-Item -Force -Recurse -ErrorAction SilentlyContinue
-          Get-ChildItem -Path "C:\Windows\Temp" -Recurse | Remove-Item -Force -Recurse -ErrorAction SilentlyContinue
-          
-          # Show final disk space
-          Get-WmiObject -Class Win32_LogicalDisk | Select-Object DeviceID, @{Name="Size(GB)";Expression={[math]::Round($_.Size/1GB,2)}}, @{Name="FreeSpace(GB)";Expression={[math]::Round($_.FreeSpace/1GB,2)}}
 
       
       # - name: Set CUDA environment variables
