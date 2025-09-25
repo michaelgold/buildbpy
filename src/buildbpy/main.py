@@ -771,14 +771,15 @@ class BlenderBuilder:
 
     def __init__(
         self,
-        blender_repo_dir: Path,
+        blender_repo_dir: Path | None,
         http_client: httpx.Client,
         factory: StrategyFactory,
         github_client: Github,
+        root_dir: Path | None = None,
     ):
         self.http_client = http_client
         self.factory = factory
-        self.root_dir = Path.home() / ".buildbpy"
+        self.root_dir = root_dir if root_dir is not None else Path.home() / ".buildbpy"
         self.blender_repo_dir = (
             blender_repo_dir
             if blender_repo_dir is not None
@@ -1127,9 +1128,15 @@ def main(
     install: bool = typer.Option(False),
     publish_repo: str = typer.Option("michaelgold/buildbpy"),
     blender_source_dir: str = typer.Option(None),
+    root_dir: str = typer.Option(
+        None, help="Root directory for build artifacts (default: ~/.buildbpy)"
+    ),
 ):
+    blender_repo_path = Path(blender_source_dir) if blender_source_dir else None
+    root_dir_path = Path(root_dir) if root_dir else None
+
     builder = BlenderBuilder(
-        blender_source_dir, http_client, strategy_factory, github_client
+        blender_repo_path, http_client, strategy_factory, github_client, root_dir_path
     )
     return builder.main(
         tag,
