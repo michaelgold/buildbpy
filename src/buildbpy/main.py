@@ -594,6 +594,7 @@ class LinuxOSStrategy(OSStrategy):
             "unset(SYCL_ROOT_DIR CACHE)",
             "unset(CYCLES_SYCL CACHE)",
             'set(WITH_AUDASPACE ON CACHE BOOL "" FORCE)',
+            'set(WITH_CYCLES_OSL OFF CACHE BOOL "" FORCE)',
         ]
 
         with open(cmake_file_path, "a") as file:
