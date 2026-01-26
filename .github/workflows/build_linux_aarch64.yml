@@ -42,29 +42,12 @@ jobs:
           echo "TAG=$TAG" >> $GITHUB_ENV
           echo "PYTHON_VERSION=$PYTHON_VERSION" >> $GITHUB_ENV
 
-      - name: Install Docker Runtime
-        run: |
-          # Install OrbStack - lightweight Docker runtime for macOS
-          brew install orbstack
-          # Start OrbStack daemon
-          orbstack start
-          # Wait for Docker to be ready
-          for i in {1..60}; do
-            docker ps >/dev/null 2>&1 && break
-            sleep 2
-          done
-          docker run --rm --platform linux/arm64 hello-world
-
-      - name: Build using Docker with Ubuntu aarch64
-        run: |
-          docker run --rm \
-            --platform linux/arm64 \
-            -v ${{ github.workspace }}:/workspace \
-            -e TAG=${{ env.TAG }} \
-            -e PYTHON_VERSION=${{ env.PYTHON_VERSION }} \
-            -e GITHUB_TOKEN=${{ secrets.GITHUB_TOKEN }} \
-            ubuntu:24.04 \
-            bash -c '
+      - name: Build Blender using Docker
+        uses: addnab/docker-run-action@v3
+        with:
+          image: ubuntu:24.04
+          options: -v ${{ github.workspace }}:/workspace
+          run: |
             set -e
             apt-get update
             apt-get install -y \
@@ -92,17 +75,17 @@ jobs:
             pip install -r requirements.txt
             
             python -m src.buildbpy.main --tag ${{ env.TAG }} --install --publish
-            '
         env:
+          TAG: ${{ env.TAG }}
+          PYTHON_VERSION: ${{ env.PYTHON_VERSION }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Test built wheel
-        run: |
-          docker run --rm \
-            --platform linux/arm64 \
-            -v ${{ github.workspace }}:/workspace \
-            ubuntu:24.04 \
-            bash -c '
+      - name: Test built wheel in Docker
+        uses: addnab/docker-run-action@v3
+        with:
+          image: ubuntu:24.04
+          options: -v ${{ github.workspace }}:/workspace
+          run: |
             apt-get update
             apt-get install -y \
               python${{ env.PYTHON_VERSION }} \
@@ -121,9 +104,10 @@ jobs:
             try:
                 import numpy
                 import bpy
-                print(\"Imported bpy:\", bpy.app.version)
+                print('Imported bpy:', bpy.app.version)
             except Exception:
                 traceback.print_exc()
                 sys.exit(1)
             "
-            '
+        env:
+          PYTHON_VERSION: ${{ env.PYTHON_VERSION }}
