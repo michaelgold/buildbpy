@@ -78,19 +78,39 @@ pyenv rehash
 Write-Host ""
 Write-Host "Checking uv..."
 
+# Function to find uv executable in known locations
+function Find-UvExecutable {
+    $possiblePaths = @(
+        "$env:USERPROFILE\.local\bin\uv.exe",
+        "$env:USERPROFILE\.cargo\bin\uv.exe",
+        "$env:LOCALAPPDATA\uv\bin\uv.exe",
+        "$env:APPDATA\uv\bin\uv.exe"
+    )
+    
+    foreach ($path in $possiblePaths) {
+        if (Test-Path $path) {
+            return $path
+        }
+    }
+    
+    # Fall back to PATH lookup
+    $cmd = Get-Command uv -ErrorAction SilentlyContinue
+    if ($cmd) {
+        return $cmd.Source
+    }
+    
+    return $null
+}
+
 # Refresh PATH from registry to pick up any changes from previous installs
 $userPath = [Environment]::GetEnvironmentVariable("PATH", "User")
 $machinePath = [Environment]::GetEnvironmentVariable("PATH", "Machine")
 $env:PATH = "$userPath;$machinePath"
 
-# Also ensure uv's known install location is in PATH
-$uvPath = "$env:USERPROFILE\.local\bin"
-$env:PATH = "$uvPath;$env:PATH"
+$uvExe = Find-UvExecutable
 
-$uvInstalled = $null -ne (Get-Command uv -ErrorAction SilentlyContinue)
-
-if ($uvInstalled) {
-    Log-Info "uv is already installed"
+if ($uvExe) {
+    Log-Info "uv is already installed at: $uvExe"
 } else {
     Log-Warn "uv not found. Installing..."
     
@@ -102,17 +122,19 @@ if ($uvInstalled) {
     $machinePath = [Environment]::GetEnvironmentVariable("PATH", "Machine")
     $env:PATH = "$userPath;$machinePath"
     
-    # Also ensure uv's install location is in current session PATH
-    $env:PATH = "$uvPath;$env:PATH"
+    $uvExe = Find-UvExecutable
     
-    # Verify uv is now accessible
-    if ($null -eq (Get-Command uv -ErrorAction SilentlyContinue)) {
-        Log-Error "uv installation succeeded but command not found. Please restart PowerShell and run this script again."
+    if (-not $uvExe) {
+        Log-Error "uv installation succeeded but executable not found. Please restart PowerShell and run this script again."
         exit 1
     }
     
-    Log-Info "uv installed successfully"
+    Log-Info "uv installed successfully at: $uvExe"
 }
+
+# Add uv's directory to PATH for this session
+$uvDir = Split-Path -Parent $uvExe
+$env:PATH = "$uvDir;$env:PATH"
 
 # 4. Create virtual environment
 Write-Host ""
@@ -145,7 +167,7 @@ Log-Info "Activating virtual environment and installing bpy==5.0.1"
 # Activate venv
 & "$VENV_DIR\Scripts\Activate.ps1"
 
-uv pip install --extra-index-url https://michaelgold.github.io/buildbpy/ bpy==5.0.1
+& $uvExe pip install --extra-index-url https://michaelgold.github.io/buildbpy/ bpy==5.0.1
 
 Log-Info "bpy module installed successfully"
 
