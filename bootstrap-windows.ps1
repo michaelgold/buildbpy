@@ -176,7 +176,7 @@ Write-Host "===============================================" -ForegroundColor Cy
 Write-Host "Bootstrap complete!" -ForegroundColor Green
 Write-Host ""
 Write-Host "To activate the virtual environment, run:"
-Write-Host "  .$VENV_DIR\Scripts\Activate.ps1"
+Write-Host "  $VENV_DIR\Scripts\Activate.ps1"
 Write-Host ""
 Write-Host "To verify the installation, run:"
 Write-Host "  python -c 'import bpy; print(bpy.app.version_string)'"
