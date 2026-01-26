@@ -1,0 +1,128 @@
+name: Build bpy for Linux aarch64 (manylinux_2_39)
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Blender Tag to build'
+        required: true
+        default: 'v4.3.2'
+      python_version:
+        description: 'Python version to use'
+        required: true
+        default: '3.11.9'
+
+  workflow_call:
+    inputs:
+      tag:
+        description: 'Blender Tag to build'
+        required: true
+        type: string
+      python_version:
+        description: 'Python version to use'
+        required: true
+        default: '3.11.9'
+        type: string
+
+jobs:
+  build:
+    runs-on: macos-15
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v2
+
+      - name: Set environment variables
+        id: set_env
+        run: |
+          TAG=${{ inputs.tag || github.event.inputs.tag }}
+          PYTHON_VERSION=${{ inputs.python_version || github.event.inputs.python_version }}
+          echo "TAG=$TAG" >> $GITHUB_ENV
+          echo "PYTHON_VERSION=$PYTHON_VERSION" >> $GITHUB_ENV
+
+      - name: Set up Docker with Linux support
+        run: |
+          # Install Docker Desktop if not already present
+          brew install docker
+          colima start
+
+      - name: Wait for Docker daemon
+        run: |
+          for i in {1..30}; do
+            docker ps && break || sleep 2
+          done
+
+      - name: Build using Docker with Ubuntu aarch64
+        run: |
+          docker run --rm \
+            --platform linux/arm64 \
+            -v ${{ github.workspace }}:/workspace \
+            -e TAG=${{ env.TAG }} \
+            -e PYTHON_VERSION=${{ env.PYTHON_VERSION }} \
+            -e GITHUB_TOKEN=${{ secrets.GITHUB_TOKEN }} \
+            ubuntu:24.04 \
+            bash -c '
+            set -e
+            apt-get update
+            apt-get install -y \
+              python${{ env.PYTHON_VERSION }} \
+              python${{ env.PYTHON_VERSION }}-venv \
+              python${{ env.PYTHON_VERSION }}-dev \
+              git git-lfs \
+              cmake \
+              build-essential \
+              libx11-dev \
+              libxxf86vm-dev \
+              libxcursor-dev \
+              libxi-dev \
+              libxrandr-dev \
+              libxinerama-dev \
+              libxext-dev \
+              wget
+            
+            git lfs install
+            
+            cd /workspace
+            python${{ env.PYTHON_VERSION }} -m venv venv
+            source venv/bin/activate
+            python -m pip install --upgrade pip setuptools wheel
+            pip install -r requirements.txt
+            
+            python -m src.buildbpy.main --tag ${{ env.TAG }} --install --publish
+            '
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Test built wheel
+        run: |
+          docker run --rm \
+            --platform linux/arm64 \
+            -v ${{ github.workspace }}:/workspace \
+            ubuntu:24.04 \
+            bash -c '
+            apt-get update
+            apt-get install -y \
+              python${{ env.PYTHON_VERSION }} \
+              python${{ env.PYTHON_VERSION }}-venv \
+              python${{ env.PYTHON_VERSION }}-dev
+            
+            cd /workspace
+            python${{ env.PYTHON_VERSION }} -m venv test_venv
+            source test_venv/bin/activate
+            pip install --upgrade pip
+            pip install "numpy<2.0"
+            pip install dist/*.whl
+            
+            python -c "
+            import sys, traceback
+            try:
+                import numpy
+                import bpy
+                print(\"Imported bpy:\", bpy.app.version)
+            except Exception:
+                traceback.print_exc()
+                sys.exit(1)
+            "
+            '
