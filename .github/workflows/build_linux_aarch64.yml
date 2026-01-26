@@ -63,12 +63,15 @@ jobs:
             set -e
             apt-get update
             apt-get install -y \
-              python${{ env.PYTHON_VERSION }} \
-              python${{ env.PYTHON_VERSION }}-venv \
-              python${{ env.PYTHON_VERSION }}-dev \
+              build-essential \
+              libssl-dev \
+              libffi-dev \
+              libreadline-dev \
+              libbz2-dev \
+              liblzma-dev \
+              zlib1g-dev \
               git git-lfs \
               cmake \
-              build-essential \
               libx11-dev \
               libxxf86vm-dev \
               libxcursor-dev \
@@ -76,12 +79,27 @@ jobs:
               libxrandr-dev \
               libxinerama-dev \
               libxext-dev \
-              wget
+              wget \
+              ca-certificates
+            
+            # Build Python from source
+            PYTHON_VER=${{ env.PYTHON_VERSION }}
+            cd /tmp
+            wget https://www.python.org/ftp/python/${PYTHON_VER}/Python-${PYTHON_VER}.tgz
+            tar xzf Python-${PYTHON_VER}.tgz
+            cd Python-${PYTHON_VER}
+            ./configure --enable-shared --enable-optimizations --enable-loadable-sqlite-extensions
+            make -j$(nproc)
+            make install
+            ldconfig
+            
+            ln -sf /usr/local/bin/python3 /usr/local/bin/python
+            ln -sf /usr/local/bin/pip3 /usr/local/bin/pip
             
             git lfs install
             
             cd /workspace
-            python${{ env.PYTHON_VERSION }} -m venv venv
+            python -m venv venv
             source venv/bin/activate
             python -m pip install --upgrade pip setuptools wheel
             pip install -r requirements.txt
@@ -96,16 +114,38 @@ jobs:
           docker run --rm \
             --platform linux/arm64 \
             -v ${{ github.workspace }}:/workspace \
+            -e PYTHON_VERSION=${{ env.PYTHON_VERSION }} \
             ubuntu:24.04 \
             bash -c '
+            set -e
             apt-get update
             apt-get install -y \
-              python${{ env.PYTHON_VERSION }} \
-              python${{ env.PYTHON_VERSION }}-venv \
-              python${{ env.PYTHON_VERSION }}-dev
+              build-essential \
+              libssl-dev \
+              libffi-dev \
+              libreadline-dev \
+              libbz2-dev \
+              liblzma-dev \
+              zlib1g-dev \
+              wget \
+              ca-certificates
+            
+            # Build Python from source
+            PYTHON_VER=${{ env.PYTHON_VERSION }}
+            cd /tmp
+            wget https://www.python.org/ftp/python/${PYTHON_VER}/Python-${PYTHON_VER}.tgz
+            tar xzf Python-${PYTHON_VER}.tgz
+            cd Python-${PYTHON_VER}
+            ./configure --enable-shared --enable-optimizations
+            make -j$(nproc)
+            make install
+            ldconfig
+            
+            ln -sf /usr/local/bin/python3 /usr/local/bin/python
+            ln -sf /usr/local/bin/pip3 /usr/local/bin/pip
             
             cd /workspace
-            python${{ env.PYTHON_VERSION }} -m venv test_venv
+            python -m venv test_venv
             source test_venv/bin/activate
             pip install --upgrade pip
             pip install "numpy<2.0"
