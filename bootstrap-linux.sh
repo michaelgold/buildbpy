@@ -4,7 +4,7 @@ set -e  # Exit on error
 set -u  # Exit on undefined variable
 set -o pipefail  # Exit on pipe failure
 
-PYTHON_VERSION="3.11.10"
+PYTHON_VERSION="3.11.9"
 VENV_DIR=".venv"
 
 echo "Blender Python Environment Bootstrap"

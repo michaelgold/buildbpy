@@ -3,7 +3,7 @@
 
 $ErrorActionPreference = "Stop"
 
-$PYTHON_VERSION = "3.11.10"
+$PYTHON_VERSION = "3.11.9"
 $VENV_DIR = ".venv"
 
 function Log-Info {
