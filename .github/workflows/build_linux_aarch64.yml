@@ -44,15 +44,8 @@ jobs:
 
       - name: Set up Docker with Linux support
         run: |
-          # Install Docker Desktop if not already present
-          brew install docker
-          colima start
-
-      - name: Wait for Docker daemon
-        run: |
-          for i in {1..30}; do
-            docker ps && break || sleep 2
-          done
+          # Docker is pre-installed on macos-15 runners
+          docker run --rm --platform linux/arm64 hello-world
 
       - name: Build using Docker with Ubuntu aarch64
         run: |
