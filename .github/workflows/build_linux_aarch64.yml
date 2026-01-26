@@ -42,12 +42,19 @@ jobs:
           echo "TAG=$TAG" >> $GITHUB_ENV
           echo "PYTHON_VERSION=$PYTHON_VERSION" >> $GITHUB_ENV
 
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
       - name: Build Blender using Docker
-        uses: addnab/docker-run-action@v3
-        with:
-          image: ubuntu:24.04
-          options: -v ${{ github.workspace }}:/workspace
-          run: |
+        run: |
+          docker run --rm \
+            --platform linux/arm64 \
+            -v ${{ github.workspace }}:/workspace \
+            -e TAG=${{ env.TAG }} \
+            -e PYTHON_VERSION=${{ env.PYTHON_VERSION }} \
+            -e GITHUB_TOKEN=${{ secrets.GITHUB_TOKEN }} \
+            ubuntu:24.04 \
+            bash -c '
             set -e
             apt-get update
             apt-get install -y \
@@ -75,17 +82,17 @@ jobs:
             pip install -r requirements.txt
             
             python -m src.buildbpy.main --tag ${{ env.TAG }} --install --publish
+            '
         env:
-          TAG: ${{ env.TAG }}
-          PYTHON_VERSION: ${{ env.PYTHON_VERSION }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Test built wheel in Docker
-        uses: addnab/docker-run-action@v3
-        with:
-          image: ubuntu:24.04
-          options: -v ${{ github.workspace }}:/workspace
-          run: |
+        run: |
+          docker run --rm \
+            --platform linux/arm64 \
+            -v ${{ github.workspace }}:/workspace \
+            ubuntu:24.04 \
+            bash -c '
             apt-get update
             apt-get install -y \
               python${{ env.PYTHON_VERSION }} \
@@ -104,10 +111,9 @@ jobs:
             try:
                 import numpy
                 import bpy
-                print('Imported bpy:', bpy.app.version)
+                print(\"Imported bpy:\", bpy.app.version)
             except Exception:
                 traceback.print_exc()
                 sys.exit(1)
             "
-        env:
-          PYTHON_VERSION: ${{ env.PYTHON_VERSION }}
+            '
