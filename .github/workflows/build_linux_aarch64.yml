@@ -42,16 +42,16 @@ jobs:
           echo "TAG=$TAG" >> $GITHUB_ENV
           echo "PYTHON_VERSION=$PYTHON_VERSION" >> $GITHUB_ENV
 
-      - name: Install Docker
+      - name: Install Docker Runtime
         run: |
-          # Install Docker via Homebrew
-          brew install docker
-          # Start Docker daemon
-          colima start || true
+          # Install OrbStack - lightweight Docker runtime for macOS
+          brew install orbstack
+          # Start OrbStack daemon
+          orbstack start
           # Wait for Docker to be ready
           for i in {1..60}; do
             docker ps >/dev/null 2>&1 && break
-            sleep 1
+            sleep 2
           done
           docker run --rm --platform linux/arm64 hello-world
 
