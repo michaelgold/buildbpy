@@ -77,6 +77,16 @@ pyenv rehash
 # 3. Check and install uv
 Write-Host ""
 Write-Host "Checking uv..."
+
+# Refresh PATH from registry to pick up any changes from previous installs
+$userPath = [Environment]::GetEnvironmentVariable("PATH", "User")
+$machinePath = [Environment]::GetEnvironmentVariable("PATH", "Machine")
+$env:PATH = "$userPath;$machinePath"
+
+# Also ensure uv's known install location is in PATH
+$uvPath = "$env:USERPROFILE\.local\bin"
+$env:PATH = "$uvPath;$env:PATH"
+
 $uvInstalled = $null -ne (Get-Command uv -ErrorAction SilentlyContinue)
 
 if ($uvInstalled) {
@@ -87,8 +97,19 @@ if ($uvInstalled) {
     # Install uv using the official installer (no admin required)
     irm https://astral.sh/uv/install.ps1 | iex
     
-    # Add uv to PATH for current session
-    $env:PATH = "$env:USERPROFILE\.cargo\bin;$env:PATH"
+    # Refresh PATH from registry to pick up changes made by the installer
+    $userPath = [Environment]::GetEnvironmentVariable("PATH", "User")
+    $machinePath = [Environment]::GetEnvironmentVariable("PATH", "Machine")
+    $env:PATH = "$userPath;$machinePath"
+    
+    # Also ensure uv's install location is in current session PATH
+    $env:PATH = "$uvPath;$env:PATH"
+    
+    # Verify uv is now accessible
+    if ($null -eq (Get-Command uv -ErrorAction SilentlyContinue)) {
+        Log-Error "uv installation succeeded but command not found. Please restart PowerShell and run this script again."
+        exit 1
+    }
     
     Log-Info "uv installed successfully"
 }
