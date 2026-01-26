@@ -26,7 +26,7 @@ on:
 
 jobs:
   build:
-    runs-on: macos-15
+    runs-on: ubuntu-latest
     permissions:
       contents: write
 
@@ -41,6 +41,11 @@ jobs:
           PYTHON_VERSION=${{ inputs.python_version || github.event.inputs.python_version }}
           echo "TAG=$TAG" >> $GITHUB_ENV
           echo "PYTHON_VERSION=$PYTHON_VERSION" >> $GITHUB_ENV
+
+      - name: Install QEMU
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y qemu-user-static binfmt-support
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
