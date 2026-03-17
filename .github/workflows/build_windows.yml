@@ -263,8 +263,7 @@ jobs:
       - name: Install Visual Studio Community Edition
         run: |
           choco install visualstudio2022-workload-nativedesktop
-          choco install visualstudio2019community
-          choco install visualstudio2019-workload-nativedesktop
+          choco install visualstudio2022community
 
       - name: Install CUDA
         run: |
