@@ -77,17 +77,17 @@ jobs:
       - name: Check GCC version
         run: gcc --version
 
-      - name: Install GCC 12
+      - name: Install GCC 14
         run: |
           sudo apt-get update
-          sudo apt-get install -y gcc-12 g++-12
-          sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-12 100
-          sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-12 100
+          sudo apt-get install -y gcc-14 g++-14
+          sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-14 100
+          sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-14 100
 
-      - name: Export GCC 12
+      - name: Export GCC 14
         run: |
-            echo "CC=/usr/bin/gcc-12" >> $GITHUB_ENV
-            echo "CXX=/usr/bin/g++-12" >> $GITHUB_ENV
+            echo "CC=/usr/bin/gcc-14" >> $GITHUB_ENV
+            echo "CXX=/usr/bin/g++-14" >> $GITHUB_ENV
       
       - name: Check GCC version
         run: gcc --version
