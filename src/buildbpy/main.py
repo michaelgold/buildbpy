@@ -405,7 +405,7 @@ class WindowsOSStrategy(OSStrategy):
     ):
         super().__init__(version_strategy, root_dir, blender_repo_dir, http_client)
         self.lib_path = f"{self.version_strategy.get_svn_root()}win64_vc15"
-        self.build_dir = self.root_dir / "build_windows_Bpy_x64_vc16_Release"
+        self.build_dir = self.root_dir / "build_windows_Bpy_x64_vc17_Release"
         self.make_command = blender_repo_dir / "make.bat"
         self.make_command = "make.bat"
         self.build_wheel_dir = self.build_dir / "bin/Release"
