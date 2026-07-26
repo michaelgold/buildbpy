@@ -455,9 +455,9 @@ class WindowsOSStrategy(OSStrategy):
         :param cwd: The working directory for the command.
         """
         if "update" in command:
-            subprocess.run(command, cwd=cwd, shell=True, input="y\n", text=True)
+            subprocess.run(command, cwd=cwd, shell=True, input="y\n", text=True, check=True)
         else:
-            subprocess.run(command, cwd=cwd, shell=True)
+            subprocess.run(command, cwd=cwd, shell=True, check=True)
 
 
 class MacOSStrategy(OSStrategy):
@@ -500,19 +500,15 @@ class MacOSStrategy(OSStrategy):
             self.blender_repo_dir / "build_files/cmake/config/bpy_module.cmake"
         )
         print(f"Setting CMake directives in {cmake_file_path}")
+        # Keep this intentionally minimal for Blender 5.2+. Blender's
+        # upstream bpy_module.cmake and make update select compatible
+        # platform audio/SDL settings. Forcing SDL/Audaspace/audio backends
+        # here can make CMake expect missing imported targets such as
+        # SDL3::Headers on GitHub macOS runners.
         directives = [
             'set(CMAKE_OSX_DEPLOYMENT_TARGET "13.0" CACHE STRING "" FORCE)',
             'set(CMAKE_C_FLAGS "-mmacosx-version-min=13.0" CACHE STRING "" FORCE)',
             'set(CMAKE_CXX_FLAGS "-mmacosx-version-min=13.0" CACHE STRING "" FORCE)',
-            'set(WITH_AUDASPACE ON CACHE BOOL "" FORCE)',
-            'set(WITH_CODEC_FFMPEG ON CACHE BOOL "" FORCE)',
-            'set(WITH_CODEC_SNDFILE ON CACHE BOOL "" FORCE)',
-            'set(WITH_COREAUDIO ON CACHE BOOL "" FORCE)',
-            'set(WITH_JACK ON CACHE BOOL "" FORCE)',
-            'set(WITH_OPENAL ON CACHE BOOL "" FORCE)',
-            'set(WITH_PULSEAUDIO ON CACHE BOOL "" FORCE)',
-            'set(WITH_SDL ON CACHE BOOL "" FORCE)',
-            'set(WITH_WASAPI ON CACHE BOOL "" FORCE)',
         ]
 
         with open(cmake_file_path, "a") as file:
@@ -657,12 +653,16 @@ class CheckoutStrategy(ABC):
                 [
                     "git",
                     "clone",
-                    "--recursive",
                     git_repo,
                 ],
                 cwd=root_dir,
+                check=True,
             )
-        subprocess.run(["git", "fetch", "--all"], cwd=blender_repo_dir)
+        # Let Blender's make_update.py/make update choose and fetch the
+        # platform-specific precompiled libraries. A recursive clone starts
+        # all submodule/LFS work immediately, which is fragile on non-
+        # interactive Windows GitHub Actions runners.
+        subprocess.run(["git", "fetch", "--all"], cwd=blender_repo_dir, check=True)
 
     @abstractmethod
     def checkout(self, id: str):
@@ -680,15 +680,17 @@ class CheckoutStrategy(ABC):
 class TagCheckoutStrategy(CheckoutStrategy):
     def checkout(self, id):
         # Reset to origin/main and clean the repo
-        subprocess.run(["git", "fetch", "origin"], cwd=self.blender_repo_dir)
+        subprocess.run(["git", "fetch", "origin"], cwd=self.blender_repo_dir, check=True)
         subprocess.run(
-            ["git", "reset", "--hard", "origin/main"], cwd=self.blender_repo_dir
+            ["git", "reset", "--hard", "origin/main"],
+            cwd=self.blender_repo_dir,
+            check=True,
         )
-        subprocess.run(["git", "clean", "-fd"], cwd=self.blender_repo_dir)
+        subprocess.run(["git", "clean", "-fd"], cwd=self.blender_repo_dir, check=True)
 
         # Fetch tags explicitly
         print(f"Fetching tags and checking out {id}")
-        subprocess.run(["git", "fetch", "--tags"], cwd=self.blender_repo_dir)
+        subprocess.run(["git", "fetch", "--tags"], cwd=self.blender_repo_dir, check=True)
 
         # Checkout the specific tag
         result = subprocess.run(
@@ -989,7 +991,10 @@ class BlenderBuilder:
         self.minor_version = self.checkout_strategy.minor_version
         self.release_cycle = self.checkout_strategy.release_cycle
         logger.info(
-            f"Getting Version: {self.major_version}.{self.minor_version}.{self.release_cycle}"
+            "Getting Version: major_minor=%s full_version=%s release_cycle=%s",
+            self.major_version,
+            self.minor_version,
+            self.release_cycle,
         )
 
         logger.info("Setting up strategies")
