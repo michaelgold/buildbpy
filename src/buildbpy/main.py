@@ -454,10 +454,24 @@ class WindowsOSStrategy(OSStrategy):
         :param command: The command to run.
         :param cwd: The working directory for the command.
         """
-        if "update" in command:
-            subprocess.run(command, cwd=cwd, shell=True, input="y\n", text=True, check=True)
-        else:
-            subprocess.run(command, cwd=cwd, shell=True, check=True)
+        try:
+            if "update" in command:
+                subprocess.run(command, cwd=cwd, shell=True, input="y\n", text=True, check=True)
+            else:
+                subprocess.run(command, cwd=cwd, shell=True, check=True)
+        except subprocess.CalledProcessError:
+            build_log = self.build_dir / "Build.log"
+            if build_log.exists():
+                logger.error("Windows build failed; last lines from %s:", build_log)
+                try:
+                    lines = build_log.read_text(errors="replace").splitlines()
+                    for line in lines[-300:]:
+                        logger.error("BUILD_LOG: %s", line)
+                except Exception as exc:
+                    logger.error("Failed to read Windows Build.log: %r", exc)
+            else:
+                logger.error("Windows build failed and Build.log was not found at %s", build_log)
+            raise
 
 
 class MacOSStrategy(OSStrategy):
