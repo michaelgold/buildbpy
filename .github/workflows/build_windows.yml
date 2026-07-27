@@ -239,7 +239,6 @@ jobs:
           git --version
           git lfs version
           git lfs install --skip-repo
-          git config --global --unset-all credential.helper 2>$null; if ($LASTEXITCODE -ne 0) { $global:LASTEXITCODE = 0 }
           git config --global credential.https://projects.blender.org.provider generic
           git config --global advice.detachedHead false
           git config --global http.version HTTP/1.1
@@ -313,6 +312,16 @@ jobs:
           python -m src.buildbpy.main --tag ${{ env.TAG }} --install --publish --root-dir d:/.buildbpy
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # CI-only, process-scoped config for Blender's public Git/LFS host.
+          # This avoids Git Credential Manager prompt loops on Windows runners
+          # without modifying system/global Git config for real Windows users.
+          GIT_CONFIG_COUNT: "2"
+          GIT_CONFIG_KEY_0: credential.https://projects.blender.org.helper
+          GIT_CONFIG_VALUE_0: ""
+          GIT_CONFIG_KEY_1: credential.https://projects.blender.org.provider
+          GIT_CONFIG_VALUE_1: generic
+          GIT_TERMINAL_PROMPT: "0"
+          GCM_INTERACTIVE: Never
 
       - name: Upload Windows Build.log on failure
         if: failure()
