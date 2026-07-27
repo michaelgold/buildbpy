@@ -16,6 +16,7 @@ from abc import ABC, abstractmethod
 import stat
 import requests
 import logging
+import time
 
 # Configure logging
 logging.basicConfig(
@@ -312,6 +313,10 @@ class OSStrategy(ABC):
         """
         logger.info(f"Running command: {command} in {cwd}")
 
+        if "update" in command:
+            self.run_update_command(command, cwd)
+            return
+
         # Use Popen to stream output in real-time
         process = subprocess.Popen(
             command,
@@ -342,6 +347,53 @@ class OSStrategy(ABC):
         if return_code != 0:
             logger.error(f"Command failed with return code {return_code}")
             raise subprocess.CalledProcessError(return_code, command, "", stderr)
+
+    def run_update_command(self, command: str, cwd: Path):
+        max_attempts = int(os.environ.get("BUILDBPY_UPDATE_ATTEMPTS", "4"))
+        timeout_seconds = int(os.environ.get("BUILDBPY_UPDATE_TIMEOUT_SECONDS", "5400"))
+        for attempt in range(1, max_attempts + 1):
+            try:
+                logger.info(
+                    "Running update command, attempt %s/%s with timeout %ss: %s",
+                    attempt,
+                    max_attempts,
+                    timeout_seconds,
+                    command,
+                )
+                result = subprocess.run(
+                    command,
+                    cwd=cwd,
+                    shell=True,
+                    input="y\ny\ny\ny\n",
+                    text=True,
+                    capture_output=True,
+                    timeout=timeout_seconds,
+                    check=True,
+                )
+                if result.stdout:
+                    logger.info(result.stdout.strip())
+                if result.stderr:
+                    logger.warning(result.stderr.strip())
+                return
+            except (subprocess.CalledProcessError, subprocess.TimeoutExpired) as exc:
+                stdout = getattr(exc, "stdout", None)
+                stderr = getattr(exc, "stderr", None)
+                if stdout:
+                    logger.info(str(stdout).strip())
+                if stderr:
+                    logger.warning(str(stderr).strip())
+                if attempt == max_attempts:
+                    logger.error("Update command failed after %s attempts", max_attempts)
+                    raise
+                delay_seconds = 60 * attempt
+                logger.warning(
+                    "Update command attempt %s/%s failed (%s); retrying in %s seconds",
+                    attempt,
+                    max_attempts,
+                    type(exc).__name__,
+                    delay_seconds,
+                )
+                time.sleep(delay_seconds)
 
     @abstractmethod
     def get_blender_binary(self) -> Path:
@@ -456,7 +508,34 @@ class WindowsOSStrategy(OSStrategy):
         """
         try:
             if "update" in command:
-                subprocess.run(command, cwd=cwd, shell=True, input="y\n", text=True, check=True)
+                max_attempts = 4
+                for attempt in range(1, max_attempts + 1):
+                    try:
+                        logger.info(
+                            "Running Windows update command, attempt %s/%s: %s",
+                            attempt,
+                            max_attempts,
+                            command,
+                        )
+                        subprocess.run(
+                            command,
+                            cwd=cwd,
+                            shell=True,
+                            input="y\ny\ny\ny\n",
+                            text=True,
+                            timeout=int(os.environ.get("BUILDBPY_UPDATE_TIMEOUT_SECONDS", "5400")),
+                            check=True,
+                        )
+                        break
+                    except (subprocess.CalledProcessError, subprocess.TimeoutExpired):
+                        if attempt == max_attempts:
+                            raise
+                        delay_seconds = 60 * attempt
+                        logger.warning(
+                            "Windows update command failed, retrying in %s seconds",
+                            delay_seconds,
+                        )
+                        time.sleep(delay_seconds)
             else:
                 subprocess.run(command, cwd=cwd, shell=True, check=True)
         except subprocess.CalledProcessError:

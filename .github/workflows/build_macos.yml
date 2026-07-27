@@ -27,7 +27,7 @@ on:
 jobs:
   build:
     runs-on: macos-15
-    timeout-minutes: 120
+    timeout-minutes: 240
     permissions:
       contents: write
     env:

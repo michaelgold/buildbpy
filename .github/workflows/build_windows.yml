@@ -319,7 +319,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: windows-build-log-${{ env.TAG }}
-          path: D:/.buildbpy/build_windows_Bpy_x64_vc18_Release/Build.log
+          path: D:/.buildbpy/build_windows_Bpy_*_Release/Build.log
           if-no-files-found: warn
 
       - name: Install compatible numpy version
