@@ -315,16 +315,6 @@ jobs:
           python -m src.buildbpy.main --tag ${{ env.TAG }} --install --publish --root-dir d:/.buildbpy
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          # CI-only, process-scoped config for Blender's public Git/LFS host.
-          # This avoids Git Credential Manager prompt loops on Windows runners
-          # without modifying system/global Git config for real Windows users.
-          GIT_CONFIG_COUNT: "2"
-          GIT_CONFIG_KEY_0: credential.https://projects.blender.org.helper
-          GIT_CONFIG_VALUE_0: ""
-          GIT_CONFIG_KEY_1: credential.https://projects.blender.org.provider
-          GIT_CONFIG_VALUE_1: generic
-          GIT_TERMINAL_PROMPT: "0"
-          GCM_INTERACTIVE: Never
 
       - name: Upload Windows Build.log on failure
         if: failure()

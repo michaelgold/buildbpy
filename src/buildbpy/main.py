@@ -520,6 +520,24 @@ class WindowsOSStrategy(OSStrategy):
                             max_attempts,
                             command,
                         )
+                        update_env = os.environ.copy()
+                        if os.environ.get("GITHUB_ACTIONS") == "true":
+                            update_env.update(
+                                {
+                                    # CI-only, process-scoped config for Blender's
+                                    # public Git/LFS host. Limit it to make.bat
+                                    # update so Blender's later buildinfo git
+                                    # custom commands do not inherit an empty
+                                    # GIT_CONFIG_VALUE_0 through MSBuild.
+                                    "GIT_CONFIG_COUNT": "2",
+                                    "GIT_CONFIG_KEY_0": "credential.https://projects.blender.org.helper",
+                                    "GIT_CONFIG_VALUE_0": "",
+                                    "GIT_CONFIG_KEY_1": "credential.https://projects.blender.org.provider",
+                                    "GIT_CONFIG_VALUE_1": "generic",
+                                    "GIT_TERMINAL_PROMPT": "0",
+                                    "GCM_INTERACTIVE": "Never",
+                                }
+                            )
                         subprocess.run(
                             command,
                             cwd=cwd,
@@ -528,6 +546,7 @@ class WindowsOSStrategy(OSStrategy):
                             text=True,
                             timeout=int(os.environ.get("BUILDBPY_UPDATE_TIMEOUT_SECONDS", "5400")),
                             check=True,
+                            env=update_env,
                         )
                         break
                     except (subprocess.CalledProcessError, subprocess.TimeoutExpired):
