@@ -457,7 +457,7 @@ class WindowsOSStrategy(OSStrategy):
     ):
         super().__init__(version_strategy, root_dir, blender_repo_dir, http_client)
         self.lib_path = f"{self.version_strategy.get_svn_root()}win64_vc15"
-        self.build_dir = self.root_dir / "build_windows_Bpy_x64_vc17_Release"
+        self.build_dir = self.root_dir / "build_windows_Bpy_x64_vc18_Release"
         self.make_command = blender_repo_dir / "make.bat"
         self.make_command = "make.bat"
         self.build_wheel_dir = self.build_dir / "bin/Release"
@@ -494,6 +494,8 @@ class WindowsOSStrategy(OSStrategy):
         directives = [
             'set(WITH_CYCLES_CUDA_BINARIES ON CACHE BOOL "" FORCE)',
             'set(WITH_AUDASPACE ON CACHE BOOL "" FORCE)',
+            'set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -allow-unsupported-compiler" CACHE STRING "" FORCE)',
+            'set(CMAKE_CUDA_FLAGS_RELEASE "${CMAKE_CUDA_FLAGS_RELEASE} -allow-unsupported-compiler" CACHE STRING "" FORCE)',
         ]
 
         with open(cmake_file_path, "a") as file:
