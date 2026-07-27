@@ -324,9 +324,9 @@ jobs:
           path: D:/.buildbpy/build_windows_Bpy_*_Release/Build.log
           if-no-files-found: warn
 
-      - name: Install compatible numpy version
+      - name: Install bpy runtime dependencies
         run: |
-          pip install "numpy<2.0"
+          pip install "numpy>=2.2,<3.0" cattrs cython zstandard
   
       - name: Test bpy and numpy import
         run: |
