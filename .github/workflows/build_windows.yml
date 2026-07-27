@@ -26,7 +26,10 @@ on:
 
 jobs:
   build:
-    runs-on: windows-latest
+    # Pin to the VS2022 image. As of 2026, windows-latest resolves to
+    # windows-2025-vs2026, whose MSVC 19.51 toolchain is not compatible
+    # with Blender 5.2's Cycles CUDA kernel build.
+    runs-on: windows-2022
     timeout-minutes: 240
     permissions:
       contents: write
