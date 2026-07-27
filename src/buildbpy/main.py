@@ -494,8 +494,9 @@ class WindowsOSStrategy(OSStrategy):
         directives = [
             'set(WITH_CYCLES_CUDA_BINARIES ON CACHE BOOL "" FORCE)',
             'set(WITH_AUDASPACE ON CACHE BOOL "" FORCE)',
-            'set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -allow-unsupported-compiler" CACHE STRING "" FORCE)',
-            'set(CMAKE_CUDA_FLAGS_RELEASE "${CMAKE_CUDA_FLAGS_RELEASE} -allow-unsupported-compiler" CACHE STRING "" FORCE)',
+            # Blender's Cycles CUDA kernel build uses CUDA_NVCC_FLAGS in its
+            # custom nvcc command, not CMAKE_CUDA_FLAGS.
+            'set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS};-allow-unsupported-compiler" CACHE STRING "" FORCE)',
         ]
 
         with open(cmake_file_path, "a") as file:
