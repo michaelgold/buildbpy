@@ -16,6 +16,7 @@ from abc import ABC, abstractmethod
 import stat
 import requests
 import logging
+import time
 
 # Configure logging
 logging.basicConfig(
@@ -312,6 +313,10 @@ class OSStrategy(ABC):
         """
         logger.info(f"Running command: {command} in {cwd}")
 
+        if "update" in command:
+            self.run_update_command(command, cwd)
+            return
+
         # Use Popen to stream output in real-time
         process = subprocess.Popen(
             command,
@@ -342,6 +347,53 @@ class OSStrategy(ABC):
         if return_code != 0:
             logger.error(f"Command failed with return code {return_code}")
             raise subprocess.CalledProcessError(return_code, command, "", stderr)
+
+    def run_update_command(self, command: str, cwd: Path):
+        max_attempts = int(os.environ.get("BUILDBPY_UPDATE_ATTEMPTS", "4"))
+        timeout_seconds = int(os.environ.get("BUILDBPY_UPDATE_TIMEOUT_SECONDS", "5400"))
+        for attempt in range(1, max_attempts + 1):
+            try:
+                logger.info(
+                    "Running update command, attempt %s/%s with timeout %ss: %s",
+                    attempt,
+                    max_attempts,
+                    timeout_seconds,
+                    command,
+                )
+                result = subprocess.run(
+                    command,
+                    cwd=cwd,
+                    shell=True,
+                    input="y\ny\ny\ny\n",
+                    text=True,
+                    capture_output=True,
+                    timeout=timeout_seconds,
+                    check=True,
+                )
+                if result.stdout:
+                    logger.info(result.stdout.strip())
+                if result.stderr:
+                    logger.warning(result.stderr.strip())
+                return
+            except (subprocess.CalledProcessError, subprocess.TimeoutExpired) as exc:
+                stdout = getattr(exc, "stdout", None)
+                stderr = getattr(exc, "stderr", None)
+                if stdout:
+                    logger.info(str(stdout).strip())
+                if stderr:
+                    logger.warning(str(stderr).strip())
+                if attempt == max_attempts:
+                    logger.error("Update command failed after %s attempts", max_attempts)
+                    raise
+                delay_seconds = 60 * attempt
+                logger.warning(
+                    "Update command attempt %s/%s failed (%s); retrying in %s seconds",
+                    attempt,
+                    max_attempts,
+                    type(exc).__name__,
+                    delay_seconds,
+                )
+                time.sleep(delay_seconds)
 
     @abstractmethod
     def get_blender_binary(self) -> Path:
@@ -442,6 +494,9 @@ class WindowsOSStrategy(OSStrategy):
         directives = [
             'set(WITH_CYCLES_CUDA_BINARIES ON CACHE BOOL "" FORCE)',
             'set(WITH_AUDASPACE ON CACHE BOOL "" FORCE)',
+            # Blender's Cycles CUDA kernel build uses CUDA_NVCC_FLAGS in its
+            # custom nvcc command, not CMAKE_CUDA_FLAGS.
+            'set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS};-allow-unsupported-compiler" CACHE STRING "" FORCE)',
         ]
 
         with open(cmake_file_path, "a") as file:
@@ -454,10 +509,70 @@ class WindowsOSStrategy(OSStrategy):
         :param command: The command to run.
         :param cwd: The working directory for the command.
         """
-        if "update" in command:
-            subprocess.run(command, cwd=cwd, shell=True, input="y\n", text=True)
-        else:
-            subprocess.run(command, cwd=cwd, shell=True)
+        try:
+            if "update" in command:
+                max_attempts = 4
+                for attempt in range(1, max_attempts + 1):
+                    try:
+                        logger.info(
+                            "Running Windows update command, attempt %s/%s: %s",
+                            attempt,
+                            max_attempts,
+                            command,
+                        )
+                        update_env = os.environ.copy()
+                        if os.environ.get("GITHUB_ACTIONS") == "true":
+                            update_env.update(
+                                {
+                                    # CI-only, process-scoped config for Blender's
+                                    # public Git/LFS host. Limit it to make.bat
+                                    # update so Blender's later buildinfo git
+                                    # custom commands do not inherit an empty
+                                    # GIT_CONFIG_VALUE_0 through MSBuild.
+                                    "GIT_CONFIG_COUNT": "2",
+                                    "GIT_CONFIG_KEY_0": "credential.https://projects.blender.org.helper",
+                                    "GIT_CONFIG_VALUE_0": "",
+                                    "GIT_CONFIG_KEY_1": "credential.https://projects.blender.org.provider",
+                                    "GIT_CONFIG_VALUE_1": "generic",
+                                    "GIT_TERMINAL_PROMPT": "0",
+                                    "GCM_INTERACTIVE": "Never",
+                                }
+                            )
+                        subprocess.run(
+                            command,
+                            cwd=cwd,
+                            shell=True,
+                            input="y\ny\ny\ny\n",
+                            text=True,
+                            timeout=int(os.environ.get("BUILDBPY_UPDATE_TIMEOUT_SECONDS", "5400")),
+                            check=True,
+                            env=update_env,
+                        )
+                        break
+                    except (subprocess.CalledProcessError, subprocess.TimeoutExpired):
+                        if attempt == max_attempts:
+                            raise
+                        delay_seconds = 60 * attempt
+                        logger.warning(
+                            "Windows update command failed, retrying in %s seconds",
+                            delay_seconds,
+                        )
+                        time.sleep(delay_seconds)
+            else:
+                subprocess.run(command, cwd=cwd, shell=True, check=True)
+        except subprocess.CalledProcessError:
+            build_log = self.build_dir / "Build.log"
+            if build_log.exists():
+                logger.error("Windows build failed; last lines from %s:", build_log)
+                try:
+                    lines = build_log.read_text(errors="replace").splitlines()
+                    for line in lines[-300:]:
+                        logger.error("BUILD_LOG: %s", line)
+                except Exception as exc:
+                    logger.error("Failed to read Windows Build.log: %r", exc)
+            else:
+                logger.error("Windows build failed and Build.log was not found at %s", build_log)
+            raise
 
 
 class MacOSStrategy(OSStrategy):
@@ -500,19 +615,15 @@ class MacOSStrategy(OSStrategy):
             self.blender_repo_dir / "build_files/cmake/config/bpy_module.cmake"
         )
         print(f"Setting CMake directives in {cmake_file_path}")
+        # Keep this intentionally minimal for Blender 5.2+. Blender's
+        # upstream bpy_module.cmake and make update select compatible
+        # platform audio/SDL settings. Forcing SDL/Audaspace/audio backends
+        # here can make CMake expect missing imported targets such as
+        # SDL3::Headers on GitHub macOS runners.
         directives = [
             'set(CMAKE_OSX_DEPLOYMENT_TARGET "13.0" CACHE STRING "" FORCE)',
             'set(CMAKE_C_FLAGS "-mmacosx-version-min=13.0" CACHE STRING "" FORCE)',
             'set(CMAKE_CXX_FLAGS "-mmacosx-version-min=13.0" CACHE STRING "" FORCE)',
-            'set(WITH_AUDASPACE ON CACHE BOOL "" FORCE)',
-            'set(WITH_CODEC_FFMPEG ON CACHE BOOL "" FORCE)',
-            'set(WITH_CODEC_SNDFILE ON CACHE BOOL "" FORCE)',
-            'set(WITH_COREAUDIO ON CACHE BOOL "" FORCE)',
-            'set(WITH_JACK ON CACHE BOOL "" FORCE)',
-            'set(WITH_OPENAL ON CACHE BOOL "" FORCE)',
-            'set(WITH_PULSEAUDIO ON CACHE BOOL "" FORCE)',
-            'set(WITH_SDL ON CACHE BOOL "" FORCE)',
-            'set(WITH_WASAPI ON CACHE BOOL "" FORCE)',
         ]
 
         with open(cmake_file_path, "a") as file:
@@ -657,12 +768,16 @@ class CheckoutStrategy(ABC):
                 [
                     "git",
                     "clone",
-                    "--recursive",
                     git_repo,
                 ],
                 cwd=root_dir,
+                check=True,
             )
-        subprocess.run(["git", "fetch", "--all"], cwd=blender_repo_dir)
+        # Let Blender's make_update.py/make update choose and fetch the
+        # platform-specific precompiled libraries. A recursive clone starts
+        # all submodule/LFS work immediately, which is fragile on non-
+        # interactive Windows GitHub Actions runners.
+        subprocess.run(["git", "fetch", "--all"], cwd=blender_repo_dir, check=True)
 
     @abstractmethod
     def checkout(self, id: str):
@@ -680,15 +795,17 @@ class CheckoutStrategy(ABC):
 class TagCheckoutStrategy(CheckoutStrategy):
     def checkout(self, id):
         # Reset to origin/main and clean the repo
-        subprocess.run(["git", "fetch", "origin"], cwd=self.blender_repo_dir)
+        subprocess.run(["git", "fetch", "origin"], cwd=self.blender_repo_dir, check=True)
         subprocess.run(
-            ["git", "reset", "--hard", "origin/main"], cwd=self.blender_repo_dir
+            ["git", "reset", "--hard", "origin/main"],
+            cwd=self.blender_repo_dir,
+            check=True,
         )
-        subprocess.run(["git", "clean", "-fd"], cwd=self.blender_repo_dir)
+        subprocess.run(["git", "clean", "-fd"], cwd=self.blender_repo_dir, check=True)
 
         # Fetch tags explicitly
         print(f"Fetching tags and checking out {id}")
-        subprocess.run(["git", "fetch", "--tags"], cwd=self.blender_repo_dir)
+        subprocess.run(["git", "fetch", "--tags"], cwd=self.blender_repo_dir, check=True)
 
         # Checkout the specific tag
         result = subprocess.run(
@@ -989,7 +1106,10 @@ class BlenderBuilder:
         self.minor_version = self.checkout_strategy.minor_version
         self.release_cycle = self.checkout_strategy.release_cycle
         logger.info(
-            f"Getting Version: {self.major_version}.{self.minor_version}.{self.release_cycle}"
+            "Getting Version: major_minor=%s full_version=%s release_cycle=%s",
+            self.major_version,
+            self.minor_version,
+            self.release_cycle,
         )
 
         logger.info("Setting up strategies")

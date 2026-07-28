@@ -27,12 +27,16 @@ on:
 jobs:
   build:
     runs-on: macos-15
+    timeout-minutes: 240
     permissions:
       contents: write
+    env:
+      GIT_TERMINAL_PROMPT: "0"
+      GCM_INTERACTIVE: Never
 
     steps:
       - name: Checkout repo
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
 
       - name: Set environment variables
         id: set_env
@@ -43,7 +47,7 @@ jobs:
           echo "PYTHON_VERSION=$PYTHON_VERSION" >> $GITHUB_ENV
 
       - name: Set up Python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
           python-version: ${{ env.PYTHON_VERSION }}
 
@@ -55,7 +59,11 @@ jobs:
       - name: Install specific CMake version and build deps
         run: |
           brew install git git-lfs
-          git lfs install
+          git lfs install --skip-repo
+          git config --global credential.https://projects.blender.org.provider generic
+          git config --global advice.detachedHead false
+          git config --global lfs.concurrenttransfers 3
+          git config --global --list --show-origin
           cmake --version
 
       - name: Build Blender and bpy wheel

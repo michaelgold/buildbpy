@@ -26,9 +26,16 @@ on:
 
 jobs:
   build:
-    runs-on: windows-latest
+    # Pin to the VS2022 image. As of 2026, windows-latest resolves to
+    # windows-2025-vs2026, whose MSVC 19.51 toolchain is not compatible
+    # with Blender 5.2's Cycles CUDA kernel build.
+    runs-on: windows-2022
+    timeout-minutes: 240
     permissions:
       contents: write
+    env:
+      GIT_TERMINAL_PROMPT: "0"
+      GCM_INTERACTIVE: Never
     steps:
       # # - name: test batch file
       # #   run: |
@@ -40,7 +47,7 @@ jobs:
       # #     ./test.new.bat
       # #     cat ./test.new.bat
       # - name: checkout repo
-      #   uses: actions/checkout@v2
+      #   uses: actions/checkout@v4
 
       # - name: Set environment variables
       #   id: set_env
@@ -52,7 +59,7 @@ jobs:
       #   shell: bash
                     
       # - name: Checkout Blender repository recursively
-      #   uses: actions/checkout@v2
+      #   uses: actions/checkout@v4
       #   with:
       #     repository: blender/blender
       #     ref: ${{ env.TAG}}
@@ -65,7 +72,7 @@ jobs:
       #     Invoke-Expression ((New-Object System.Net.WebClient).DownloadString('https://chocolatey.org/install.ps1'))
 
       # - name: Set up Python
-      #   uses: actions/setup-python@v4
+      #   uses: actions/setup-python@v5
       #   with:
       #     # python-version: '3.10.11' 
       #     python-version: ${{ env.PYTHON_VERSION }}
@@ -218,7 +225,7 @@ jobs:
 
 
       - name: checkout repo
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
 
       - name: Set environment variables
         id: set_env
@@ -228,9 +235,21 @@ jobs:
           echo "TAG=$TAG" >> $GITHUB_ENV
           echo "PYTHON_VERSION=$PYTHON_VERSION" >> $GITHUB_ENV
         shell: bash
+
+      - name: Configure non-interactive Git and LFS
+        shell: pwsh
+        run: |
+          git --version
+          git lfs version
+          git lfs install --skip-repo
+          git config --global credential.https://projects.blender.org.provider generic
+          git config --global advice.detachedHead false
+          git config --global http.version HTTP/1.1
+          git config --global lfs.concurrenttransfers 3
+          git config --global --list --show-origin
                     
       # - name: Checkout Blender repository recursively
-      #   uses: actions/checkout@v2
+      #   uses: actions/checkout@v4
       #   with:
       #     repository: blender/blender
       #     ref: ${{ env.TAG }}
@@ -243,7 +262,7 @@ jobs:
       #     Invoke-Expression ((New-Object System.Net.WebClient).DownloadString('https://chocolatey.org/install.ps1'))
 
       - name: Set up Python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
           python-version: ${{ env.PYTHON_VERSION }}
 
@@ -297,9 +316,17 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Install compatible numpy version
+      - name: Upload Windows Build.log on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-build-log-${{ env.TAG }}
+          path: D:/.buildbpy/build_windows_Bpy_*_Release/Build.log
+          if-no-files-found: warn
+
+      - name: Install bpy runtime dependencies
         run: |
-          pip install "numpy<2.0"
+          pip install "numpy>=2.2,<3.0" cattrs cython zstandard
   
       - name: Test bpy and numpy import
         run: |
