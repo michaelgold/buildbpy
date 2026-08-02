@@ -24,6 +24,8 @@ jobs:
         id: check
         if: ${{ github.event.inputs.tag == '' }}
         run: python ./workspace/check_latest.py
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Set tag input
         id: set_tag_input

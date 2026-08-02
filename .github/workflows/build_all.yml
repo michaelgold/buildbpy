@@ -25,6 +25,8 @@ jobs:
         id: check
         if: ${{ github.event.inputs.tag == '' }}
         run: cd workspace && python check_latest.py
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Set tag input
         id: set_tag_input
@@ -120,7 +122,9 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Update versions
-        run: cd workspace && python check_latest.py  
+        run: cd workspace && python check_latest.py
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Commit and push changes
         env:
