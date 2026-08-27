@@ -100,6 +100,16 @@ jobs:
     permissions:
       contents: write
 
+  build-for-linux-arm64:
+    needs: [check-version]
+    if: ${{ needs.check-version.outputs.tag_input != '' }}
+    uses: ./.github/workflows/build_linux_arm64.yml
+    with:
+      tag: ${{ needs.check-version.outputs.tag_input }}
+      python_version: ${{ needs.check-version.outputs.python_version }}
+    permissions:
+      contents: write
+
   build-for-macos:
     needs: [check-version]
     if: ${{ needs.check-version.outputs.tag_input != '' }}  

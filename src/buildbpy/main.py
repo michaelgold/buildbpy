@@ -277,7 +277,7 @@ class OSStrategy(ABC):
     ):
         self.blender_repo_dir = blender_repo_dir
         self.build_dir: Path = None
-        self.lib_path: Path = None
+        self.lib_path: str = ""
         self.root_dir = root_dir
         self.bin_dir = self.root_dir / "blender-bin"
         self.download_dir = self.root_dir / "downloads"
@@ -408,7 +408,7 @@ class OSStrategy(ABC):
         pass
 
     @abstractmethod
-    def get_arch(self):
+    def get_arch(self) -> str:
         pass
 
     @abstractmethod
@@ -643,8 +643,14 @@ class LinuxOSStrategy(OSStrategy):
         blender_repo_dir: Path,
         http_client: httpx.Client,
     ):
+        machine = platform.machine().lower()
+        self.is_arm64 = machine in {"aarch64", "arm64"}
         super().__init__(version_strategy, root_dir, blender_repo_dir, http_client)
-        self.lib_path = f"{self.version_strategy.get_svn_root()}linux_x86_64_glibc_228"
+        self.lib_path = (
+            f"{self.version_strategy.get_svn_root()}linux_arm64"
+            if self.is_arm64
+            else f"{self.version_strategy.get_svn_root()}linux_x86_64_glibc_228"
+        )
         self.build_dir = self.root_dir / "build_linux_bpy"
         self.build_wheel_dir = self.build_dir / "bin"
         self.make_command = "make"
@@ -653,6 +659,17 @@ class LinuxOSStrategy(OSStrategy):
         """Override to use make_update.py instead of SVN for Linux"""
         if not self.lib_dir.exists():
             self.lib_dir.mkdir(parents=True, exist_ok=True)
+        if self.is_arm64:
+            # Blender 5.2 has no lib/linux_arm64 precompiled dependency
+            # submodule. Update source/LFS without libraries, then build the
+            # complete dependency set natively before building bpy.
+            logger.info("Building Blender dependencies natively for Linux ARM64")
+            self.run_command(
+                "./build_files/utils/make_update.py --no-libraries",
+                self.blender_repo_dir,
+            )
+            self.run_command(f"{self.make_command} deps", self.blender_repo_dir)
+            return
         logger.info(f"Installing libraries using make_update.py in {self.lib_dir}")
         self.run_command(
             f"./build_files/utils/make_update.py --use-linux-libraries",
@@ -684,8 +701,9 @@ class LinuxOSStrategy(OSStrategy):
         return system_type
 
     def get_arch(self):
-        arch = "x64" if self.version_strategy.release_cycle == "release" else "x86_64"
-        return arch
+        if self.is_arm64:
+            return "arm64"
+        return "x64" if self.version_strategy.release_cycle == "release" else "x86_64"
 
     def get_file_ext(self):
         return "tar.xz"
@@ -970,6 +988,15 @@ class BlenderBuilder:
         Returns:
             None
         """
+        if (
+            self.os_type == "Linux"
+            and platform.machine().lower() in {"aarch64", "arm64"}
+        ):
+            # Blender does not publish a Linux ARM64 application archive.
+            # Stub generation is not required to build or package bpy.
+            logger.info("Skipping pre-build stubs: no official Linux ARM64 Blender binary")
+            return
+
         downloaded_file = self.os_strategy.download_file()
         self.os_strategy.extract(downloaded_file)
         blender_binary = self.os_strategy.get_blender_binary()
