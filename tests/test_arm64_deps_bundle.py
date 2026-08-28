@@ -477,6 +477,10 @@ def test_arm64_workflow_validates_exact_tag_and_publishes_immutable_release():
     verify_offset = workflow.index("- name: Verify wheel architecture and import")
     assert "--publish" not in workflow[:verify_offset]
     assert workflow.index("- name: Publish verified bpy wheel") > verify_offset
+    assert "- name: Check existing ARM64 dependency release" in workflow
+    assert "id: deps_release" in workflow
+    assert workflow.count("steps.deps_release.outputs.exists != 'true'") == 2
+    assert "already exists and is immutable" not in workflow
 
 
 def test_download_release_bundle_rejects_non_object_api_payload(tmp_path: Path):

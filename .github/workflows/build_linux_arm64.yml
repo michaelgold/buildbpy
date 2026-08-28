@@ -124,7 +124,33 @@ jobs:
             --repo "${GITHUB_REPOSITORY}" \
             ~/.buildbpy/build_linux_bpy/bin/bpy-*.whl
 
+      - name: Check existing ARM64 dependency release
+        id: deps_release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          VERSION="${TAG#v}"
+          RELEASE_TAG="deps-blender-${VERSION}-linux-arm64-v1"
+          ARCHIVE="blender-${VERSION}-linux-arm64-ubuntu24.04-gcc13-v1.tar.zst"
+          if gh release view "${RELEASE_TAG}" --repo "${GITHUB_REPOSITORY}" >/dev/null 2>&1; then
+            ASSETS="$(gh release view "${RELEASE_TAG}" \
+              --repo "${GITHUB_REPOSITORY}" \
+              --json assets \
+              --jq '.assets[].name')"
+            for REQUIRED in "${ARCHIVE}" "${ARCHIVE}.manifest.json" "${ARCHIVE}.sha256"; do
+              if ! grep -Fxq "${REQUIRED}" <<<"${ASSETS}"; then
+                echo "Existing immutable release is incomplete: missing ${REQUIRED}" >&2
+                exit 1
+              fi
+            done
+            echo "Reusing complete immutable dependency release ${RELEASE_TAG}"
+            echo "exists=true" >> "${GITHUB_OUTPUT}"
+          else
+            echo "exists=false" >> "${GITHUB_OUTPUT}"
+          fi
+
       - name: Package verified ARM64 dependency bundle
+        if: steps.deps_release.outputs.exists != 'true'
         run: |
           python - <<'PY'
           import os
@@ -152,15 +178,12 @@ jobs:
           PY
 
       - name: Publish verified ARM64 dependency bundle
+        if: steps.deps_release.outputs.exists != 'true'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           VERSION="${TAG#v}"
           RELEASE_TAG="deps-blender-${VERSION}-linux-arm64-v1"
-          if gh release view "${RELEASE_TAG}" --repo "${GITHUB_REPOSITORY}" >/dev/null 2>&1; then
-            echo "Release ${RELEASE_TAG} already exists and is immutable" >&2
-            exit 1
-          fi
           gh release create "${RELEASE_TAG}" \
             --repo "${GITHUB_REPOSITORY}" \
             --target "${GITHUB_SHA}" \
