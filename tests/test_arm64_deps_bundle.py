@@ -483,6 +483,18 @@ def test_arm64_workflow_validates_exact_tag_and_publishes_immutable_release():
     assert "already exists and is immutable" not in workflow
 
 
+def test_build_all_includes_linux_arm64_in_aggregate_success_barrier():
+    workflow = Path(".github/workflows/build_all.yml").read_text()
+
+    assert "build-for-linux-arm64:" in workflow
+    assert "uses: ./.github/workflows/build_linux_arm64.yml" in workflow
+    assert "tag: ${{ needs.check-version.outputs.tag_input }}" in workflow
+    assert "python_version: ${{ needs.check-version.outputs.python_version }}" in workflow
+    update_section = workflow.split("  update-versions:", 1)[1]
+    update_needs = update_section.split("\n    if:", 1)[0]
+    assert "build-for-linux-arm64" in update_needs
+
+
 def test_download_release_bundle_rejects_non_object_api_payload(tmp_path: Path):
     spec = BundleSpec(blender_version="5.2.0", revision=1)
 
