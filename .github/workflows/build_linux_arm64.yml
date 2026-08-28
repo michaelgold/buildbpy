@@ -36,6 +36,7 @@ jobs:
       PYTHON_VERSION: ${{ inputs.python_version }}
       CMAKE_BUILD_PARALLEL_LEVEL: "4"
       MAKEFLAGS: "-j4"
+      NPROCS: "4"
 
     steps:
       - uses: actions/checkout@v4
@@ -51,12 +52,17 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y \
-            build-essential git git-lfs subversion cmake ninja-build \
-            autoconf automake bison libtool meson nasm yasm patchelf \
+            build-essential gcc-14 g++-14 git git-lfs subversion cmake ninja-build zstd \
+            autoconf automake autopoint bison flex gettext help2man libtool \
+            meson nasm yasm patchelf pkg-config python3-mako tcl texinfo \
             libx11-dev libxxf86vm-dev libxcursor-dev libxi-dev \
-            libxrandr-dev libxinerama-dev libxext-dev libegl-dev \
-            libwayland-dev wayland-protocols libxkbcommon-dev \
-            libdbus-1-dev linux-libc-dev libssl-dev libffi-dev \
+            libxrandr-dev libxinerama-dev libxext-dev libxt-dev libegl-dev \
+            libgles-dev libgbm-dev \
+            libwayland-dev wayland-protocols libxkbcommon-dev libpixman-1-dev \
+            libinput-dev libevdev-dev libdrm-dev libcairo2-dev \
+            libxcb-shm0-dev libx11-xcb-dev \
+            libdbus-1-dev libpipewire-0.3-dev libpulse-dev libasound2-dev \
+            linux-libc-dev libssl-dev libffi-dev \
             libreadline-dev libbz2-dev liblzma-dev zlib1g-dev \
             libsqlite3-dev
           git lfs install --skip-repo
@@ -69,7 +75,9 @@ jobs:
       - name: Cache native Blender ARM64 dependencies
         uses: actions/cache@v4
         with:
-          path: ~/.buildbpy/lib
+          path: |
+            ~/.buildbpy/build_linux/deps_arm64
+            ~/.buildbpy/blender/lib/linux_arm64
           key: blender-${{ env.TAG }}-linux-arm64-deps-v1
 
       - name: Build and publish bpy
@@ -78,13 +86,13 @@ jobs:
         run: |
           python -m buildbpy.main \
             --tag "${TAG}" \
-            --install \
-            --publish
+            --install
 
       - name: Verify wheel architecture and import
         run: |
           python - <<'PY'
           from pathlib import Path
+          import os
           import platform
           import bpy
 
@@ -94,11 +102,77 @@ jobs:
           assert "cp313" in wheel.name, wheel.name
           assert "aarch64" in wheel.name, wheel.name
           assert platform.machine().lower() in {"aarch64", "arm64"}
-          assert bpy.app.version[:2] == (5, 2), bpy.app.version
+          expected_version = tuple(map(int, os.environ["TAG"].removeprefix("v").split(".")))
+          assert bpy.app.version == expected_version, (bpy.app.version, expected_version)
           print(f"wheel={wheel}")
           print(f"architecture={platform.machine()}")
           print(f"bpy_version={bpy.app.version_string}")
           PY
+
+      - name: Publish verified bpy wheel
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          if ! gh release view "${TAG}" --repo "${GITHUB_REPOSITORY}" >/dev/null 2>&1; then
+            gh release create "${TAG}" \
+              --repo "${GITHUB_REPOSITORY}" \
+              --target "${GITHUB_SHA}" \
+              --title "bpy-${TAG}" \
+              --notes "Blender Python Module for Blender ${TAG}"
+          fi
+          gh release upload "${TAG}" \
+            --repo "${GITHUB_REPOSITORY}" \
+            ~/.buildbpy/build_linux_bpy/bin/bpy-*.whl
+
+      - name: Package verified ARM64 dependency bundle
+        run: |
+          python - <<'PY'
+          import os
+          from pathlib import Path
+          import subprocess
+
+          from buildbpy.arm64_deps import BundleSpec, create_bundle
+
+          root = Path.home() / ".buildbpy"
+          version = os.environ["TAG"].removeprefix("v")
+          commit = subprocess.check_output(
+              ["git", "-C", str(root / "blender"), "rev-parse", "HEAD"],
+              text=True,
+          ).strip()
+          artifacts = create_bundle(
+              root / "blender/lib/linux_arm64",
+              root / "deps-dist",
+              BundleSpec(version),
+              blender_commit=commit,
+              python_version=os.environ["PYTHON_VERSION"],
+          )
+          print(f"archive={artifacts.archive}")
+          print(f"manifest={artifacts.manifest}")
+          print(f"checksum={artifacts.checksum}")
+          PY
+
+      - name: Publish verified ARM64 dependency bundle
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          VERSION="${TAG#v}"
+          RELEASE_TAG="deps-blender-${VERSION}-linux-arm64-v1"
+          if gh release view "${RELEASE_TAG}" --repo "${GITHUB_REPOSITORY}" >/dev/null 2>&1; then
+            echo "Release ${RELEASE_TAG} already exists and is immutable" >&2
+            exit 1
+          fi
+          gh release create "${RELEASE_TAG}" \
+            --repo "${GITHUB_REPOSITORY}" \
+            --target "${GITHUB_SHA}" \
+            --title "Blender ${VERSION} Linux ARM64 dependencies v1" \
+            --notes "Native Linux ARM64 dependency bundle validated by the bpy wheel build and import smoke test." \
+            --draft
+          gh release upload "${RELEASE_TAG}" \
+            --repo "${GITHUB_REPOSITORY}" \
+            ~/.buildbpy/deps-dist/*
+          gh release edit "${RELEASE_TAG}" \
+            --repo "${GITHUB_REPOSITORY}" \
+            --draft=false
 
       - name: Upload ARM64 wheel artifact
         uses: actions/upload-artifact@v4
