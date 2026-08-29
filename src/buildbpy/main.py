@@ -861,6 +861,10 @@ class LinuxOSStrategy(OSStrategy):
         """
         logger.info(f"Running command: {command} in {cwd}")
 
+        if "update" in command:
+            self.run_update_command(command, cwd)
+            return
+
         # Use Popen to stream output in real-time
         process = subprocess.Popen(
             command,

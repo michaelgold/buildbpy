@@ -1,11 +1,12 @@
 from pathlib import Path
 import json
 import os
+import platform
 import shutil
 import subprocess
 import sys
 import tarfile
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 from types import SimpleNamespace
 
 import httpx
@@ -13,6 +14,7 @@ import pytest
 
 from buildbpy.arm64_deps import (
     BundleSpec,
+    _open_zstd_tar,
     configure_arm64_wayland_lib64,
     create_bundle,
     disable_arm64_osl_optix,
@@ -23,6 +25,23 @@ from buildbpy.arm64_deps import (
 from buildbpy.main import BlenderBuilder, LinuxOSStrategy, ReleaseVersionCycleStrategy
 
 
+def _arm64_bundle_tools_available() -> bool:
+    if platform.system() != "Linux" or not shutil.which("tar") or not shutil.which("zstd"):
+        return False
+    result = subprocess.run(
+        ["tar", "--help"], capture_output=True, text=True, check=False
+    )
+    return result.returncode == 0 and all(
+        option in result.stdout for option in ("--zstd", "--sort", "--mtime")
+    )
+
+
+pytestmark = pytest.mark.skipif(
+    not _arm64_bundle_tools_available(),
+    reason="Linux ARM64 bundle tests require GNU tar with zstd support and zstd",
+)
+
+
 def test_bundle_spec_has_stable_release_names():
     spec = BundleSpec(blender_version="5.2.0", revision=1)
 
@@ -30,6 +49,38 @@ def test_bundle_spec_has_stable_release_names():
     assert spec.archive_name == "blender-5.2.0-linux-arm64-ubuntu24.04-gcc13-v1.tar.zst"
     assert spec.manifest_name == f"{spec.archive_name}.manifest.json"
     assert spec.checksum_name == f"{spec.archive_name}.sha256"
+
+
+def test_open_zstd_tar_reports_missing_decoder_and_closes_stderr(tmp_path: Path):
+    stderr_file = MagicMock()
+    with (
+        patch("buildbpy.arm64_deps.tempfile.TemporaryFile", return_value=stderr_file),
+        patch(
+            "buildbpy.arm64_deps.subprocess.Popen",
+            side_effect=FileNotFoundError("zstd"),
+        ),
+        pytest.raises(RuntimeError, match="zstd executable is required"),
+    ):
+        with _open_zstd_tar(tmp_path / "bundle.tar.zst"):
+            pass
+
+    stderr_file.close.assert_called_once()
+
+
+def test_linux_run_command_routes_updates_through_retry_handler(tmp_path: Path):
+    strategy = LinuxOSStrategy.__new__(LinuxOSStrategy)
+
+    with (
+        patch.object(strategy, "run_update_command") as run_update,
+        patch(
+            "buildbpy.main.subprocess.Popen",
+            side_effect=AssertionError("update command bypassed retry handler"),
+        ) as popen,
+    ):
+        strategy.run_command("make update", tmp_path)
+
+    run_update.assert_called_once_with("make update", tmp_path)
+    popen.assert_not_called()
 
 
 def test_arm64_osl_patch_disables_cuda_optix_only_on_arm(tmp_path: Path):
@@ -493,6 +544,10 @@ def test_build_all_includes_linux_arm64_in_aggregate_success_barrier():
     update_section = workflow.split("  update-versions:", 1)[1]
     update_needs = update_section.split("\n    if:", 1)[0]
     assert "build-for-linux-arm64" in update_needs
+    assert "EndBug/add-and-commit" not in workflow
+    assert 'git config user.name "github-actions[bot]"' in workflow
+    assert "git add -- workspace/version_info.json" in workflow
+    assert 'git push origin "HEAD:${GITHUB_REF_NAME}"' in workflow
 
 
 def test_download_release_bundle_rejects_non_object_api_payload(tmp_path: Path):

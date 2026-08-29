@@ -233,30 +233,38 @@ def create_bundle(
 @contextmanager
 def _open_zstd_tar(archive: Path):
     stderr_file = tempfile.TemporaryFile()
-    process = subprocess.Popen(
-        ["zstd", "-dc", "--", str(archive)],
-        stdout=subprocess.PIPE,
-        stderr=stderr_file,
-    )
-    assert process.stdout is not None
     try:
-        with tarfile.open(fileobj=process.stdout, mode="r|") as tar:
-            yield tar
-    except BaseException:
-        process.kill()
-        process.wait()
-        raise
-    else:
-        process.stdout.close()
-        return_code = process.wait()
-        if return_code != 0:
-            stderr_file.seek(0)
-            stderr = stderr_file.read()
-            raise subprocess.CalledProcessError(
-                return_code, process.args, stderr=stderr
+        try:
+            process = subprocess.Popen(
+                ["zstd", "-dc", "--", str(archive)],
+                stdout=subprocess.PIPE,
+                stderr=stderr_file,
             )
+        except FileNotFoundError as exc:
+            raise RuntimeError(
+                "zstd executable is required to verify ARM64 dependency bundles"
+            ) from exc
+
+        assert process.stdout is not None
+        try:
+            with tarfile.open(fileobj=process.stdout, mode="r|") as tar:
+                yield tar
+        except BaseException:
+            process.kill()
+            process.wait()
+            raise
+        else:
+            process.stdout.close()
+            return_code = process.wait()
+            if return_code != 0:
+                stderr_file.seek(0)
+                stderr = stderr_file.read()
+                raise subprocess.CalledProcessError(
+                    return_code, process.args, stderr=stderr
+                )
+        finally:
+            process.stdout.close()
     finally:
-        process.stdout.close()
         stderr_file.close()
 
 
