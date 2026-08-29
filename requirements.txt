@@ -3,9 +3,5 @@ requests
 python-dotenv
 bpystubgen
 click
-aiohttp
-httpx
-PyGithub
-requests
-setuptools
-wheel
+httpx==0.25.2
+PyGithub==2.1.1

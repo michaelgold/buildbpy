@@ -7,10 +7,19 @@ import dotenv
 import os
 import ssl
 import platform
+import sys
 import tarfile
 import zipfile
 import shutil
 from github import Github
+from .arm64_deps import (
+    BundleArtifacts,
+    BundleSpec,
+    configure_arm64_wayland_lib64,
+    disable_arm64_osl_optix,
+    download_release_bundle,
+    verify_and_extract_bundle,
+)
 from .utils import dmgextractor, make_utils
 from abc import ABC, abstractmethod
 import stat
@@ -277,7 +286,7 @@ class OSStrategy(ABC):
     ):
         self.blender_repo_dir = blender_repo_dir
         self.build_dir: Path = None
-        self.lib_path: Path = None
+        self.lib_path: str = ""
         self.root_dir = root_dir
         self.bin_dir = self.root_dir / "blender-bin"
         self.download_dir = self.root_dir / "downloads"
@@ -301,6 +310,12 @@ class OSStrategy(ABC):
         # self.run_svn_checkout()
         self.run_command(f"{self.make_command} update", self.blender_repo_dir)
 
+    def get_bpy_build_command(self) -> str:
+        return f"{self.make_command} bpy"
+
+    def prepare_bpy_build(self) -> None:
+        pass
+
     def run_svn_checkout(self):
         print(f"Installing libraries to: {self.lib_dir}")
         subprocess.run(["svn", "checkout", self.lib_path], cwd=self.lib_dir)
@@ -323,7 +338,9 @@ class OSStrategy(ABC):
             cwd=cwd,
             shell=True,
             stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
+            # Merge stderr into stdout so verbose native builds cannot fill an
+            # unread stderr pipe and deadlock while stdout is being streamed.
+            stderr=subprocess.STDOUT,
             text=True,
             bufsize=1,  # Line buffered
             universal_newlines=True,
@@ -337,10 +354,8 @@ class OSStrategy(ABC):
             if output:
                 logger.info(output.strip())
 
-        # Get any remaining stderr
-        stderr = process.stderr.read()
-        if stderr:
-            logger.warning(stderr.strip())
+        # stderr is merged into stdout above to avoid pipe deadlocks.
+        stderr = ""
 
         # Check return code
         return_code = process.wait()
@@ -408,7 +423,7 @@ class OSStrategy(ABC):
         pass
 
     @abstractmethod
-    def get_arch(self):
+    def get_arch(self) -> str:
         pass
 
     @abstractmethod
@@ -643,16 +658,142 @@ class LinuxOSStrategy(OSStrategy):
         blender_repo_dir: Path,
         http_client: httpx.Client,
     ):
+        machine = platform.machine().lower()
+        self.is_arm64 = machine in {"aarch64", "arm64"}
         super().__init__(version_strategy, root_dir, blender_repo_dir, http_client)
-        self.lib_path = f"{self.version_strategy.get_svn_root()}linux_x86_64_glibc_228"
+        self.lib_path = (
+            f"{self.version_strategy.get_svn_root()}linux_arm64"
+            if self.is_arm64
+            else f"{self.version_strategy.get_svn_root()}linux_x86_64_glibc_228"
+        )
         self.build_dir = self.root_dir / "build_linux_bpy"
         self.build_wheel_dir = self.build_dir / "bin"
         self.make_command = "make"
+
+    def get_bpy_build_command(self) -> str:
+        if self.is_arm64:
+            return "CC=gcc-14 CXX=g++-14 make bpy"
+        return super().get_bpy_build_command()
+
+    def prepare_bpy_build(self) -> None:
+        if not self.is_arm64:
+            return
+        cache = self.build_dir / "CMakeCache.txt"
+        if cache.exists() and "gcc-14" not in cache.read_text(errors="replace"):
+            logger.info("Resetting bpy CMake cache to select GCC 14")
+            shutil.rmtree(self.build_dir)
+
+    def _install_arm64_bundle(
+        self, artifacts: BundleArtifacts, spec: BundleSpec
+    ) -> None:
+        extract_root = self.download_dir / "arm64-deps-extract"
+        if extract_root.exists():
+            shutil.rmtree(extract_root)
+        logger.info("Verifying Linux ARM64 dependency bundle %s", artifacts.archive)
+        verify_and_extract_bundle(
+            artifacts.archive,
+            artifacts.manifest,
+            artifacts.checksum,
+            extract_root,
+            spec,
+            expected_blender_commit=self.version_strategy.commit_hash,
+            expected_python_series=f"{sys.version_info.major}.{sys.version_info.minor}",
+        )
+        target = self.lib_dir / "linux_arm64"
+        if target.exists():
+            shutil.rmtree(target)
+        target.parent.mkdir(parents=True, exist_ok=True)
+        shutil.move(str(extract_root / "linux_arm64"), str(target))
+        shutil.rmtree(extract_root)
+        logger.info("Installed verified Linux ARM64 dependency bundle")
 
     def setup_build_environment(self):
         """Override to use make_update.py instead of SVN for Linux"""
         if not self.lib_dir.exists():
             self.lib_dir.mkdir(parents=True, exist_ok=True)
+        if self.is_arm64:
+            # Blender 5.2 has no upstream lib/linux_arm64 bundle. Prefer our
+            # verified release bundle, with a complete native build fallback.
+            self.run_command(
+                "./build_files/utils/make_update.py --no-libraries",
+                self.blender_repo_dir,
+            )
+            spec = BundleSpec(self.version_strategy.minor_version)
+            archive_value = os.environ.get("BUILDBPY_ARM64_DEPS_ARCHIVE")
+            if archive_value:
+                archive = Path(archive_value).expanduser().resolve()
+                manifest = Path(
+                    os.environ.get(
+                        "BUILDBPY_ARM64_DEPS_MANIFEST",
+                        f"{archive}.manifest.json",
+                    )
+                ).expanduser().resolve()
+                self._install_arm64_bundle(
+                    BundleArtifacts(archive, manifest, Path(f"{archive}.sha256")),
+                    spec,
+                )
+                return
+            if os.environ.get("BUILDBPY_ARM64_DEPS_USE_RELEASE", "1") != "0":
+                repository = os.environ.get(
+                    "BUILDBPY_DEPS_REPOSITORY",
+                    os.environ.get("GITHUB_REPOSITORY", "michaelgold/buildbpy"),
+                )
+                token = os.environ.get("GITHUB_TOKEN", os.environ.get("GH_TOKEN", ""))
+                try:
+                    with httpx.Client(timeout=None, follow_redirects=True) as client:
+                        artifacts = download_release_bundle(
+                            client,
+                            repository,
+                            token,
+                            spec,
+                            self.download_dir / "arm64-deps-release",
+                        )
+                    if artifacts is not None:
+                        self._install_arm64_bundle(artifacts, spec)
+                        return
+                    logger.info(
+                        "No complete ARM64 dependency release %s; building natively",
+                        spec.release_tag,
+                    )
+                except (
+                    httpx.HTTPError,
+                    OSError,
+                    RuntimeError,
+                    ValueError,
+                    subprocess.CalledProcessError,
+                    tarfile.TarError,
+                ) as exc:
+                    logger.warning(
+                        "ARM64 dependency release is unavailable or invalid (%s); "
+                        "building natively",
+                        exc,
+                    )
+            osl_cmake = (
+                self.blender_repo_dir
+                / "build_files/build_environment/cmake/osl.cmake"
+            )
+            disable_arm64_osl_optix(osl_cmake)
+            osl_cache = (
+                self.root_dir
+                / "build_linux/deps_arm64/build/osl/src/external_osl-build/CMakeCache.txt"
+            )
+            if osl_cache.exists() and "OSL_USE_OPTIX:BOOL=ON" in osl_cache.read_text(
+                errors="replace"
+            ):
+                logger.info("Resetting OSL build configured with unsupported ARM64 OptiX")
+                shutil.rmtree(self.root_dir / "build_linux/deps_arm64/build/osl")
+            wayland_cmake = (
+                self.blender_repo_dir
+                / "build_files/build_environment/cmake/wayland.cmake"
+            )
+            if configure_arm64_wayland_lib64(wayland_cmake):
+                wayland_build = self.root_dir / "build_linux/deps_arm64/build/wayland"
+                harvested_wayland_lib64 = self.lib_dir / "linux_arm64/wayland/lib64"
+                if wayland_build.exists() and not harvested_wayland_lib64.exists():
+                    logger.info("Resetting Wayland build to install libraries under lib64")
+                    shutil.rmtree(wayland_build)
+            self.run_command(f"{self.make_command} deps", self.blender_repo_dir)
+            return
         logger.info(f"Installing libraries using make_update.py in {self.lib_dir}")
         self.run_command(
             f"./build_files/utils/make_update.py --use-linux-libraries",
@@ -684,8 +825,9 @@ class LinuxOSStrategy(OSStrategy):
         return system_type
 
     def get_arch(self):
-        arch = "x64" if self.version_strategy.release_cycle == "release" else "x86_64"
-        return arch
+        if self.is_arm64:
+            return "arm64"
+        return "x64" if self.version_strategy.release_cycle == "release" else "x86_64"
 
     def get_file_ext(self):
         return "tar.xz"
@@ -720,13 +862,19 @@ class LinuxOSStrategy(OSStrategy):
         """
         logger.info(f"Running command: {command} in {cwd}")
 
+        if "update" in command:
+            self.run_update_command(command, cwd)
+            return
+
         # Use Popen to stream output in real-time
         process = subprocess.Popen(
             command,
             cwd=cwd,
             shell=True,
             stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
+            # Merge stderr into stdout so verbose native builds cannot fill an
+            # unread stderr pipe and deadlock while stdout is being streamed.
+            stderr=subprocess.STDOUT,
             text=True,
             bufsize=1,  # Line buffered
             universal_newlines=True,
@@ -740,10 +888,8 @@ class LinuxOSStrategy(OSStrategy):
             if output:
                 logger.info(output.strip())
 
-        # Get any remaining stderr
-        stderr = process.stderr.read()
-        if stderr:
-            logger.warning(stderr.strip())
+        # stderr is merged into stdout above to avoid pipe deadlocks.
+        stderr = ""
 
         # Check return code
         return_code = process.wait()
@@ -970,6 +1116,15 @@ class BlenderBuilder:
         Returns:
             None
         """
+        if (
+            self.os_type == "Linux"
+            and platform.machine().lower() in {"aarch64", "arm64"}
+        ):
+            # Blender does not publish a Linux ARM64 application archive.
+            # Stub generation is not required to build or package bpy.
+            logger.info("Skipping pre-build stubs: no official Linux ARM64 Blender binary")
+            return
+
         downloaded_file = self.os_strategy.download_file()
         self.os_strategy.extract(downloaded_file)
         blender_binary = self.os_strategy.get_blender_binary()
@@ -1043,14 +1198,23 @@ class BlenderBuilder:
 
         make_script = self.blender_repo_dir / "build_files/utils/make_bpy_wheel.py"
         print(f"Running python {make_script} {bin_path}")
-        subprocess.run(["python", make_script, bin_path])
+        subprocess.run([sys.executable, make_script, bin_path], check=True)
 
         if install:
             wheel_file = next(bin_path.glob("*.whl"), None)
             if wheel_file:
                 print("Installing the wheel")
                 subprocess.run(
-                    ["pip", "install", "--force-reinstall", "--no-deps", wheel_file]
+                    [
+                        sys.executable,
+                        "-m",
+                        "pip",
+                        "install",
+                        "--force-reinstall",
+                        "--no-deps",
+                        wheel_file,
+                    ],
+                    check=True,
                 )
 
         if publish:
@@ -1098,6 +1262,13 @@ class BlenderBuilder:
             logger.info(f"Checking out daily version {daily_version}")
             self.checkout_strategy.checkout()
 
+        commit_hash = subprocess.check_output(
+            ["git", "-C", str(blender_repo_dir), "rev-parse", "HEAD"],
+            text=True,
+        ).strip()
+        if not commit_hash:
+            raise RuntimeError("Unable to resolve checked-out Blender commit")
+
         # Get Blender version and setup build
         logger.info("Setting version from checkout strategy")
         self.checkout_strategy.set_version(commit_hash, tag)
@@ -1132,7 +1303,6 @@ class BlenderBuilder:
             logger.info(f"Clearing lib directory {self.lib_dir}")
             shutil.rmtree(self.lib_dir)
 
-        make_command = self.os_strategy.make_command
         logger.info("Calling setup_build_environment")
         self.os_strategy.setup_build_environment()
 
@@ -1143,8 +1313,10 @@ class BlenderBuilder:
         self.os_strategy.set_cmake_directives()
         os.chdir(blender_repo_dir)
 
-        logger.info(f"Running make command: {make_command} bpy")
-        self.os_strategy.run_command(f"{make_command} bpy", blender_repo_dir)
+        self.os_strategy.prepare_bpy_build()
+        bpy_build_command = self.os_strategy.get_bpy_build_command()
+        logger.info(f"Running make command: {bpy_build_command}")
+        self.os_strategy.run_command(bpy_build_command, blender_repo_dir)
 
         # Build and install or publish the wheel
         wheel_path = self.os_strategy.build_wheel_dir

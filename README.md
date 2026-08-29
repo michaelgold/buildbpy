@@ -62,6 +62,39 @@ Unlike the official Blender bpy builds, this project's releases:
 - macOS (Intel and Apple Silicon)
 - Linux
 
+## Linux ARM64 dependency bundles
+
+Blender 5.2 does not publish the same precompiled dependency repository for
+Linux ARM64 that it publishes for Linux x86-64. On ARM64, `buildbpy` therefore:
+
+1. looks for a checksummed bundle in the `buildbpy` GitHub Releases;
+2. verifies its version/platform manifest and SHA-256 digest before extraction;
+3. falls back to a complete native `make deps` build when no bundle exists.
+
+Bundles use immutable release tags such as
+`deps-blender-5.2.0-linux-arm64-v1`; published assets are never clobbered in
+place. A successful ARM64 CI build packages and publishes the exact dependency
+tree only after the generated wheel installs and its exact requested Blender
+version passes `import bpy`.
+
+The bundle, manifest, and checksum are trusted through GitHub HTTPS and the
+repository's release-write access. SHA-256 detects corruption and mixed assets;
+it is not an independent publisher signature. Downloads use finite timeouts and
+atomic replacement, and unsafe archives or failed verification fall back to the
+native dependency build.
+
+For local/offline use, select an archive explicitly:
+
+```bash
+export BUILDBPY_ARM64_DEPS_ARCHIVE=/path/to/blender-5.2.0-linux-arm64-ubuntu24.04-gcc13-v1.tar.zst
+export BUILDBPY_ARM64_DEPS_MANIFEST="${BUILDBPY_ARM64_DEPS_ARCHIVE}.manifest.json"
+python -m buildbpy.main --tag v5.2.0 --install
+```
+
+Set `BUILDBPY_ARM64_DEPS_USE_RELEASE=0` to force native dependency compilation.
+For a private fork, set `BUILDBPY_DEPS_REPOSITORY=owner/repository` and provide
+`GITHUB_TOKEN` or `GH_TOKEN` with release-read access.
+
 ## Contributing
 
 Contributions are welcome! Please feel free to submit a Pull Request.
