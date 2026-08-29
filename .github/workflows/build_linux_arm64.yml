@@ -78,7 +78,7 @@ jobs:
           path: |
             ~/.buildbpy/build_linux/deps_arm64
             ~/.buildbpy/blender/lib/linux_arm64
-          key: blender-${{ env.TAG }}-linux-arm64-deps-v1
+          key: blender-${{ env.TAG }}-${{ env.PYTHON_VERSION }}-linux-arm64-deps-v1
 
       - name: Build and publish bpy
         env:

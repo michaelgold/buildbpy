@@ -351,6 +351,12 @@ def verify_and_extract_bundle(
     if actual_sha256 != manifest.get("archive_sha256"):
         raise ValueError("Dependency bundle SHA-256 does not match manifest")
 
+    data_filter = getattr(tarfile, "data_filter", None)
+    if not callable(data_filter):
+        raise RuntimeError(
+            "Python tarfile extraction filters are required to install ARM64 "
+            "dependency bundles"
+        )
     _validate_archive_members(archive, destination)
     destination.mkdir(parents=True, exist_ok=True)
     with _open_zstd_tar(archive) as tar:

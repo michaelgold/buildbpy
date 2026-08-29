@@ -37,7 +37,8 @@ def _arm64_bundle_tools_available() -> bool:
     )
 
 
-pytestmark = pytest.mark.skipif(
+REPO_ROOT = Path(__file__).resolve().parents[1]
+requires_bundle_tools = pytest.mark.skipif(
     not _arm64_bundle_tools_available(),
     reason="Linux ARM64 bundle tests require GNU tar with zstd support and zstd",
 )
@@ -114,6 +115,7 @@ def test_arm64_wayland_patch_uses_harvested_lib64_directory(tmp_path: Path):
     assert configure_arm64_wayland_lib64(wayland_cmake) is False
 
 
+@requires_bundle_tools
 def test_bundle_round_trip_verifies_and_extracts(tmp_path: Path):
     source = tmp_path / "linux_arm64"
     (source / "lib").mkdir(parents=True)
@@ -143,6 +145,27 @@ def test_bundle_round_trip_verifies_and_extracts(tmp_path: Path):
     assert artifacts.checksum.read_text().split()[1] == spec.archive_name
 
 
+@requires_bundle_tools
+def test_bundle_requires_hardened_tarfile_extraction_api(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+):
+    source = tmp_path / "linux_arm64"
+    source.mkdir()
+    spec = BundleSpec(blender_version="5.2.0", revision=1)
+    artifacts = create_bundle(source, tmp_path / "dist", spec)
+    monkeypatch.setattr(tarfile, "data_filter", None)
+
+    with pytest.raises(RuntimeError, match="tarfile extraction filters"):
+        verify_and_extract_bundle(
+            artifacts.archive,
+            artifacts.manifest,
+            artifacts.checksum,
+            tmp_path / "installed",
+            spec,
+        )
+
+
+@requires_bundle_tools
 def test_bundle_rejects_modified_archive(tmp_path: Path):
     source = tmp_path / "linux_arm64"
     source.mkdir()
@@ -161,6 +184,7 @@ def test_bundle_rejects_modified_archive(tmp_path: Path):
         )
 
 
+@requires_bundle_tools
 def test_bundle_rejects_modified_checksum_asset(tmp_path: Path):
     source = tmp_path / "linux_arm64"
     source.mkdir()
@@ -179,6 +203,7 @@ def test_bundle_rejects_modified_checksum_asset(tmp_path: Path):
         )
 
 
+@requires_bundle_tools
 def test_bundle_rejects_manifest_for_another_version(tmp_path: Path):
     source = tmp_path / "linux_arm64"
     source.mkdir()
@@ -196,6 +221,7 @@ def test_bundle_rejects_manifest_for_another_version(tmp_path: Path):
         )
 
 
+@requires_bundle_tools
 def test_bundle_rejects_symlink_target_outside_prefix(tmp_path: Path):
     source = tmp_path / "linux_arm64"
     source.mkdir()
@@ -230,6 +256,7 @@ def test_bundle_rejects_symlink_target_outside_prefix(tmp_path: Path):
         )
 
 
+@requires_bundle_tools
 def test_linux_arm64_uses_verified_local_bundle_instead_of_make_deps(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ):
@@ -438,6 +465,7 @@ def test_interrupted_release_download_preserves_existing_asset(tmp_path: Path):
     assert list(tmp_path.glob("*.tmp")) == []
 
 
+@requires_bundle_tools
 def test_linux_arm64_uses_github_release_bundle_by_default(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ):
@@ -478,6 +506,7 @@ def test_linux_arm64_uses_github_release_bundle_by_default(
     assert (blender_repo / "lib/linux_arm64/lib/libexample.a").read_bytes() == b"release"
 
 
+@requires_bundle_tools
 def test_linux_arm64_falls_back_when_release_bundle_is_invalid(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ):
@@ -554,7 +583,7 @@ def test_linux_arm64_falls_back_when_bundle_decoder_is_unavailable(
 
 
 def test_arm64_workflow_validates_exact_tag_and_publishes_immutable_release():
-    workflow = Path(".github/workflows/build_linux_arm64.yml").read_text()
+    workflow = (REPO_ROOT / ".github/workflows/build_linux_arm64.yml").read_text()
 
     assert "TAG: ${{ inputs.tag || github.event.inputs.tag }}" in workflow
     assert (
@@ -582,10 +611,11 @@ def test_arm64_workflow_validates_exact_tag_and_publishes_immutable_release():
     assert "id: deps_release" in workflow
     assert workflow.count("steps.deps_release.outputs.exists != 'true'") == 2
     assert "already exists and is immutable" not in workflow
+    assert "key: blender-${{ env.TAG }}-${{ env.PYTHON_VERSION }}-linux-arm64-deps-v1" in workflow
 
 
 def test_build_all_includes_linux_arm64_in_aggregate_success_barrier():
-    workflow = Path(".github/workflows/build_all.yml").read_text()
+    workflow = (REPO_ROOT / ".github/workflows/build_all.yml").read_text()
 
     assert "build-for-linux-arm64:" in workflow
     assert "uses: ./.github/workflows/build_linux_arm64.yml" in workflow
@@ -598,6 +628,12 @@ def test_build_all_includes_linux_arm64_in_aggregate_success_barrier():
     assert 'git config user.name "github-actions[bot]"' in workflow
     assert "git add -- workspace/version_info.json" in workflow
     assert 'git push origin "HEAD:${GITHUB_REF_NAME}"' in workflow
+
+
+def test_requirements_match_removed_aiohttp_dependency():
+    requirements = (REPO_ROOT / "requirements.txt").read_text().splitlines()
+
+    assert "aiohttp" not in requirements
 
 
 def test_download_release_bundle_rejects_non_object_api_payload(tmp_path: Path):
@@ -613,6 +649,7 @@ def test_download_release_bundle_rejects_non_object_api_payload(tmp_path: Path):
             )
 
 
+@requires_bundle_tools
 def test_bundle_rejects_link_outside_linux_arm64_subtree(tmp_path: Path):
     source = tmp_path / "linux_arm64"
     source.mkdir()
@@ -646,6 +683,7 @@ def test_bundle_rejects_link_outside_linux_arm64_subtree(tmp_path: Path):
         )
 
 
+@requires_bundle_tools
 def test_bundle_rejects_non_object_manifest(tmp_path: Path):
     source = tmp_path / "linux_arm64"
     source.mkdir()
@@ -663,6 +701,7 @@ def test_bundle_rejects_non_object_manifest(tmp_path: Path):
         )
 
 
+@requires_bundle_tools
 def test_bundle_validates_manifest_provenance(tmp_path: Path):
     source = tmp_path / "linux_arm64"
     source.mkdir()
@@ -702,6 +741,7 @@ def test_bundle_validates_manifest_provenance(tmp_path: Path):
         )
 
 
+@requires_bundle_tools
 def test_zstd_decoder_large_stderr_does_not_deadlock(tmp_path: Path):
     source = tmp_path / "linux_arm64"
     source.mkdir()
