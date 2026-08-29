@@ -80,7 +80,7 @@ jobs:
             ~/.buildbpy/blender/lib/linux_arm64
           key: blender-${{ env.TAG }}-${{ env.PYTHON_VERSION }}-linux-arm64-deps-v1
 
-      - name: Build and publish bpy
+      - name: Build and install bpy
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |

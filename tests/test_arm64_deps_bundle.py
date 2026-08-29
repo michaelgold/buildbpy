@@ -585,6 +585,8 @@ def test_linux_arm64_falls_back_when_bundle_decoder_is_unavailable(
 def test_arm64_workflow_validates_exact_tag_and_publishes_immutable_release():
     workflow = (REPO_ROOT / ".github/workflows/build_linux_arm64.yml").read_text()
 
+    assert "- name: Build and install bpy" in workflow
+    assert "- name: Build and publish bpy" not in workflow
     assert "TAG: ${{ inputs.tag || github.event.inputs.tag }}" in workflow
     assert (
         "PYTHON_VERSION: ${{ inputs.python_version || github.event.inputs.python_version }}"
