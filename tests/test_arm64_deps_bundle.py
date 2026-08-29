@@ -13,6 +13,7 @@ import httpx
 import pytest
 
 from buildbpy.arm64_deps import (
+    BundleArtifacts,
     BundleSpec,
     _open_zstd_tar,
     configure_arm64_wayland_lib64,
@@ -514,9 +515,58 @@ def test_linux_arm64_falls_back_when_release_bundle_is_invalid(
     ]
 
 
+def test_linux_arm64_falls_back_when_bundle_decoder_is_unavailable(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+):
+    blender_repo = tmp_path / "blender"
+    cmake_dir = blender_repo / "build_files/build_environment/cmake"
+    cmake_dir.mkdir(parents=True)
+    (cmake_dir / "osl.cmake").write_text(
+        "if(NOT (APPLE OR BLENDER_PLATFORM_WINDOWS_ARM))\nendif()\n"
+    )
+    (cmake_dir / "wayland.cmake").write_text(
+        "${MESON} setup\n  --prefix ${LIBDIR}/wayland\n  ${MESON_BUILD_TYPE}\n"
+    )
+    version = ReleaseVersionCycleStrategy("5.2", "5.2.0", "release", "abc123")
+    with patch("platform.machine", return_value="aarch64"):
+        strategy = LinuxOSStrategy(version, tmp_path, blender_repo, httpx.Client())
+    commands = []
+    artifact = tmp_path / "placeholder"
+    artifacts = BundleArtifacts(artifact, artifact, artifact)
+    monkeypatch.delenv("BUILDBPY_ARM64_DEPS_ARCHIVE", raising=False)
+    monkeypatch.delenv("BUILDBPY_ARM64_DEPS_USE_RELEASE", raising=False)
+    monkeypatch.setattr(strategy, "run_command", lambda command, cwd: commands.append(command))
+    monkeypatch.setattr(
+        "buildbpy.main.download_release_bundle", lambda *args, **kwargs: artifacts
+    )
+    monkeypatch.setattr(
+        strategy,
+        "_install_arm64_bundle",
+        lambda *args, **kwargs: (_ for _ in ()).throw(RuntimeError("missing zstd")),
+    )
+
+    strategy.setup_build_environment()
+
+    assert commands == [
+        "./build_files/utils/make_update.py --no-libraries",
+        "make deps",
+    ]
+
+
 def test_arm64_workflow_validates_exact_tag_and_publishes_immutable_release():
     workflow = Path(".github/workflows/build_linux_arm64.yml").read_text()
 
+    assert "TAG: ${{ inputs.tag || github.event.inputs.tag }}" in workflow
+    assert (
+        "PYTHON_VERSION: ${{ inputs.python_version || github.event.inputs.python_version }}"
+        in workflow
+    )
+    assert (
+        'expected_abi = "cp" + "".join(os.environ["PYTHON_VERSION"].split(".")[:2])'
+        in workflow
+    )
+    assert 'assert f"-{expected_abi}-{expected_abi}-" in wheel.name' in workflow
+    assert 'assert "cp313" in wheel.name' not in workflow
     assert (
         'expected_version = tuple(map(int, os.environ["TAG"].removeprefix("v").split(".")))'
         in workflow

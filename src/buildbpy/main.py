@@ -758,6 +758,7 @@ class LinuxOSStrategy(OSStrategy):
                 except (
                     httpx.HTTPError,
                     OSError,
+                    RuntimeError,
                     ValueError,
                     subprocess.CalledProcessError,
                     tarfile.TarError,

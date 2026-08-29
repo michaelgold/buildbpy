@@ -32,8 +32,8 @@ jobs:
     runs-on: ubuntu-24.04-arm
     timeout-minutes: 360
     env:
-      TAG: ${{ inputs.tag }}
-      PYTHON_VERSION: ${{ inputs.python_version }}
+      TAG: ${{ inputs.tag || github.event.inputs.tag }}
+      PYTHON_VERSION: ${{ inputs.python_version || github.event.inputs.python_version }}
       CMAKE_BUILD_PARALLEL_LEVEL: "4"
       MAKEFLAGS: "-j4"
       NPROCS: "4"
@@ -99,7 +99,8 @@ jobs:
           wheels = list((Path.home() / ".buildbpy/build_linux_bpy/bin").glob("bpy-*.whl"))
           assert len(wheels) == 1, wheels
           wheel = wheels[0]
-          assert "cp313" in wheel.name, wheel.name
+          expected_abi = "cp" + "".join(os.environ["PYTHON_VERSION"].split(".")[:2])
+          assert f"-{expected_abi}-{expected_abi}-" in wheel.name, wheel.name
           assert "aarch64" in wheel.name, wheel.name
           assert platform.machine().lower() in {"aarch64", "arm64"}
           expected_version = tuple(map(int, os.environ["TAG"].removeprefix("v").split(".")))
@@ -200,6 +201,6 @@ jobs:
       - name: Upload ARM64 wheel artifact
         uses: actions/upload-artifact@v4
         with:
-          name: bpy-${{ env.TAG }}-cp313-linux-aarch64
+          name: bpy-${{ env.TAG }}-python${{ env.PYTHON_VERSION }}-linux-aarch64
           path: ~/.buildbpy/build_linux_bpy/bin/bpy-*.whl
           if-no-files-found: error
