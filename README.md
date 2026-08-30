@@ -73,9 +73,13 @@ Linux ARM64 that it publishes for Linux x86-64. On ARM64, `buildbpy` therefore:
 
 Bundles use immutable release tags such as
 `deps-blender-5.2.0-linux-arm64-v1`; published assets are never clobbered in
-place. A successful ARM64 CI build packages and publishes the exact dependency
-tree only after the generated wheel installs and its exact requested Blender
-version passes `import bpy`.
+place. Every Blender 5.2 patch release (`5.2.x`) reuses that `5.2.0` dependency
+bundle, cache key, and release identity. The manifest remains pinned to the
+Blender `v5.2.0` tag commit while the generated wheel is validated against the
+exact requested Blender patch version. A successful ARM64 CI build packages and
+publishes a dependency tree only when the selected immutable bundle does not
+already exist and only after the generated wheel installs and passes `import
+bpy`.
 
 The bundle, manifest, and checksum are trusted through GitHub HTTPS and the
 repository's release-write access. SHA-256 detects corruption and mixed assets;

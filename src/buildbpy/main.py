@@ -690,13 +690,25 @@ class LinuxOSStrategy(OSStrategy):
         if extract_root.exists():
             shutil.rmtree(extract_root)
         logger.info("Verifying Linux ARM64 dependency bundle %s", artifacts.archive)
+        if spec.blender_version == self.version_strategy.minor_version:
+            expected_blender_commit = self.version_strategy.commit_hash
+        else:
+            expected_blender_commit = subprocess.check_output(
+                [
+                    "git",
+                    "rev-parse",
+                    f"v{spec.blender_version}^{{commit}}",
+                ],
+                cwd=self.blender_repo_dir,
+                text=True,
+            ).strip()
         verify_and_extract_bundle(
             artifacts.archive,
             artifacts.manifest,
             artifacts.checksum,
             extract_root,
             spec,
-            expected_blender_commit=self.version_strategy.commit_hash,
+            expected_blender_commit=expected_blender_commit,
             expected_python_series=f"{sys.version_info.major}.{sys.version_info.minor}",
         )
         target = self.lib_dir / "linux_arm64"
@@ -718,7 +730,13 @@ class LinuxOSStrategy(OSStrategy):
                 "./build_files/utils/make_update.py --no-libraries",
                 self.blender_repo_dir,
             )
-            spec = BundleSpec(self.version_strategy.minor_version)
+            spec = BundleSpec.for_blender_version(self.version_strategy.minor_version)
+            if spec.blender_version != self.version_strategy.minor_version:
+                logger.info(
+                    "Blender %s uses Linux ARM64 dependency bundle %s",
+                    self.version_strategy.minor_version,
+                    spec.blender_version,
+                )
             archive_value = os.environ.get("BUILDBPY_ARM64_DEPS_ARCHIVE")
             if archive_value:
                 archive = Path(archive_value).expanduser().resolve()
