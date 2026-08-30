@@ -72,13 +72,32 @@ jobs:
           python -m pip install --upgrade pip setuptools wheel
           python -m pip install -e .
 
-      - name: Cache native Blender ARM64 dependencies
-        uses: actions/cache@v4
+      - name: Resolve ARM64 dependency bundle version
+        id: deps_version
+        run: |
+          python - <<'PY'
+          import os
+          from pathlib import Path
+          from buildbpy.arm64_deps import BundleSpec
+
+          version = os.environ["TAG"].removeprefix("v")
+          spec = BundleSpec.for_blender_version(version)
+          with Path(os.environ["GITHUB_ENV"]).open("a") as environment:
+              print(f"BLENDER_VERSION={version}", file=environment)
+              print(f"DEPS_VERSION={spec.blender_version}", file=environment)
+          with Path(os.environ["GITHUB_OUTPUT"]).open("a") as outputs:
+              print(
+                  f"is_base_version={str(version == spec.blender_version).lower()}",
+                  file=outputs,
+              )
+          PY
+
+      - name: Restore native Blender ARM64 dependency cache
+        id: deps_cache
+        uses: actions/cache/restore@v4
         with:
-          path: |
-            ~/.buildbpy/build_linux/deps_arm64
-            ~/.buildbpy/blender/lib/linux_arm64
-          key: blender-${{ env.TAG }}-${{ env.PYTHON_VERSION }}-linux-arm64-deps-v1
+          path: ~/.buildbpy/build_linux/deps_arm64
+          key: blender-${{ env.DEPS_VERSION }}-${{ env.PYTHON_VERSION }}-linux-arm64-deps-v1
 
       - name: Build and install bpy
         env:
@@ -130,9 +149,8 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          VERSION="${TAG#v}"
-          RELEASE_TAG="deps-blender-${VERSION}-linux-arm64-v1"
-          ARCHIVE="blender-${VERSION}-linux-arm64-ubuntu24.04-gcc13-v1.tar.zst"
+          RELEASE_TAG="deps-blender-${DEPS_VERSION}-linux-arm64-v1"
+          ARCHIVE="blender-${DEPS_VERSION}-linux-arm64-ubuntu24.04-gcc13-v1.tar.zst"
           if gh release view "${RELEASE_TAG}" --repo "${GITHUB_REPOSITORY}" >/dev/null 2>&1; then
             ASSETS="$(gh release view "${RELEASE_TAG}" \
               --repo "${GITHUB_REPOSITORY}" \
@@ -151,7 +169,7 @@ jobs:
           fi
 
       - name: Package verified ARM64 dependency bundle
-        if: steps.deps_release.outputs.exists != 'true'
+        if: steps.deps_release.outputs.exists != 'true' && steps.deps_version.outputs.is_base_version == 'true'
         run: |
           python - <<'PY'
           import os
@@ -162,14 +180,21 @@ jobs:
 
           root = Path.home() / ".buildbpy"
           version = os.environ["TAG"].removeprefix("v")
+          deps_version = os.environ["DEPS_VERSION"]
           commit = subprocess.check_output(
-              ["git", "-C", str(root / "blender"), "rev-parse", "HEAD"],
+              [
+                  "git",
+                  "-C",
+                  str(root / "blender"),
+                  "rev-parse",
+                  f"v{deps_version}^{{commit}}",
+              ],
               text=True,
           ).strip()
           artifacts = create_bundle(
               root / "blender/lib/linux_arm64",
               root / "deps-dist",
-              BundleSpec(version),
+              BundleSpec.for_blender_version(version),
               blender_commit=commit,
               python_version=os.environ["PYTHON_VERSION"],
           )
@@ -179,16 +204,15 @@ jobs:
           PY
 
       - name: Publish verified ARM64 dependency bundle
-        if: steps.deps_release.outputs.exists != 'true'
+        if: steps.deps_release.outputs.exists != 'true' && steps.deps_version.outputs.is_base_version == 'true'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          VERSION="${TAG#v}"
-          RELEASE_TAG="deps-blender-${VERSION}-linux-arm64-v1"
+          RELEASE_TAG="deps-blender-${DEPS_VERSION}-linux-arm64-v1"
           gh release create "${RELEASE_TAG}" \
             --repo "${GITHUB_REPOSITORY}" \
             --target "${GITHUB_SHA}" \
-            --title "Blender ${VERSION} Linux ARM64 dependencies v1" \
+            --title "Blender ${DEPS_VERSION} Linux ARM64 dependencies v1" \
             --notes "Native Linux ARM64 dependency bundle validated by the bpy wheel build and import smoke test." \
             --draft
           gh release upload "${RELEASE_TAG}" \
@@ -197,6 +221,24 @@ jobs:
           gh release edit "${RELEASE_TAG}" \
             --repo "${GITHUB_REPOSITORY}" \
             --draft=false
+
+      - name: Check native dependency cache contents
+        id: deps_cache_path
+        if: steps.deps_version.outputs.is_base_version == 'true'
+        run: |
+          if [[ -d ~/.buildbpy/build_linux/deps_arm64 ]] && \
+             find ~/.buildbpy/build_linux/deps_arm64 -mindepth 1 -print -quit | grep -q .; then
+            echo "exists=true" >> "${GITHUB_OUTPUT}"
+          else
+            echo "exists=false" >> "${GITHUB_OUTPUT}"
+          fi
+
+      - name: Save native Blender ARM64 dependency cache
+        if: steps.deps_version.outputs.is_base_version == 'true' && steps.deps_cache_path.outputs.exists == 'true' && steps.deps_cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: ~/.buildbpy/build_linux/deps_arm64
+          key: blender-${{ env.DEPS_VERSION }}-${{ env.PYTHON_VERSION }}-linux-arm64-deps-v1
 
       - name: Upload ARM64 wheel artifact
         uses: actions/upload-artifact@v4

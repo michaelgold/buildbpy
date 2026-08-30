@@ -50,7 +50,31 @@ def test_bundle_spec_has_stable_release_names():
     assert spec.release_tag == "deps-blender-5.2.0-linux-arm64-v1"
     assert spec.archive_name == "blender-5.2.0-linux-arm64-ubuntu24.04-gcc13-v1.tar.zst"
     assert spec.manifest_name == f"{spec.archive_name}.manifest.json"
+
+
+@pytest.mark.parametrize("blender_version", ["5.2.0", "5.2.1", "5.2.99"])
+def test_all_blender_5_2_patch_releases_select_5_2_0_dependency_bundle(
+    blender_version: str,
+):
+    spec = BundleSpec.for_blender_version(blender_version)
+
+    assert spec.blender_version == "5.2.0"
+    assert spec.release_tag == "deps-blender-5.2.0-linux-arm64-v1"
     assert spec.checksum_name == f"{spec.archive_name}.sha256"
+
+
+def test_other_blender_series_keep_their_exact_dependency_version():
+    spec = BundleSpec.for_blender_version("5.3.0")
+
+    assert spec.blender_version == "5.3.0"
+
+
+@pytest.mark.parametrize("blender_version", ["5.2", "v5.2.1", "5.2.1\nBAD=value"])
+def test_dependency_bundle_selector_rejects_non_semantic_versions(
+    blender_version: str,
+):
+    with pytest.raises(ValueError, match="semantic version"):
+        BundleSpec.for_blender_version(blender_version)
 
 
 def test_open_zstd_tar_reports_missing_decoder_and_closes_stderr(tmp_path: Path):
@@ -507,6 +531,72 @@ def test_linux_arm64_uses_github_release_bundle_by_default(
 
 
 @requires_bundle_tools
+def test_linux_arm64_5_2_patch_reuses_5_2_0_release_bundle(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+):
+    blender_repo = tmp_path / "blender"
+    blender_repo.mkdir()
+    subprocess.run(["git", "init"], cwd=blender_repo, check=True, capture_output=True)
+    subprocess.run(
+        ["git", "config", "user.name", "Buildbpy Test"], cwd=blender_repo, check=True
+    )
+    subprocess.run(
+        ["git", "config", "user.email", "buildbpy-test@example.invalid"],
+        cwd=blender_repo,
+        check=True,
+    )
+    (blender_repo / "version.txt").write_text("5.2.0")
+    subprocess.run(["git", "add", "version.txt"], cwd=blender_repo, check=True)
+    subprocess.run(["git", "commit", "-m", "5.2.0"], cwd=blender_repo, check=True, capture_output=True)
+    subprocess.run(["git", "tag", "v5.2.0"], cwd=blender_repo, check=True)
+    bundle_commit = subprocess.check_output(
+        ["git", "rev-parse", "v5.2.0^{commit}"], cwd=blender_repo, text=True
+    ).strip()
+    (blender_repo / "version.txt").write_text("5.2.1")
+    subprocess.run(["git", "add", "version.txt"], cwd=blender_repo, check=True)
+    subprocess.run(["git", "commit", "-m", "5.2.1"], cwd=blender_repo, check=True, capture_output=True)
+    checkout_commit = subprocess.check_output(
+        ["git", "rev-parse", "HEAD"], cwd=blender_repo, text=True
+    ).strip()
+
+    source = tmp_path / "source" / "linux_arm64"
+    (source / "lib").mkdir(parents=True)
+    (source / "lib" / "libexample.a").write_bytes(b"5.2-series-release")
+    bundle_spec = BundleSpec(blender_version="5.2.0", revision=1)
+    artifacts = create_bundle(
+        source,
+        tmp_path / "release",
+        bundle_spec,
+        blender_commit=bundle_commit,
+        python_version=f"{sys.version_info.major}.{sys.version_info.minor}.0",
+    )
+    version = ReleaseVersionCycleStrategy("5.2", "5.2.1", "release", checkout_commit)
+    with patch("platform.machine", return_value="aarch64"):
+        strategy = LinuxOSStrategy(version, tmp_path, blender_repo, httpx.Client())
+    commands = []
+    requested_specs = []
+    monkeypatch.delenv("BUILDBPY_ARM64_DEPS_ARCHIVE", raising=False)
+    monkeypatch.delenv("BUILDBPY_ARM64_DEPS_USE_RELEASE", raising=False)
+    monkeypatch.setenv("GITHUB_REPOSITORY", "michaelgold/buildbpy")
+    monkeypatch.setenv("GITHUB_TOKEN", "token")
+    monkeypatch.setattr(strategy, "run_command", lambda command, cwd: commands.append(command))
+
+    def fake_download(client, repository, token, spec, output_dir):
+        requested_specs.append(spec)
+        return artifacts
+
+    monkeypatch.setattr("buildbpy.main.download_release_bundle", fake_download)
+
+    strategy.setup_build_environment()
+
+    assert requested_specs == [bundle_spec]
+    assert commands == ["./build_files/utils/make_update.py --no-libraries"]
+    assert (
+        blender_repo / "lib/linux_arm64/lib/libexample.a"
+    ).read_bytes() == b"5.2-series-release"
+
+
+@requires_bundle_tools
 def test_linux_arm64_falls_back_when_release_bundle_is_invalid(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ):
@@ -613,7 +703,28 @@ def test_arm64_workflow_validates_exact_tag_and_publishes_immutable_release():
     assert "id: deps_release" in workflow
     assert workflow.count("steps.deps_release.outputs.exists != 'true'") == 2
     assert "already exists and is immutable" not in workflow
-    assert "key: blender-${{ env.TAG }}-${{ env.PYTHON_VERSION }}-linux-arm64-deps-v1" in workflow
+    assert "DEPS_VERSION={spec.blender_version}" in workflow
+    assert "BLENDER_VERSION={version}" in workflow
+    assert "is_base_version={str(version == spec.blender_version).lower()}" in workflow
+    assert (
+        "key: blender-${{ env.DEPS_VERSION }}-${{ env.PYTHON_VERSION }}-linux-arm64-deps-v1"
+        in workflow
+    )
+    assert "uses: actions/cache/restore@v4" in workflow
+    assert "uses: actions/cache/save@v4" in workflow
+    assert "uses: actions/cache@v4" not in workflow
+    assert "~/.buildbpy/blender/lib/linux_arm64" not in workflow
+    assert "steps.deps_cache_path.outputs.exists == 'true'" in workflow
+    assert "steps.deps_cache.outputs.cache-hit != 'true'" in workflow
+    save_cache_offset = workflow.index("- name: Save native Blender ARM64 dependency cache")
+    save_cache_section = workflow[save_cache_offset:]
+    assert "steps.deps_version.outputs.is_base_version == 'true'" in save_cache_section
+    assert 'RELEASE_TAG="deps-blender-${DEPS_VERSION}-linux-arm64-v1"' in workflow
+    assert 'ARCHIVE="blender-${DEPS_VERSION}-linux-arm64-ubuntu24.04-gcc13-v1.tar.zst"' in workflow
+    assert "BundleSpec.for_blender_version(version)" in workflow
+    assert workflow.count("steps.deps_version.outputs.is_base_version == 'true'") == 4
+    assert 'f"v{deps_version}^{{commit}}"' in workflow
+    assert '["git", "-C", str(root / "blender"), "rev-parse", "HEAD"]' not in workflow
 
 
 def test_build_all_includes_linux_arm64_in_aggregate_success_barrier():

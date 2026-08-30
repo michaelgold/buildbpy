@@ -7,6 +7,7 @@ import json
 import os
 from pathlib import Path, PurePosixPath
 import platform
+import re
 import subprocess
 import tarfile
 import tempfile
@@ -25,6 +26,19 @@ class BundleSpec:
     os_name: str = "ubuntu24.04"
     compiler: str = "gcc13"
     architecture: str = "arm64"
+
+    @classmethod
+    def for_blender_version(cls, blender_version: str) -> "BundleSpec":
+        """Select the immutable dependency bundle for a Blender release."""
+        if re.fullmatch(r"[0-9]+\.[0-9]+\.[0-9]+", blender_version) is None:
+            raise ValueError(
+                f"Blender dependency bundle requires a semantic version: {blender_version!r}"
+            )
+        parts = blender_version.split(".")
+        dependency_version = (
+            "5.2.0" if len(parts) == 3 and parts[:2] == ["5", "2"] else blender_version
+        )
+        return cls(dependency_version)
 
     @property
     def release_tag(self) -> str:
