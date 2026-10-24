@@ -395,7 +395,7 @@ def test_linux_arm64_keeps_wayland_cache_after_lib64_was_harvested(
 def test_wheel_build_and_install_use_running_python_and_check_failures(tmp_path: Path):
     bin_path = tmp_path / "bin"
     bin_path.mkdir()
-    builder = type("Builder", (), {"blender_repo_dir": tmp_path / "blender"})()
+    builder = type("Builder", (), {"blender_repo_dir": tmp_path / "blender", "os_strategy": None})()
 
     def create_wheel(*args, **kwargs):
         if not list(bin_path.glob("*.whl")):

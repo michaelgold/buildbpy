@@ -24,6 +24,35 @@ pip install --extra-index-url https://michaelgold.github.io/buildbpy/ bpy==4.5.2
 
 Replace `4.5.2` with your desired Blender version.
 
+## Linux CUDA kernels
+
+Linux x86_64 and native ARM64 builds use CUDA Toolkit 13.0 and explicitly
+build and bundle Cycles CUDA binaries. The target list is `sm_75`, `sm_80`,
+`sm_86`, `sm_89`, `sm_90`, `sm_100`, `sm_120`, plus `compute_120` PTX for
+forward compatibility. CUDA 13 no longer compiles Maxwell, Pascal or Volta
+(targets below compute capability 7.5); these wheels do not promise support
+for those GPUs. Use a CUDA-12-based build for older hardware. A sufficiently
+recent NVIDIA driver is required; a CUDA toolkit is not intended to be a
+runtime prerequisite when a compatible packaged kernel is available.
+
+For local builds, put `/usr/local/cuda-13.0/bin` first on `PATH` and set
+`CUDA_HOME` and `CUDA_PATH` to `/usr/local/cuda-13.0`. The ARM64 workflow uses
+the native NVIDIA SBSA repository, not x86_64 packages or emulation.
+
+After upstream `make_bpy_wheel.py` recursively packages the `bpy` resource
+tree, buildbpy checks the **final wheel archive** for every configured kernel
+under `bpy/.../cycles/lib`, including `.cubin.zst` and `.ptx.zst`. Missing or
+empty kernels abort before installation or publication. This is a content
+check, not a GPU execution test or a claim that arbitrary older Blender
+sources compile with CUDA 13.
+
+Before releasing, build and install the exact wheel in a validation venv,
+check import/version and architecture tags, and render with Cycles on a real
+CUDA GPU with CPU devices disabled. Preserve the native Spark ARM64 gate:
+complete the native build → wheel → install/import → GPU render chain before
+dispatching ARM64 CI. Hosted workflow import/content checks do not replace
+that gate. Do not use publication-enabled workflows just to test a branch.
+
 ## CLI Usage
 
 While the builder runs automatically in CI/CD to create releases, you can also use it locally as a command-line tool:

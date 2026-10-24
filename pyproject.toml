@@ -16,7 +16,8 @@ dependencies = [
     "bpystubgen",
     "click",
     "httpx==0.25.2",
-    "PyGithub==2.1.1"
+    "PyGithub==2.1.1",
+    "zstandard>=0.23"
 ]
 
 [project.scripts]
