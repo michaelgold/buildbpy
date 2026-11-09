@@ -925,6 +925,16 @@ class LinuxOSStrategy(OSStrategy):
 
 
 class CheckoutStrategy(ABC):
+    def _run_source_git(self, args, **kwargs):
+        # Blender's source tree includes LFS test data that bpy builds do not
+        # need. Scope this to source Git processes: make update / dependency
+        # hydration must retain the caller's environment and normal LFS behavior.
+        env = os.environ.copy()
+        env["GIT_LFS_SKIP_SMUDGE"] = "1"
+        kwargs.setdefault("cwd", self.blender_repo_dir)
+        kwargs.setdefault("check", True)
+        return subprocess.run(["git", *args], env=env, **kwargs)
+
     def __init__(self, blender_repo_dir: Path, http_client: httpx.Client = None):
         self.blender_repo_dir = blender_repo_dir
         self.http_client = http_client
@@ -936,20 +946,21 @@ class CheckoutStrategy(ABC):
 
             git_repo = "https://projects.blender.org/blender/blender.git"
 
-            subprocess.run(
-                [
-                    "git",
-                    "clone",
-                    git_repo,
-                ],
+            self._run_source_git(
+                ["clone", git_repo, str(blender_repo_dir.resolve())],
                 cwd=root_dir,
-                check=True,
             )
         # Let Blender's make_update.py/make update choose and fetch the
         # platform-specific precompiled libraries. A recursive clone starts
         # all submodule/LFS work immediately, which is fragile on non-
         # interactive Windows GitHub Actions runners.
-        subprocess.run(["git", "fetch", "--all"], cwd=blender_repo_dir, check=True)
+        self._run_source_git(["fetch", "--all"])
+        # A failed initial LFS smudge leaves a valid repository but no index.
+        # Repair only that incomplete checkout; do not force-reset ordinary
+        # existing repositories (commit/daily users may have local edits).
+        git_dir = blender_repo_dir / ".git"
+        if git_dir.is_dir() and not (git_dir / "index").exists():
+            self._run_source_git(["reset", "--hard", "HEAD"])
 
     @abstractmethod
     def checkout(self, id: str):
@@ -967,22 +978,18 @@ class CheckoutStrategy(ABC):
 class TagCheckoutStrategy(CheckoutStrategy):
     def checkout(self, id):
         # Reset to origin/main and clean the repo
-        subprocess.run(["git", "fetch", "origin"], cwd=self.blender_repo_dir, check=True)
-        subprocess.run(
-            ["git", "reset", "--hard", "origin/main"],
-            cwd=self.blender_repo_dir,
-            check=True,
-        )
-        subprocess.run(["git", "clean", "-fd"], cwd=self.blender_repo_dir, check=True)
+        self._run_source_git(["fetch", "origin"])
+        self._run_source_git(["reset", "--hard", "origin/main"])
+        self._run_source_git(["clean", "-fd"])
 
         # Fetch tags explicitly
         print(f"Fetching tags and checking out {id}")
-        subprocess.run(["git", "fetch", "--tags"], cwd=self.blender_repo_dir, check=True)
+        self._run_source_git(["fetch", "--tags"])
 
         # Checkout the specific tag
-        result = subprocess.run(
-            ["git", "checkout", f"tags/{id}", "-f"],
-            cwd=self.blender_repo_dir,
+        result = self._run_source_git(
+            ["checkout", f"tags/{id}", "-f"],
+            check=False,
             capture_output=True,
             text=True,
         )
@@ -991,9 +998,9 @@ class TagCheckoutStrategy(CheckoutStrategy):
             raise Exception(f"Failed to checkout tag {id}: {result.stderr}")
 
         # Verify we're on the right tag
-        result = subprocess.run(
-            ["git", "describe", "--tags"],
-            cwd=self.blender_repo_dir,
+        result = self._run_source_git(
+            ["describe", "--tags"],
+            check=False,
             capture_output=True,
             text=True,
         )
@@ -1015,7 +1022,7 @@ class TagCheckoutStrategy(CheckoutStrategy):
 
 class CommitCheckoutStrategy(CheckoutStrategy):
     def checkout(self, id):
-        subprocess.run(["git", "checkout", id], cwd=self.blender_repo_dir)
+        self._run_source_git(["checkout", id])
 
     def set_version(self, commit_hash: str = None, tag: str = None):
         blender_source_dir = self.blender_repo_dir
@@ -1053,7 +1060,7 @@ class DailyCheckoutStrategy(CheckoutStrategy):
         """Here we override the id and use the hash from self.build_info"""
         commit = self.build_info["hash"]
 
-        subprocess.run(["git", "checkout", commit], cwd=self.blender_repo_dir)
+        self._run_source_git(["checkout", commit])
 
 
 class BlenderBuilder:
