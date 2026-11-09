@@ -3,6 +3,11 @@ name: Build bpy for Linux ARM64
 on:
   workflow_call:
     inputs:
+      replace_existing:
+        description: Explicitly back up and replace an existing Linux wheel only
+        required: false
+        default: false
+        type: boolean
       tag:
         description: Blender version tag (for example v5.2.0)
         required: true
@@ -13,6 +18,11 @@ on:
         type: string
   workflow_dispatch:
     inputs:
+      replace_existing:
+        description: Explicitly back up and replace an existing Linux wheel only
+        required: false
+        default: false
+        type: boolean
       tag:
         description: Blender version tag
         required: true
@@ -144,9 +154,10 @@ jobs:
           print(f"bpy_version={bpy.app.version_string}")
           PY
 
-      - name: Publish verified bpy wheel
+      - name: Prepare verified bpy wheel publication
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPLACE_EXISTING: ${{ inputs.replace_existing }}
         run: |
           if ! gh release view "${TAG}" --repo "${GITHUB_REPOSITORY}" >/dev/null 2>&1; then
             gh release create "${TAG}" \
@@ -155,9 +166,31 @@ jobs:
               --title "bpy-${TAG}" \
               --notes "Blender Python Module for Blender ${TAG}"
           fi
-          gh release upload "${TAG}" \
-            --repo "${GITHUB_REPOSITORY}" \
-            ~/.buildbpy/build_linux_bpy/bin/bpy-*.whl
+          REPLACE_ARGS=()
+          if [[ "${REPLACE_EXISTING}" == "true" ]]; then
+            REPLACE_ARGS+=(--replace-existing)
+          fi
+          python -m buildbpy.linux_wheel_release prepare \
+            --wheel-dir ~/.buildbpy/build_linux_bpy/bin \
+            --tag "${TAG}" --repo "${GITHUB_REPOSITORY}" \
+            --backup "${RUNNER_TEMP}/previous-linux-wheel" "${REPLACE_ARGS[@]}"
+
+      - name: Preserve previous Linux wheel
+        uses: actions/upload-artifact@v4
+        with:
+          name: previous-linux-wheel-${{ runner.arch }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/previous-linux-wheel/
+          if-no-files-found: error
+          retention-days: 90
+
+      - name: Publish verified bpy wheel
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          python -m buildbpy.linux_wheel_release publish \
+            --wheel-dir ~/.buildbpy/build_linux_bpy/bin \
+            --tag "${TAG}" --repo "${GITHUB_REPOSITORY}" \
+            --backup "${RUNNER_TEMP}/previous-linux-wheel"
 
       - name: Check existing ARM64 dependency release
         id: deps_release
