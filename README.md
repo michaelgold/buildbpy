@@ -41,10 +41,12 @@ the native NVIDIA SBSA repository, not x86_64 packages or emulation.
 
 After upstream `make_bpy_wheel.py` recursively packages the `bpy` resource
 tree, buildbpy checks the **final wheel archive** for every configured kernel
-under `bpy/.../cycles/lib`, including `.cubin.zst` and `.ptx.zst`. Missing or
-empty kernels abort before installation or publication. This is a content
-check, not a GPU execution test or a claim that arbitrary older Blender
-sources compile with CUDA 13.
+under the versioned `bpy/.../cycles/lib` directory. Blender 4.2 and newer
+require compressed `.cubin.zst` and `.ptx.zst` kernels under `addons_core`;
+older versions require legacy uncompressed `.cubin` and `.ptx` kernels under
+`addons`. Missing or empty kernels abort before installation or publication.
+This is a content check, not a GPU execution test or a claim that arbitrary
+older Blender sources compile with CUDA 13.
 
 Before releasing, build and install the exact wheel in a validation venv,
 check import/version and architecture tags, and render with Cycles on a real

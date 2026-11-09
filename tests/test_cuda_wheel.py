@@ -158,18 +158,30 @@ def test_wheel_validation_rejects_empty_misplaced_or_wrong_format(
         ("build_linux_arm64.yml", "sbsa"),
     ],
 )
-def test_linux_workflows_install_cuda13_before_build(workflow, repository_arch):
+@pytest.mark.parametrize("indent_divisor", [1, 2])
+def test_linux_workflows_install_cuda13_before_build(
+    workflow, repository_arch, indent_divisor
+):
     text = (
         Path(__file__).resolve().parents[1] / ".github/workflows" / workflow
     ).read_text()
+    # Equivalent YAML indentation must not change the ordering contract.
+    text = "\n".join(
+        " " * ((len(line) - len(line.lstrip(" "))) // indent_divisor)
+        + line.lstrip(" ")
+        for line in text.splitlines()
+    )
     assert f"ubuntu2404/{repository_arch}/cuda-keyring_" in text
     assert "cuda-toolkit-13-0" in text
     assert "cuda-toolkit-12-8" not in text
     assert "/usr/local/cuda-13.0/bin" in text
-    assert text.index("cuda-toolkit-13-0") < text.index("      - name: Build ")
+    # Normalize leading whitespace, but keep line boundaries so commented-out
+    # steps cannot satisfy the ordering checks.
+    lines = "\n".join(line.lstrip() for line in text.splitlines())
+    assert lines.index("cuda-toolkit-13-0") < lines.index("\n- name: Build ")
     assert "--install --publish" not in text
-    assert text.index("import bpy") < text.index(
-        "      - name: Publish verified bpy wheel"
+    assert lines.index("import bpy") < lines.index(
+        "\n- name: Publish verified bpy wheel"
     )
 
 
