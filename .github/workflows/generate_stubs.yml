@@ -73,7 +73,8 @@ jobs:
       - name: Install Documentation Prerequisites
         run: |
           # bpystubgen imports pkg_resources, absent from fresh Python 3.13.
-          python -m pip install bpystubgen==0.2.7 setuptools==80.9.0
+          # Its Sphinx 5 dependency also imports imghdr (removed in Python 3.13).
+          python -m pip install bpystubgen==0.2.7 setuptools==80.9.0 'standard-imghdr==3.13.0; python_version >= "3.13"'
 
       - name: Generate API Docs and Stubs
         run: |

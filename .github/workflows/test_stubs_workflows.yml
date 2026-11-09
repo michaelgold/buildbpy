@@ -33,4 +33,12 @@ jobs:
           install = next(s for s in steps if s.get('name') == 'Install Documentation Prerequisites')
           subprocess.run(['bash', '-e', '-c', install['run']], check=True)
           subprocess.run(['python', '-m', 'bpystubgen', '--help'], check=True)
+          from pathlib import Path
+          from tempfile import TemporaryDirectory
+          from sphinx.application import Sphinx
+          with TemporaryDirectory() as tmp:
+              source = Path(tmp) / 'source'
+              source.mkdir()
+              (source / 'index.rst').write_text('Smoke\n=====\n')
+              Sphinx(str(source), None, tmp + '/out', tmp + '/doctrees', 'text').build()
           PY
