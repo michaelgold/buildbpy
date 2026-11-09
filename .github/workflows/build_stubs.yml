@@ -18,12 +18,13 @@ jobs:
       python_version: ${{ steps.set_python_version.outputs.python_version }}
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v2
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
 
       - name: Check latest tag and commit
         id: check
         if: ${{ github.event.inputs.tag == '' }}
-        run: python ./workspace/check_latest.py
+        working-directory: workspace
+        run: python check_latest.py
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -33,7 +34,9 @@ jobs:
           if [[ "${{ github.event.inputs.tag }}" != '' ]]; then
             echo "tag_input=${{ github.event.inputs.tag }}" >> $GITHUB_OUTPUT
             echo "Building for ${{ github.event.inputs.tag }}"
-          elif [[ "${{ steps.check.outputs.new_tag }}" == 'true' ]]; then
+          # Wheel version metadata is not a stubs completion record.
+          # Regenerate the latest artifact daily, even after wheels have shipped.
+          elif [[ "${{ steps.check.outputs.latest_tag }}" != '' ]]; then
             echo "tag_input=${{ steps.check.outputs.latest_tag }}" >> $GITHUB_OUTPUT
             echo "Building for ${{ steps.check.outputs.latest_tag }}"
           # elif [[ "${{ steps.check.outputs.new_commit }}" == 'true' ]]; then
@@ -45,12 +48,21 @@ jobs:
       - name: Set Python version
         id: set_python_version
         run: |
-          if [[ "${{ steps.set_tag_input.outputs.tag_input }}" == v3.* ]] || [[ "${{ steps.set_tag_input.outputs.tag_input }}" == v4.0.* ]]; then
+          TAG="${{ steps.set_tag_input.outputs.tag_input }}"
+          VERSION="${TAG#v}"
+          MAJOR="${VERSION%%.*}"
+          REMAINDER="${VERSION#*.}"
+          MINOR="${REMAINDER%%.*}"
+
+          if [[ "$MAJOR" -lt 4 ]] || ([[ "$MAJOR" -eq 4 ]] && [[ "$MINOR" -lt 1 ]]); then
             echo "python_version=3.10.11" >> $GITHUB_OUTPUT
             echo "Building for Python 3.10.11"
+          elif [[ "$MAJOR" -gt 5 ]] || ([[ "$MAJOR" -eq 5 ]] && [[ "$MINOR" -ge 1 ]]); then
+            echo "python_version=3.13.11" >> $GITHUB_OUTPUT
+            echo "Building for Python 3.13.11"
           else
-            echo "python_version=3.11.6" >> $GITHUB_OUTPUT
-            echo "Building for Python 3.11.6"
+            echo "python_version=3.11.9" >> $GITHUB_OUTPUT
+            echo "Building for Python 3.11.9"
           fi
 
 

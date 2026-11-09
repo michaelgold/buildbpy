@@ -1,0 +1,44 @@
+name: Test Stubs Workflows
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/**'
+      - 'tests/test_stubs_workflows.py'
+  push:
+    paths:
+      - '.github/workflows/**'
+      - 'tests/test_stubs_workflows.py'
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: '3.13.11'
+      - run: python -m pip install pytest PyYAML
+      - run: python -m pytest tests/test_stubs_workflows.py -v
+      - name: Smoke actual generator dependencies
+        run: |
+          python - <<'PY'
+          import subprocess
+          import yaml
+          with open('.github/workflows/generate_stubs.yml') as f:
+              steps = yaml.safe_load(f)['jobs']['build']['steps']
+          install = next(s for s in steps if s.get('name') == 'Install Documentation Prerequisites')
+          subprocess.run(['bash', '-e', '-c', install['run']], check=True)
+          subprocess.run(['python', '-m', 'bpystubgen', '--help'], check=True)
+          from pathlib import Path
+          from tempfile import TemporaryDirectory
+          from sphinx.application import Sphinx
+          with TemporaryDirectory() as tmp:
+              source = Path(tmp) / 'source'
+              source.mkdir()
+              (source / 'index.rst').write_text('Smoke\n=====\n')
+              Sphinx(str(source), None, tmp + '/out', tmp + '/doctrees', 'text').build()
+          PY
