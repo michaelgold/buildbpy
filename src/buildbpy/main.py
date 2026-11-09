@@ -20,6 +20,7 @@ from .arm64_deps import (
     download_release_bundle,
     verify_and_extract_bundle,
 )
+from .cuda_wheel import CUDA_ARCHITECTURES, validate_cuda_wheel
 from .utils import dmgextractor, make_utils
 from abc import ABC, abstractmethod
 import stat
@@ -867,6 +868,13 @@ class LinuxOSStrategy(OSStrategy):
             'set(WITH_AUDASPACE ON CACHE BOOL "" FORCE)',
             'set(WITH_CYCLES_OSL OFF CACHE BOOL "" FORCE)',
         ]
+        directives.extend(
+            [
+                'set(WITH_CYCLES_DEVICE_CUDA ON CACHE BOOL "" FORCE)',
+                'set(WITH_CYCLES_CUDA_BINARIES ON CACHE BOOL "" FORCE)',
+                f'set(CYCLES_CUDA_BINARIES_ARCH "{";".join(CUDA_ARCHITECTURES)}" CACHE STRING "" FORCE)',
+            ]
+        )
 
         with open(cmake_file_path, "a") as file:
             for directive in directives:
@@ -1217,6 +1225,14 @@ class BlenderBuilder:
         make_script = self.blender_repo_dir / "build_files/utils/make_bpy_wheel.py"
         print(f"Running python {make_script} {bin_path}")
         subprocess.run([sys.executable, make_script, bin_path], check=True)
+
+        # Check the final archive, not just the build tree: upstream packaging
+        # recursively includes bpy resources, but missing kernels must fail closed.
+        if isinstance(self.os_strategy, LinuxOSStrategy):
+            wheels = list(bin_path.glob("*.whl"))
+            if len(wheels) != 1:
+                raise ValueError(f"Expected one Linux bpy wheel, found {len(wheels)}")
+            logger.info("Verified CUDA wheel kernels: %s", validate_cuda_wheel(wheels[0]))
 
         if install:
             wheel_file = next(bin_path.glob("*.whl"), None)
