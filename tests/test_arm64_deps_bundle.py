@@ -337,7 +337,8 @@ def test_linux_arm64_falls_back_to_native_dependencies_without_bundle(
     blender_repo.mkdir()
     osl_cmake = blender_repo / "build_files/build_environment/cmake/osl.cmake"
     osl_cmake.parent.mkdir(parents=True)
-    osl_cmake.write_text("if(NOT (APPLE OR BLENDER_PLATFORM_WINDOWS_ARM))\nendif()\n")
+    osl_cmake.write_text("if(NOT (APPLE OR BLENDER_PLATFORM_WINDOWS_ARM))\n"
+        "  list(APPEND OSL_EXTRA_ARGS -DOSL_USE_OPTIX=ON)\nendif()\n")
     wayland_cmake = osl_cmake.with_name("wayland.cmake")
     wayland_cmake.write_text(
         "${MESON} setup\n"
@@ -372,7 +373,8 @@ def test_linux_arm64_keeps_wayland_cache_after_lib64_was_harvested(
     cmake_dir = blender_repo / "build_files/build_environment/cmake"
     cmake_dir.mkdir(parents=True)
     (cmake_dir / "osl.cmake").write_text(
-        "if(NOT (APPLE OR BLENDER_PLATFORM_WINDOWS_ARM))\nendif()\n"
+        "if(NOT (APPLE OR BLENDER_PLATFORM_WINDOWS_ARM))\n"
+        "  list(APPEND OSL_EXTRA_ARGS -DOSL_USE_OPTIX=ON)\nendif()\n"
     )
     (cmake_dir / "wayland.cmake").write_text(
         "  --prefix ${LIBDIR}/wayland\n  ${MESON_BUILD_TYPE}\n"
@@ -610,7 +612,8 @@ def test_linux_arm64_falls_back_when_release_bundle_is_invalid(
     cmake_dir = blender_repo / "build_files/build_environment/cmake"
     cmake_dir.mkdir(parents=True)
     (cmake_dir / "osl.cmake").write_text(
-        "if(NOT (APPLE OR BLENDER_PLATFORM_WINDOWS_ARM))\nendif()\n"
+        "if(NOT (APPLE OR BLENDER_PLATFORM_WINDOWS_ARM))\n"
+        "  list(APPEND OSL_EXTRA_ARGS -DOSL_USE_OPTIX=ON)\nendif()\n"
     )
     (cmake_dir / "wayland.cmake").write_text(
         "${MESON} setup\n  --prefix ${LIBDIR}/wayland\n  ${MESON_BUILD_TYPE}\n"
@@ -641,7 +644,8 @@ def test_linux_arm64_falls_back_when_bundle_decoder_is_unavailable(
     cmake_dir = blender_repo / "build_files/build_environment/cmake"
     cmake_dir.mkdir(parents=True)
     (cmake_dir / "osl.cmake").write_text(
-        "if(NOT (APPLE OR BLENDER_PLATFORM_WINDOWS_ARM))\nendif()\n"
+        "if(NOT (APPLE OR BLENDER_PLATFORM_WINDOWS_ARM))\n"
+        "  list(APPEND OSL_EXTRA_ARGS -DOSL_USE_OPTIX=ON)\nendif()\n"
     )
     (cmake_dir / "wayland.cmake").write_text(
         "${MESON} setup\n  --prefix ${LIBDIR}/wayland\n  ${MESON_BUILD_TYPE}\n"

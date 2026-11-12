@@ -89,16 +89,26 @@ def sha256_file(path: Path) -> str:
 
 def disable_arm64_osl_optix(osl_cmake: Path) -> bool:
     """Prevent OSL's unsupported CUDA/OptiX bitcode build on Linux ARM64."""
-    original = "if(NOT (APPLE OR BLENDER_PLATFORM_WINDOWS_ARM))"
-    replacement = (
-        "if(NOT (APPLE OR BLENDER_PLATFORM_WINDOWS_ARM OR BLENDER_PLATFORM_ARM))"
-    )
+    guards = {
+        "if(NOT (APPLE OR BLENDER_PLATFORM_WINDOWS_ARM))": (
+            "if(NOT (APPLE OR BLENDER_PLATFORM_WINDOWS_ARM OR BLENDER_PLATFORM_ARM))"
+        ),
+        "if(NOT APPLE)": "if(NOT (APPLE OR BLENDER_PLATFORM_ARM))",
+    }
     text = osl_cmake.read_text()
-    if replacement in text:
-        return False
-    if original not in text:
+    # Anchor the guard to the OptiX argument block, not an unrelated Apple check.
+    alternatives = "|".join(re.escape(guard) for guard in (*guards, *guards.values()))
+    matches = list(re.finditer(
+        rf"^({alternatives})(?=\n[ \t]+list\(APPEND OSL_EXTRA_ARGS\s+-DOSL_USE_OPTIX=ON(?:\s|\)))",
+        text,
+        re.MULTILINE,
+    ))
+    if len(matches) != 1:
         raise ValueError(f"Unrecognized Blender OSL dependency configuration: {osl_cmake}")
-    osl_cmake.write_text(text.replace(original, replacement, 1))
+    match = matches[0]
+    if match.group() in guards.values():
+        return False
+    osl_cmake.write_text(text[:match.start()] + guards[match.group()] + text[match.end():])
     return True
 
 
