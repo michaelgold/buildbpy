@@ -11,6 +11,7 @@ import sys
 import tarfile
 import zipfile
 import shutil
+import shlex
 from github import Github
 from .arm64_deps import (
     BundleArtifacts,
@@ -811,7 +812,27 @@ class LinuxOSStrategy(OSStrategy):
                 if wayland_build.exists() and not harvested_wayland_lib64.exists():
                     logger.info("Resetting Wayland build to install libraries under lib64")
                     shutil.rmtree(wayland_build)
-            self.run_command(f"{self.make_command} deps", self.blender_repo_dir)
+            # `make deps` does not forward BUILD_CMAKE_ARGS (Blender 5.2/5.3).
+            # Configure its cache explicitly with Blender's supported mirror
+            # option; upstream download.cmake retains hashes and TLS validation.
+            deps_build = self.root_dir / "build_linux/deps_arm64"
+            deps_install = self.blender_repo_dir / "lib/linux_arm64"
+            self.run_command(
+                shlex.join([
+                    "cmake", "-S", str(self.blender_repo_dir / "build_files/build_environment"),
+                    "-B", str(deps_build),
+                    "-DPACKAGE_USE_UPSTREAM_SOURCES:BOOL=OFF",
+                    f"-DHARVEST_TARGET={deps_install}",
+                ]),
+                self.blender_repo_dir,
+            )
+            self.run_command(
+                f"{self.make_command} deps " + shlex.join([
+                    f"DEPS_BUILD_DIR={deps_build}",
+                    f"DEPS_INSTALL_DIR={deps_install}",
+                ]),
+                self.blender_repo_dir,
+            )
             return
         logger.info(f"Installing libraries using make_update.py in {self.lib_dir}")
         self.run_command(

@@ -360,7 +360,12 @@ def test_linux_arm64_falls_back_to_native_dependencies_without_bundle(
 
     assert commands == [
         "./build_files/utils/make_update.py --no-libraries",
-        "make deps",
+        f"cmake -S {blender_repo}/build_files/build_environment "
+        f"-B {tmp_path}/build_linux/deps_arm64 "
+        "-DPACKAGE_USE_UPSTREAM_SOURCES:BOOL=OFF "
+        f"-DHARVEST_TARGET={blender_repo}/lib/linux_arm64",
+        f"make deps DEPS_BUILD_DIR={tmp_path}/build_linux/deps_arm64 "
+        f"DEPS_INSTALL_DIR={blender_repo}/lib/linux_arm64",
     ]
     assert "--libdir lib64" in wayland_cmake.read_text()
     assert not stale_wayland_build.exists()
@@ -633,7 +638,12 @@ def test_linux_arm64_falls_back_when_release_bundle_is_invalid(
 
     assert commands == [
         "./build_files/utils/make_update.py --no-libraries",
-        "make deps",
+        f"cmake -S {blender_repo}/build_files/build_environment "
+        f"-B {tmp_path}/build_linux/deps_arm64 "
+        "-DPACKAGE_USE_UPSTREAM_SOURCES:BOOL=OFF "
+        f"-DHARVEST_TARGET={blender_repo}/lib/linux_arm64",
+        f"make deps DEPS_BUILD_DIR={tmp_path}/build_linux/deps_arm64 "
+        f"DEPS_INSTALL_DIR={blender_repo}/lib/linux_arm64",
     ]
 
 
@@ -672,7 +682,12 @@ def test_linux_arm64_falls_back_when_bundle_decoder_is_unavailable(
 
     assert commands == [
         "./build_files/utils/make_update.py --no-libraries",
-        "make deps",
+        f"cmake -S {blender_repo}/build_files/build_environment "
+        f"-B {tmp_path}/build_linux/deps_arm64 "
+        "-DPACKAGE_USE_UPSTREAM_SOURCES:BOOL=OFF "
+        f"-DHARVEST_TARGET={blender_repo}/lib/linux_arm64",
+        f"make deps DEPS_BUILD_DIR={tmp_path}/build_linux/deps_arm64 "
+        f"DEPS_INSTALL_DIR={blender_repo}/lib/linux_arm64",
     ]
 
 
