@@ -102,6 +102,19 @@ Linux ARM64 that it publishes for Linux x86-64. On ARM64, `buildbpy` therefore:
 2. verifies its version/platform manifest and SHA-256 digest before extraction;
 3. falls back to a complete native `make deps` build when no bundle exists.
 
+The native ARM64 fallback configures Blender's supported
+`PACKAGE_USE_UPSTREAM_SOURCES:BOOL=OFF` option before `make deps`. Dependencies
+come from Blender's official source mirror, using the release branch selected
+by the checked-out Blender source (not a hard-coded GMP URL). Blender's expected
+archive hashes and `TLS_VERIFY ON` remain unchanged; mirror mode also verifies
+already-cached archives. A missing or incorrect mirror package fails closed;
+there is no silent upstream retry or checksum bypass.
+
+Blender 5.2 and 5.3 do **not** forward `BUILD_CMAKE_ARGS` from `make deps`, so
+buildbpy explicitly configures the dependency CMake cache and passes that same
+build/install directory to make. Existing upstream-enabled caches are switched
+to mirror mode. Verified dependency bundles and non-ARM64 builds are unaffected.
+
 Bundles use immutable release tags such as
 `deps-blender-5.2.0-linux-arm64-v1`; published assets are never clobbered in
 place. Every Blender 5.2 patch release (`5.2.x`) reuses that `5.2.0` dependency
