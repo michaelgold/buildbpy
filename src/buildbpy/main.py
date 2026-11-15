@@ -18,6 +18,7 @@ from .arm64_deps import (
     BundleSpec,
     configure_arm64_wayland_lib64,
     disable_arm64_osl_optix,
+    disable_arm64_ffmpeg_libdrm,
     download_release_bundle,
     verify_and_extract_bundle,
 )
@@ -812,6 +813,9 @@ class LinuxOSStrategy(OSStrategy):
                 if wayland_build.exists() and not harvested_wayland_lib64.exists():
                     logger.info("Resetting Wayland build to install libraries under lib64")
                     shutil.rmtree(wayland_build)
+            disable_arm64_ffmpeg_libdrm(
+                self.blender_repo_dir / "build_files/build_environment/cmake/ffmpeg.cmake"
+            )
             # `make deps` does not forward BUILD_CMAKE_ARGS (Blender 5.2/5.3).
             # Configure its cache explicitly with Blender's supported mirror
             # option; upstream download.cmake retains hashes and TLS validation.

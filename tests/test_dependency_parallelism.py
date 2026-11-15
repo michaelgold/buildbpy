@@ -33,6 +33,7 @@ def test_native_dependency_subprojects_schedule_requested_parallelism(tmp_path, 
         "if(NOT (APPLE OR BLENDER_PLATFORM_WINDOWS_ARM))\n"
         "  list(APPEND OSL_EXTRA_ARGS -DOSL_USE_OPTIX=ON)\nendif()\n"
     )
+    (source / "cmake/ffmpeg.cmake").write_text("      --disable-vaapi\n")
     (source / "cmake/wayland.cmake").write_text(
         "${MESON} setup\n  --prefix ${LIBDIR}/wayland\n  ${MESON_BUILD_TYPE}\n"
     )

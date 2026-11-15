@@ -339,6 +339,7 @@ def test_linux_arm64_falls_back_to_native_dependencies_without_bundle(
     osl_cmake.parent.mkdir(parents=True)
     osl_cmake.write_text("if(NOT (APPLE OR BLENDER_PLATFORM_WINDOWS_ARM))\n"
         "  list(APPEND OSL_EXTRA_ARGS -DOSL_USE_OPTIX=ON)\nendif()\n")
+    osl_cmake.with_name("ffmpeg.cmake").write_text("      --disable-vaapi\n")
     wayland_cmake = osl_cmake.with_name("wayland.cmake")
     wayland_cmake.write_text(
         "${MESON} setup\n"
@@ -381,6 +382,7 @@ def test_linux_arm64_keeps_wayland_cache_after_lib64_was_harvested(
         "if(NOT (APPLE OR BLENDER_PLATFORM_WINDOWS_ARM))\n"
         "  list(APPEND OSL_EXTRA_ARGS -DOSL_USE_OPTIX=ON)\nendif()\n"
     )
+    (cmake_dir / "ffmpeg.cmake").write_text("      --disable-vaapi\n")
     (cmake_dir / "wayland.cmake").write_text(
         "  --prefix ${LIBDIR}/wayland\n  ${MESON_BUILD_TYPE}\n"
     )
@@ -620,6 +622,7 @@ def test_linux_arm64_falls_back_when_release_bundle_is_invalid(
         "if(NOT (APPLE OR BLENDER_PLATFORM_WINDOWS_ARM))\n"
         "  list(APPEND OSL_EXTRA_ARGS -DOSL_USE_OPTIX=ON)\nendif()\n"
     )
+    (cmake_dir / "ffmpeg.cmake").write_text("      --disable-vaapi\n")
     (cmake_dir / "wayland.cmake").write_text(
         "${MESON} setup\n  --prefix ${LIBDIR}/wayland\n  ${MESON_BUILD_TYPE}\n"
     )
@@ -657,6 +660,7 @@ def test_linux_arm64_falls_back_when_bundle_decoder_is_unavailable(
         "if(NOT (APPLE OR BLENDER_PLATFORM_WINDOWS_ARM))\n"
         "  list(APPEND OSL_EXTRA_ARGS -DOSL_USE_OPTIX=ON)\nendif()\n"
     )
+    (cmake_dir / "ffmpeg.cmake").write_text("      --disable-vaapi\n")
     (cmake_dir / "wayland.cmake").write_text(
         "${MESON} setup\n  --prefix ${LIBDIR}/wayland\n  ${MESON_BUILD_TYPE}\n"
     )

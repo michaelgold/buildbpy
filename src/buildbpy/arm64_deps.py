@@ -112,6 +112,23 @@ def disable_arm64_osl_optix(osl_cmake: Path) -> bool:
     return True
 
 
+def disable_arm64_ffmpeg_libdrm(ffmpeg_cmake: Path) -> bool:
+    """Avoid auto-detected host DRM symbols in Blender's static FFmpeg libs.
+
+    Blender does not link libdrm, and shared bpy links permit unresolved symbols
+    until import. Disable this optional input alongside the existing VAAPI opt-out.
+    """
+    text = ffmpeg_cmake.read_text()
+    anchor = "      --disable-vaapi\n"
+    replacement = anchor + "      --disable-libdrm\n"
+    if text.count(anchor) != 1:
+        raise ValueError(f"Unrecognized Blender FFmpeg dependency configuration: {ffmpeg_cmake}")
+    if replacement in text:
+        return False
+    ffmpeg_cmake.write_text(text.replace(anchor, replacement, 1))
+    return True
+
+
 def configure_arm64_wayland_lib64(wayland_cmake: Path) -> bool:
     """Match Wayland's Meson install directory to Blender's harvest rules."""
     text = wayland_cmake.read_text()
