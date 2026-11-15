@@ -23,6 +23,7 @@ def test_native_dependencies_configure_mirror_before_make(tmp_path, monkeypatch,
         "if(NOT (APPLE OR BLENDER_PLATFORM_WINDOWS_ARM))\n"
         "  list(APPEND OSL_EXTRA_ARGS -DOSL_USE_OPTIX=ON)\nendif()\n"
     )
+    (cmake_dir / "ffmpeg.cmake").write_text("      --disable-vaapi\n")
     (cmake_dir / "wayland.cmake").write_text(
         "${MESON} setup\n  --prefix ${LIBDIR}/wayland\n  ${MESON_BUILD_TYPE}\n"
     )
@@ -50,6 +51,7 @@ def test_native_dependencies_configure_mirror_before_make(tmp_path, monkeypatch,
                 subprocess.run(args, cwd=cwd, check=True, capture_output=True)
         monkeypatch.setattr(strategy, "run_command", run)
         strategy.setup_build_environment()
+    assert "--disable-libdrm" in (cmake_dir / "ffmpeg.cmake").read_text()
     assert len(commands) == 3
     assert commands[1] == [
         "cmake", "-S", str(cmake_dir.parent), "-B", str(build),
