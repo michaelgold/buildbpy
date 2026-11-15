@@ -56,8 +56,8 @@ def test_native_dependencies_configure_mirror_before_make(tmp_path, monkeypatch,
         "-DPACKAGE_USE_UPSTREAM_SOURCES:BOOL=OFF",
         f"-DHARVEST_TARGET={blender / 'lib/linux_arm64'}",
     ]
-    assert commands[2] == ["make", "deps", f"DEPS_BUILD_DIR={build}",
-                           f"DEPS_INSTALL_DIR={blender / 'lib/linux_arm64'}"]
+    assert commands[2] == ["make", "-j1", "deps", f"DEPS_BUILD_DIR={build}",
+                           f"DEPS_INSTALL_DIR={blender / 'lib/linux_arm64'}", "MAKEOVERRIDES="]
     assert "PACKAGE_USE_UPSTREAM_SOURCES:BOOL=OFF" in (build / "CMakeCache.txt").read_text()
 
 

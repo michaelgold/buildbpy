@@ -827,9 +827,16 @@ class LinuxOSStrategy(OSStrategy):
                 self.blender_repo_dir,
             )
             self.run_command(
-                f"{self.make_command} deps " + shlex.join([
+                # The outer recipe does not invoke $(MAKE), so GNU make closes
+                # its jobserver descriptors. Keep it serial; NPROCS controls the
+                # upstream wrapper's per-dependency compiler parallelism.
+                f"{self.make_command} -j1 deps " + shlex.join([
                     f"DEPS_BUILD_DIR={deps_build}",
                     f"DEPS_INSTALL_DIR={deps_install}",
+                    # Blender's wrapper appends -jN to MAKEFLAGS. Command-line
+                    # directory overrides otherwise add a '-- VAR=...' suffix,
+                    # swallowing those flags and serializing sub-projects.
+                    "MAKEOVERRIDES=",
                 ]),
                 self.blender_repo_dir,
             )
