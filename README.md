@@ -115,6 +115,22 @@ buildbpy explicitly configures the dependency CMake cache and passes that same
 build/install directory to make. Existing upstream-enabled caches are switched
 to mirror mode. Verified dependency bundles and non-ARM64 builds are unaffected.
 
+For native dependency compilation, `NPROCS` selects the per-dependency job count
+(upstream defaults to the available CPU count). The outer `make deps` runs with
+`-j1 MAKEOVERRIDES=`: the upstream recipe does not preserve an outer jobserver,
+and forwarding command-line directory overrides corrupts the wrapper's appended
+job flags. Keeping that orchestration serial does **not** serialize compilation;
+Blender's wrapper still builds each dependency with `NPROCS` workers. The tests
+exercise both upstream 5.2/5.3 makefiles and measure concurrent build-task
+scheduling (each task also compiles a C object), including an inherited
+`MAKEFLAGS=-j2` environment.
+
+A cold build can still exceed the hosted runner's six-hour limit. Do not raise
+the timeout above that limit or publish an unverified partial dependency tree.
+A native build in a persistent directory can bootstrap the immutable bundle,
+but the wheel build and import gate must pass before publishing it. The existing
+Actions cache is only saved after success; it is not a partial-build checkpoint.
+
 Bundles use immutable release tags such as
 `deps-blender-5.2.0-linux-arm64-v1`; published assets are never clobbered in
 place. Every Blender 5.2 patch release (`5.2.x`) reuses that `5.2.0` dependency
