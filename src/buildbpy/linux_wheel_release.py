@@ -1,4 +1,4 @@
-"""Explicit, backed-up replacement of Linux wheel assets, never dependency bundles.
+"""Verified reuse or explicit backed-up replacement of Linux wheel assets.
 
 The workflow must retain the prepare directory with upload-artifact before publish.
 No delete API is used; only the exact validated wheel is uploaded with --clobber.
@@ -6,9 +6,12 @@ No delete API is used; only the exact validated wheel is uploaded with --clobber
 import argparse
 import hashlib
 import json
+import os
 from pathlib import Path
 import re
 import subprocess
+import sys
+import tempfile
 
 
 def gh(*args: str) -> str:
@@ -16,8 +19,11 @@ def gh(*args: str) -> str:
 
 
 def digest(path: Path) -> str:
+    checksum = hashlib.sha256()
     with path.open("rb") as stream:
-        return "sha256:" + hashlib.file_digest(stream, "sha256").hexdigest()
+        for chunk in iter(lambda: stream.read(1024 * 1024), b""):
+            checksum.update(chunk)
+    return "sha256:" + checksum.hexdigest()
 
 
 def validate(wheel: Path, tag: str) -> None:
@@ -52,18 +58,43 @@ def verify_backup(path: Path, old: dict) -> None:
         raise ValueError("Backup size/digest differs from release asset")
 
 
-def prepare(wheel: Path, tag: str, repo: str, backup: Path, replace_existing: bool) -> None:
+def verify_runtime(wheel: Path, tag: str) -> None:
+    """Smoke the downloaded asset, not the freshly built/importable bpy tree."""
+    with tempfile.TemporaryDirectory(prefix="bpy-release-smoke-") as directory:
+        python = Path(directory) / "venv/bin/python"
+        env = os.environ.copy()
+        env.pop("PYTHONPATH", None)
+        subprocess.run([sys.executable, "-m", "venv", str(python.parent.parent)],
+                       check=True, env=env)
+        subprocess.run([str(python), "-I", "-m", "pip", "install", str(wheel.resolve())],
+                       check=True, cwd=directory, env=env)
+        subprocess.run([str(python), "-I", "-c",
+                        "import bpy, numpy; import sys; "
+                        "expected = tuple(map(int, sys.argv[1][1:].split('.'))); "
+                        "assert bpy.app.version == expected, (bpy.app.version, expected); "
+                        "print('Verified existing bpy:', bpy.app.version)", tag],
+                       check=True, cwd=directory, env=env)
+
+
+def prepare(wheel: Path, tag: str, repo: str, backup: Path, replace_existing: bool,
+            reuse_existing: bool = False) -> None:
     validate(wheel, tag)
+    if replace_existing and reuse_existing:
+        raise ValueError("Replacement and reuse are mutually exclusive")
     old = asset(repo, tag, wheel.name)
-    if old and not replace_existing:
+    if old and not (replace_existing or reuse_existing):
         raise ValueError("Asset exists: explicit --replace-existing is required")
     backup.mkdir(parents=True, exist_ok=False)
     if old:
         gh("release", "download", tag, "--repo", repo, "--pattern", wheel.name,
            "--dir", str(backup))
         verify_backup(backup / wheel.name, old)
+        if reuse_existing:
+            verify_runtime(backup / wheel.name, tag)
+            verify_backup(backup / wheel.name, old)
     receipt = {"repo": repo, "tag": tag, "name": wheel.name,
-               "new_digest": digest(wheel), "old": identity(old)}
+               "new_digest": digest(wheel), "old": identity(old),
+               "reuse_existing": bool(old and reuse_existing)}
     (backup / "receipt.json").write_text(json.dumps(receipt, indent=2) + "\n")
 
 
@@ -79,6 +110,11 @@ def publish(wheel: Path, tag: str, repo: str, backup: Path) -> None:
         verify_backup(backup / wheel.name, old)
     if identity(asset(repo, tag, wheel.name)) != old:
         raise ValueError("Release asset changed since backup; refusing replacement")
+    if receipt.get("reuse_existing"):
+        if not old:
+            raise ValueError("Reuse requires a verified existing asset")
+        print(json.dumps({"reused": old}, indent=2))
+        return
     args = ["release", "upload", tag, "--repo", repo, str(wheel)]
     if old:
         args.append("--clobber")
@@ -96,13 +132,17 @@ def main():
     parser.add_argument("--tag", required=True)
     parser.add_argument("--repo", required=True)
     parser.add_argument("--backup", type=Path, required=True)
-    parser.add_argument("--replace-existing", action="store_true")
+    collision = parser.add_mutually_exclusive_group()
+    collision.add_argument("--replace-existing", action="store_true")
+    collision.add_argument("--reuse-existing", action="store_true",
+                           help="Verify and import the existing wheel; never overwrite it")
     args = parser.parse_args()
     wheels = list(args.wheel_dir.glob("bpy-*.whl"))
     if len(wheels) != 1:
         parser.error(f"Expected exactly one wheel, found {len(wheels)}")
     if args.action == "prepare":
-        prepare(wheels[0], args.tag, args.repo, args.backup, args.replace_existing)
+        prepare(wheels[0], args.tag, args.repo, args.backup, args.replace_existing,
+                args.reuse_existing)
     else:
         publish(wheels[0], args.tag, args.repo, args.backup)
 

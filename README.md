@@ -159,6 +159,31 @@ Set `BUILDBPY_ARM64_DEPS_USE_RELEASE=0` to force native dependency compilation.
 For a private fork, set `BUILDBPY_DEPS_REPOSITORY=owner/repository` and provide
 `GITHUB_TOKEN` or `GH_TOKEN` with release-read access.
 
+## Retrying a partially published nightly
+
+Linux publication defaults to verified reuse when the exact wheel name already
+exists. It downloads the existing asset, requires GitHub's SHA-256 and size to
+match, and installs/imports those bytes in a fresh virtual environment with the
+requested Blender version. It rechecks the asset identity before completing,
+without uploading or clobbering. A filename alone is not evidence; missing
+digests, corrupted bytes, failed imports, and concurrent asset changes fail the
+job. This is an import gate, not a new GPU-render certification. The fresh build
+still runs; its bytes may differ from the retained published wheel.
+
+To intentionally replace a Linux wheel, dispatch its platform workflow with
+`replace_existing=true`. This retains the previous verified wheel as a 90-day
+Actions artifact before replacement; dependency bundles remain immutable.
+Linux publishing jobs serialize by tag and architecture across nightly/manual
+callers (including the legacy aarch64 workflow). Do not run an external/manual
+release writer concurrently: GitHub's upload API has no atomic compare-and-swap.
+
+`build_all.yml` advances `workspace/version_info.json` only after all four
+platform jobs succeed, recording the tag and commit selected at the start.
+Detection alone never writes metadata. To exercise the scheduled path manually,
+dispatch **Build All Platforms with the tag input omitted**. An explicit tag
+build deliberately does not advance automatic version tracking. Only dispatch
+publication-enabled builds after the normal native validation gates/approval.
+
 ## Contributing
 
 Contributions are welcome! Please feel free to submit a Pull Request.

@@ -36,6 +36,9 @@ on:
 
 jobs:
   build:
+    concurrency:
+      group: bpy-linux-x86_64-${{ inputs.tag || github.event.inputs.tag }}
+      cancel-in-progress: false
     runs-on: ubuntu-24.04
     permissions:
       contents: write
@@ -308,6 +311,8 @@ jobs:
           REPLACE_ARGS=()
           if [[ "${REPLACE_EXISTING}" == "true" ]]; then
             REPLACE_ARGS+=(--replace-existing)
+          else
+            REPLACE_ARGS+=(--reuse-existing)
           fi
           python -m src.buildbpy.linux_wheel_release prepare \
             --wheel-dir ~/.buildbpy/build_linux_bpy/bin \
