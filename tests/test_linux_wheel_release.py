@@ -11,6 +11,25 @@ from buildbpy import linux_wheel_release as release
 NAME = "bpy-5.2.3-cp313-cp313-manylinux_2_39_aarch64.whl"
 
 
+def test_digest_supports_python310(tmp_path, monkeypatch):
+    wheel = tmp_path / NAME
+    wheel.write_bytes(b"wheel content")
+    monkeypatch.delattr(hashlib, "file_digest", raising=False)
+    assert release.digest(wheel) == "sha256:" + hashlib.sha256(b"wheel content").hexdigest()
+
+
+@pytest.mark.parametrize("filename,arch", [
+    ("build_linux.yml", "x86_64"), ("build_linux_arm64.yml", "aarch64"),
+    ("build_linux_aarch64.yml", "aarch64"),
+])
+def test_linux_publishers_serialize_same_tag(filename, arch):
+    workflow = yaml.safe_load((Path(__file__).parents[1] / ".github/workflows" / filename).read_text())
+    assert workflow["jobs"]["build"]["concurrency"] == {
+        "group": "bpy-linux-" + arch + "-${{ inputs.tag || github.event.inputs.tag }}",
+        "cancel-in-progress": False,
+    }
+
+
 def setup_release(tmp_path, monkeypatch, *, digest=None):
     wheel = tmp_path / NAME
     wheel.write_bytes(b"new wheel")
@@ -35,6 +54,40 @@ def test_collision_requires_explicit_opt_in(tmp_path, monkeypatch):
     assert not any(c[1] in {"download", "upload"} for c in calls)
 
 
+def test_nightly_reuses_verified_existing_bytes_without_replacement(tmp_path, monkeypatch):
+    wheel, old, calls = setup_release(tmp_path, monkeypatch)
+    backup = tmp_path / "backup"
+    verified = []
+    monkeypatch.setattr(release, "verify_runtime", lambda path, tag: verified.append((path.read_bytes(), tag)), raising=False)
+    release.prepare(wheel, "v5.2.3", "owner/repo", backup, False, reuse_existing=True)
+    release.publish(wheel, "v5.2.3", "owner/repo", backup)
+    assert verified == [(b"old wheel", "v5.2.3")]
+    assert json.loads((backup / "receipt.json").read_text())["reuse_existing"] is True
+    assert not any(c[:2] == ("release", "upload") for c in calls)
+
+
+@pytest.mark.parametrize("failure", ["digest", "size", "runtime", "race", "backup"])
+def test_reuse_fails_closed(tmp_path, monkeypatch, failure):
+    wheel, old, calls = setup_release(tmp_path, monkeypatch)
+    backup = tmp_path / "backup"
+    def verify(path, tag):
+        if failure == "runtime":
+            raise ValueError("runtime import failed")
+    monkeypatch.setattr(release, "verify_runtime", verify, raising=False)
+    if failure == "digest":
+        old["digest"] = None
+    if failure == "size":
+        old["size"] += 1
+    with pytest.raises(ValueError):
+        release.prepare(wheel, "v5.2.3", "owner/repo", backup, False, reuse_existing=True)
+        if failure == "race":
+            old["id"] += 1
+        if failure == "backup":
+            (backup / NAME).write_bytes(b"corrupt")
+        release.publish(wheel, "v5.2.3", "owner/repo", backup)
+    assert not any(c[:2] == ("release", "upload") for c in calls)
+
+
 def test_verified_backup_and_readback_before_replacement(tmp_path, monkeypatch):
     wheel, old, calls = setup_release(tmp_path, monkeypatch)
     backup = tmp_path / "backup"
@@ -55,7 +108,8 @@ def test_verified_backup_and_readback_before_replacement(tmp_path, monkeypatch):
     assert str(wheel) in uploads[0]
 
 
-def test_new_asset_never_clobbers(tmp_path, monkeypatch):
+@pytest.mark.parametrize("reuse_existing", [False, True])
+def test_new_asset_never_clobbers(tmp_path, monkeypatch, reuse_existing):
     wheel, new, calls = setup_release(tmp_path, monkeypatch)
     original = release.gh
     uploaded = False
@@ -70,7 +124,7 @@ def test_new_asset_never_clobbers(tmp_path, monkeypatch):
         return result
     monkeypatch.setattr(release, "gh", gh)
     backup = tmp_path / "backup"
-    release.prepare(wheel, "v5.2.3", "owner/repo", backup, False)
+    release.prepare(wheel, "v5.2.3", "owner/repo", backup, False, reuse_existing)
     release.publish(wheel, "v5.2.3", "owner/repo", backup)
     assert not any("--clobber" in c for c in calls)
     assert not any(c[:2] == ("release", "download") for c in calls)
@@ -140,3 +194,30 @@ def test_workflow_requires_durable_backup_before_publish(filename):
     assert "if" not in steps[backup] and "continue-on-error" not in steps[backup]
     assert "linux_wheel_release publish" in steps[publish]["run"]
     assert "--clobber" not in steps[publish]["run"]
+    assert 'else\n  REPLACE_ARGS+=(--reuse-existing)' in steps[prepare]["run"]
+
+
+def test_runtime_verifies_download_in_clean_environment(tmp_path, monkeypatch):
+    wheel = tmp_path / NAME
+    wheel.write_bytes(b"fixture")
+    calls = []
+    monkeypatch.setenv("PYTHONPATH", "/untrusted/built/bpy")
+    monkeypatch.setattr(release.subprocess, "run", lambda args, **kw: calls.append((args, kw)))
+    release.verify_runtime(wheel, "v5.2.3")
+    assert len(calls) == 3
+    assert calls[0][0][1:3] == ["-m", "venv"]
+    assert calls[1][0][1:] == ["-I", "-m", "pip", "install", str(wheel.resolve())]
+    assert calls[2][0][1:3] == ["-I", "-c"]
+    assert "assert bpy.app.version == expected" in calls[2][0][3]
+    assert calls[2][0][-1] == "v5.2.3"
+    for _, kwargs in calls:
+        assert kwargs["check"] is True
+        assert "PYTHONPATH" not in kwargs["env"]
+    assert calls[2][1]["cwd"] != str(wheel.parent)
+
+
+def test_replacement_and_reuse_are_mutually_exclusive(tmp_path, monkeypatch):
+    wheel, _, calls = setup_release(tmp_path, monkeypatch)
+    with pytest.raises(ValueError, match="mutually exclusive"):
+        release.prepare(wheel, "v5.2.3", "owner/repo", tmp_path / "backup", True, True)
+    assert not calls

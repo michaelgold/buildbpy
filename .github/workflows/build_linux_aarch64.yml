@@ -26,6 +26,9 @@ on:
 
 jobs:
   build:
+    concurrency:
+      group: bpy-linux-aarch64-${{ inputs.tag || github.event.inputs.tag }}
+      cancel-in-progress: false
     runs-on: ubuntu-latest
     permissions:
       contents: write

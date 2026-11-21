@@ -1,5 +1,7 @@
+import argparse
 import json
 import os
+import re
 
 import requests
 
@@ -53,8 +55,19 @@ def write_version_info(file_path, tag, commit):
         json.dump({"previous_tag": tag, "previous_commit": commit}, file)
 
 
-def main():
+def main(argv=None):
+    parser = argparse.ArgumentParser(description="Detect upstream changes or record a completed build selection")
+    parser.add_argument("--record-tag")
+    parser.add_argument("--record-commit")
+    args = parser.parse_args(argv)
     file_path = "version_info.json"
+    if args.record_tag is not None or args.record_commit is not None:
+        if not re.fullmatch(r"v\d+\.\d+\.\d+", args.record_tag or "") or not re.fullmatch(
+            r"[0-9a-f]{40}", args.record_commit or ""
+        ):
+            parser.error("Recording requires an exact version tag and 40-character commit SHA")
+        write_version_info(file_path, args.record_tag, args.record_commit)
+        return
     version_info = read_version_info(file_path)
 
     latest_tag = get_latest_tag()
@@ -63,15 +76,13 @@ def main():
     new_tag = latest_tag != version_info.get("previous_tag")
     new_commit = latest_commit != version_info.get("previous_commit")
 
-    if new_tag or new_commit:
-        write_version_info(file_path, latest_tag, latest_commit)
-
     github_output = os.getenv("GITHUB_OUTPUT")
     if github_output:
         with open(github_output, "a") as output_file:
             output_file.write(f"new_tag={str(new_tag).lower()}\n")
             output_file.write(f"new_commit={str(new_commit).lower()}\n")
             output_file.write(f"latest_tag={latest_tag or ''}\n")
+            output_file.write(f"latest_commit={latest_commit or ''}\n")
 
 
 if __name__ == "__main__":
